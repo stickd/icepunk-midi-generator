@@ -1,0 +1,3729 @@
+{
+  "dataset_summary": {
+    "total_files_found": 30,
+    "total_files_analyzed": 30,
+    "total_failed": 0,
+    "total_notes": 1229,
+    "average_notes_per_file": 40.97,
+    "common_estimated_keys": {
+      "A minor": 8,
+      "E minor": 6,
+      "C minor": 4,
+      "D minor": 3,
+      "D# minor": 2,
+      "C major": 2,
+      "G major": 2,
+      "G minor": 1,
+      "A# major": 1,
+      "D# major": 1
+    },
+    "global_pitch_range": {
+      "min": 33,
+      "max": 84
+    },
+    "average_velocity_across_files": 99.75,
+    "average_duration_beats_across_files": 0.6045,
+    "average_rhythmic_density_notes_per_beat": 2.5788
+  },
+  "files": [
+    {
+      "file_name": "midi_1.mid",
+      "path": "midi_dataset\\midi_1.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 32,
+      "unique_pitches": [
+        48,
+        50,
+        52,
+        53,
+        55,
+        57,
+        59,
+        60,
+        62
+      ],
+      "pitch_range": {
+        "min": 48,
+        "max": 62
+      },
+      "average_pitch": 55.19,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 6
+        },
+        {
+          "pitch": 50,
+          "name": "D3",
+          "count": 6
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 4
+        },
+        {
+          "pitch": 59,
+          "name": "B3",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 2
+        },
+        {
+          "pitch": 52,
+          "name": "E3",
+          "count": 2
+        },
+        {
+          "pitch": 48,
+          "name": "C3",
+          "count": 2
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 6,
+        "C#": 0,
+        "D": 10,
+        "D#": 0,
+        "E": 2,
+        "F": 6,
+        "F#": 0,
+        "G": 2,
+        "G#": 0,
+        "A": 2,
+        "A#": 0,
+        "B": 4
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-12": 2,
+        "-10": 2,
+        "-7": 2,
+        "-6": 2,
+        "-4": 2,
+        "-2": 4,
+        "-1": 2,
+        "0": 1,
+        "2": 2,
+        "5": 4,
+        "7": 4,
+        "9": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "D minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_10.mid",
+      "path": "midi_dataset\\midi_10.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 152.0,
+      "note_count": 32,
+      "unique_pitches": [
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72,
+        76
+      ],
+      "pitch_range": {
+        "min": 62,
+        "max": 76
+      },
+      "average_pitch": 66.56,
+      "average_velocity": 100,
+      "average_duration_beats": 0.4167,
+      "median_duration_beats": 0.4167,
+      "most_common_pitches": [
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 8
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 6
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 4
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 2
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 2
+        },
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 2,
+        "C#": 0,
+        "D": 6,
+        "D#": 0,
+        "E": 10,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 2,
+        "A#": 0,
+        "B": 4
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "short_1/16": 32
+      },
+      "interval_distribution": {
+        "-11": 2,
+        "-8": 2,
+        "-5": 2,
+        "-3": 4,
+        "-2": 2,
+        "1": 4,
+        "2": 5,
+        "3": 2,
+        "4": 2,
+        "5": 4,
+        "7": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0105,
+      "estimated_key": "E minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_11.mid",
+      "path": "midi_dataset\\midi_11.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 142.0,
+      "note_count": 32,
+      "unique_pitches": [
+        60,
+        62,
+        64,
+        65,
+        69
+      ],
+      "pitch_range": {
+        "min": 60,
+        "max": 69
+      },
+      "average_pitch": 64,
+      "average_velocity": 118,
+      "average_duration_beats": 0.5684,
+      "median_duration_beats": 0.5729,
+      "most_common_pitches": [
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 8
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 6
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 6
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 6
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 6
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 6,
+        "C#": 0,
+        "D": 6,
+        "D#": 0,
+        "E": 8,
+        "F": 6,
+        "F#": 0,
+        "G": 0,
+        "G#": 0,
+        "A": 6,
+        "A#": 0,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "very_hard_116_127": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-9": 2,
+        "-5": 4,
+        "-4": 2,
+        "-3": 1,
+        "-2": 4,
+        "-1": 4,
+        "1": 4,
+        "2": 2,
+        "5": 2,
+        "7": 4,
+        "9": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_12.mid",
+      "path": "midi_dataset\\midi_12.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 160.0,
+      "note_count": 44,
+      "unique_pitches": [
+        64,
+        67,
+        74,
+        76,
+        81,
+        83,
+        84
+      ],
+      "pitch_range": {
+        "min": 64,
+        "max": 84
+      },
+      "average_pitch": 75.27,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 12
+        },
+        {
+          "pitch": 83,
+          "name": "B5",
+          "count": 8
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 8
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 4
+        },
+        {
+          "pitch": 84,
+          "name": "C6",
+          "count": 4
+        },
+        {
+          "pitch": 81,
+          "name": "A5",
+          "count": 4
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 4,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 20,
+        "F": 0,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 8
+      },
+      "velocity_distribution": {
+        "hard_91_115": 44
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 44
+      },
+      "interval_distribution": {
+        "-19": 4,
+        "-14": 3,
+        "-10": 4,
+        "-9": 4,
+        "-1": 4,
+        "5": 4,
+        "7": 4,
+        "8": 4,
+        "9": 4,
+        "12": 8
+      },
+      "rhythmic_density_notes_per_beat": 2.75,
+      "estimated_key": "E minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 44,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_13.mid",
+      "path": "midi_dataset\\midi_13.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 144.0,
+      "note_count": 38,
+      "unique_pitches": [
+        52,
+        53,
+        59,
+        62,
+        64,
+        65,
+        69,
+        71,
+        72,
+        74
+      ],
+      "pitch_range": {
+        "min": 52,
+        "max": 74
+      },
+      "average_pitch": 65.84,
+      "average_velocity": 100,
+      "average_duration_beats": 0.8421,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 10
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 8
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 4
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 4
+        },
+        {
+          "pitch": 52,
+          "name": "E3",
+          "count": 2
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        },
+        {
+          "pitch": 59,
+          "name": "B3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 4,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 12,
+        "F": 4,
+        "F#": 0,
+        "G": 0,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 10
+      },
+      "velocity_distribution": {
+        "hard_91_115": 38
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32,
+        "very_long_1/2_to_bar": 6
+      },
+      "interval_distribution": {
+        "-17": 1,
+        "-11": 2,
+        "-9": 2,
+        "-8": 2,
+        "-7": 2,
+        "-5": 2,
+        "-2": 2,
+        "-1": 4,
+        "1": 4,
+        "2": 4,
+        "3": 2,
+        "5": 2,
+        "7": 2,
+        "12": 4,
+        "16": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.375,
+      "estimated_key": "E minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 38,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_14.mid",
+      "path": "midi_dataset\\midi_14.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 154.0,
+      "note_count": 38,
+      "unique_pitches": [
+        55,
+        57,
+        58,
+        62,
+        63,
+        67,
+        69,
+        70,
+        72
+      ],
+      "pitch_range": {
+        "min": 55,
+        "max": 72
+      },
+      "average_pitch": 65.16,
+      "average_velocity": 100,
+      "average_duration_beats": 0.7895,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 8
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 8
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 4
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 4
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 63,
+          "name": "D#4",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 2
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 2
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 4,
+        "C#": 0,
+        "D": 8,
+        "D#": 4,
+        "E": 0,
+        "F": 0,
+        "F#": 0,
+        "G": 6,
+        "G#": 0,
+        "A": 10,
+        "A#": 6,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 38
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 24,
+        "short_1/16": 8,
+        "very_long_1/2_to_bar": 6
+      },
+      "interval_distribution": {
+        "-15": 2,
+        "-9": 2,
+        "-7": 4,
+        "-5": 5,
+        "0": 4,
+        "1": 6,
+        "2": 4,
+        "5": 2,
+        "6": 2,
+        "7": 2,
+        "11": 2,
+        "17": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.375,
+      "estimated_key": "G minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 38,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_15.mid",
+      "path": "midi_dataset\\midi_15.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 124,
+      "unique_pitches": [
+        53,
+        58,
+        60,
+        61,
+        63,
+        65,
+        67,
+        68
+      ],
+      "pitch_range": {
+        "min": 53,
+        "max": 68
+      },
+      "average_pitch": 61.68,
+      "average_velocity": 100,
+      "average_duration_beats": 0.2188,
+      "median_duration_beats": 0.2188,
+      "most_common_pitches": [
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 48
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 20
+        },
+        {
+          "pitch": 61,
+          "name": "C#4",
+          "count": 12
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 12
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 12
+        },
+        {
+          "pitch": 68,
+          "name": "G#4",
+          "count": 8
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 8
+        },
+        {
+          "pitch": 63,
+          "name": "D#4",
+          "count": 4
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 48,
+        "C#": 12,
+        "D": 0,
+        "D#": 4,
+        "E": 0,
+        "F": 20,
+        "F#": 0,
+        "G": 20,
+        "G#": 8,
+        "A": 0,
+        "A#": 12,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 124
+      },
+      "duration_distribution_beats": {
+        "very_short_<1/16": 124
+      },
+      "interval_distribution": {
+        "-14": 4,
+        "-12": 4,
+        "-10": 4,
+        "-8": 4,
+        "-7": 12,
+        "-5": 3,
+        "0": 16,
+        "1": 16,
+        "2": 16,
+        "3": 4,
+        "4": 12,
+        "5": 12,
+        "7": 16
+      },
+      "rhythmic_density_notes_per_beat": 7.8887,
+      "estimated_key": "C minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 124,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_16.mid",
+      "path": "midi_dataset\\midi_16.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 124,
+      "unique_pitches": [
+        68,
+        70,
+        73,
+        75,
+        76,
+        78
+      ],
+      "pitch_range": {
+        "min": 68,
+        "max": 78
+      },
+      "average_pitch": 72.94,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 75,
+          "name": "D#5",
+          "count": 32
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 24
+        },
+        {
+          "pitch": 73,
+          "name": "C#5",
+          "count": 20
+        },
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 20
+        },
+        {
+          "pitch": 68,
+          "name": "G#4",
+          "count": 20
+        },
+        {
+          "pitch": 78,
+          "name": "F#5",
+          "count": 8
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 0,
+        "C#": 20,
+        "D": 0,
+        "D#": 32,
+        "E": 20,
+        "F": 0,
+        "F#": 8,
+        "G": 0,
+        "G#": 20,
+        "A": 0,
+        "A#": 24,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 124
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 124
+      },
+      "interval_distribution": {
+        "-10": 4,
+        "-8": 15,
+        "-7": 4,
+        "-6": 4,
+        "-5": 4,
+        "1": 20,
+        "2": 36,
+        "3": 16,
+        "5": 20
+      },
+      "rhythmic_density_notes_per_beat": 7.75,
+      "estimated_key": "D# minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 124,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_17.mid",
+      "path": "midi_dataset\\midi_17.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 158.0,
+      "note_count": 32,
+      "unique_pitches": [
+        50,
+        57,
+        60,
+        62,
+        64,
+        65,
+        69
+      ],
+      "pitch_range": {
+        "min": 50,
+        "max": 69
+      },
+      "average_pitch": 60.5,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 8
+        },
+        {
+          "pitch": 50,
+          "name": "D3",
+          "count": 4
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 4
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 4
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 4,
+        "C#": 0,
+        "D": 8,
+        "D#": 0,
+        "E": 4,
+        "F": 4,
+        "F#": 0,
+        "G": 0,
+        "G#": 0,
+        "A": 12,
+        "A#": 0,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-7": 3,
+        "-5": 4,
+        "-4": 8,
+        "-1": 4,
+        "2": 4,
+        "7": 4,
+        "12": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_18.mid",
+      "path": "midi_dataset\\midi_18.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 167.0,
+      "note_count": 32,
+      "unique_pitches": [
+        53,
+        55,
+        57,
+        60,
+        62,
+        64,
+        65,
+        67
+      ],
+      "pitch_range": {
+        "min": 53,
+        "max": 67
+      },
+      "average_pitch": 60.44,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 8
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 6
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 6
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 4
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 8,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 6,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 6,
+        "A#": 0,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-9": 2,
+        "-5": 2,
+        "-4": 6,
+        "-3": 2,
+        "-2": 2,
+        "-1": 2,
+        "2": 8,
+        "3": 2,
+        "4": 1,
+        "7": 2,
+        "10": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_19.mid",
+      "path": "midi_dataset\\midi_19.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 29,
+      "unique_pitches": [
+        50,
+        52,
+        53,
+        57,
+        59,
+        60,
+        62,
+        64
+      ],
+      "pitch_range": {
+        "min": 50,
+        "max": 64
+      },
+      "average_pitch": 57.48,
+      "average_velocity": 100,
+      "average_duration_beats": 1.1466,
+      "median_duration_beats": 0.75,
+      "most_common_pitches": [
+        {
+          "pitch": 59,
+          "name": "B3",
+          "count": 6
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 5
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 4
+        },
+        {
+          "pitch": 52,
+          "name": "E3",
+          "count": 2
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 2
+        },
+        {
+          "pitch": 50,
+          "name": "D3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 4,
+        "C#": 0,
+        "D": 6,
+        "D#": 0,
+        "E": 4,
+        "F": 5,
+        "F#": 0,
+        "G": 0,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 6
+      },
+      "velocity_distribution": {
+        "hard_91_115": 29
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 23,
+        "very_long_1/2_to_bar": 6
+      },
+      "interval_distribution": {
+        "-11": 2,
+        "-10": 2,
+        "-6": 3,
+        "-5": 3,
+        "-2": 2,
+        "-1": 2,
+        "2": 2,
+        "3": 2,
+        "4": 2,
+        "5": 1,
+        "8": 2,
+        "9": 4,
+        "11": 1
+      },
+      "rhythmic_density_notes_per_beat": 1.8125,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 29,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_2.mid",
+      "path": "midi_dataset\\midi_2.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 32,
+      "unique_pitches": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72,
+        74
+      ],
+      "pitch_range": {
+        "min": 60,
+        "max": 74
+      },
+      "average_pitch": 67.31,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 6
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 6
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 4
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 2
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 2
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 2
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 8,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 6,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 2
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-10": 2,
+        "-9": 2,
+        "-7": 2,
+        "-5": 2,
+        "-4": 2,
+        "-2": 1,
+        "-1": 4,
+        "2": 2,
+        "3": 6,
+        "5": 2,
+        "7": 4,
+        "9": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "C major",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 11",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_20.mid",
+      "path": "midi_dataset\\midi_20.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 50,
+      "unique_pitches": [
+        41,
+        43,
+        48,
+        49,
+        51,
+        53,
+        58,
+        60,
+        62,
+        63,
+        67,
+        68,
+        70,
+        72,
+        75,
+        79,
+        80
+      ],
+      "pitch_range": {
+        "min": 41,
+        "max": 80
+      },
+      "average_pitch": 62.36,
+      "average_velocity": 87.56,
+      "average_duration_beats": 1.8721,
+      "median_duration_beats": 2.4479,
+      "most_common_pitches": [
+        {
+          "pitch": 79,
+          "name": "G5",
+          "count": 6
+        },
+        {
+          "pitch": 48,
+          "name": "C3",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 80,
+          "name": "G#5",
+          "count": 4
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 4
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 49,
+          "name": "C#3",
+          "count": 4
+        },
+        {
+          "pitch": 41,
+          "name": "F2",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        },
+        {
+          "pitch": 68,
+          "name": "G#4",
+          "count": 2
+        },
+        {
+          "pitch": 75,
+          "name": "D#5",
+          "count": 2
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 10,
+        "C#": 4,
+        "D": 2,
+        "D#": 6,
+        "E": 0,
+        "F": 4,
+        "F#": 0,
+        "G": 12,
+        "G#": 6,
+        "A": 0,
+        "A#": 6,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "medium_61_90": 50
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 5,
+        "medium_1/8": 3,
+        "short_1/16": 12,
+        "very_long_1/2_to_bar": 30
+      },
+      "interval_distribution": {
+        "-32": 2,
+        "-30": 2,
+        "-17": 1,
+        "-15": 2,
+        "-12": 2,
+        "-11": 2,
+        "-5": 4,
+        "-4": 4,
+        "-1": 2,
+        "0": 2,
+        "5": 6,
+        "7": 4,
+        "8": 4,
+        "9": 2,
+        "11": 2,
+        "12": 4,
+        "16": 2,
+        "31": 2
+      },
+      "rhythmic_density_notes_per_beat": 3.1311,
+      "estimated_key": "C minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Toxic Biohazard 1",
+          "note_count": 50,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_21.mid",
+      "path": "midi_dataset\\midi_21.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 28,
+      "unique_pitches": [
+        46,
+        48,
+        53,
+        56,
+        58,
+        60,
+        65,
+        67,
+        68,
+        70,
+        74,
+        75
+      ],
+      "pitch_range": {
+        "min": 46,
+        "max": 75
+      },
+      "average_pitch": 62.86,
+      "average_velocity": 92.71,
+      "average_duration_beats": 0.5536,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 6
+        },
+        {
+          "pitch": 68,
+          "name": "G#4",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 2
+        },
+        {
+          "pitch": 46,
+          "name": "A#2",
+          "count": 2
+        },
+        {
+          "pitch": 75,
+          "name": "D#5",
+          "count": 2
+        },
+        {
+          "pitch": 48,
+          "name": "C3",
+          "count": 2
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 2
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 2
+        },
+        {
+          "pitch": 56,
+          "name": "G#3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 4,
+        "C#": 0,
+        "D": 2,
+        "D#": 2,
+        "E": 0,
+        "F": 4,
+        "F#": 0,
+        "G": 2,
+        "G#": 4,
+        "A": 0,
+        "A#": 10,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 18,
+        "medium_61_90": 10
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 2,
+        "medium_1/8": 22,
+        "short_1/16": 4
+      },
+      "interval_distribution": {
+        "-27": 2,
+        "-24": 2,
+        "-21": 2,
+        "-10": 2,
+        "-9": 2,
+        "-3": 4,
+        "-2": 2,
+        "5": 2,
+        "10": 2,
+        "12": 1,
+        "17": 2,
+        "26": 2,
+        "29": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.1132,
+      "estimated_key": "A# major",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 28,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_22.mid",
+      "path": "midi_dataset\\midi_22.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 32,
+      "unique_pitches": [
+        52,
+        55,
+        60,
+        62,
+        64,
+        65,
+        74,
+        76
+      ],
+      "pitch_range": {
+        "min": 52,
+        "max": 76
+      },
+      "average_pitch": 64.06,
+      "average_velocity": 99.38,
+      "average_duration_beats": 0.4609,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 6
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 6
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 6
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 4
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 2
+        },
+        {
+          "pitch": 52,
+          "name": "E3",
+          "count": 2
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 2,
+        "C#": 0,
+        "D": 6,
+        "D#": 0,
+        "E": 14,
+        "F": 4,
+        "F#": 0,
+        "G": 6,
+        "G#": 0,
+        "A": 0,
+        "A#": 0,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 30,
+        "medium_61_90": 2
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 27,
+        "short_1/16": 5
+      },
+      "interval_distribution": {
+        "-21": 2,
+        "-13": 2,
+        "-12": 2,
+        "-10": 2,
+        "-9": 2,
+        "-7": 2,
+        "-2": 2,
+        "-1": 2,
+        "0": 2,
+        "2": 2,
+        "8": 2,
+        "10": 4,
+        "12": 1,
+        "14": 2,
+        "19": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "E minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_23.mid",
+      "path": "midi_dataset\\midi_23.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 28,
+      "unique_pitches": [
+        48,
+        57,
+        59,
+        60,
+        64,
+        66,
+        67,
+        71,
+        72
+      ],
+      "pitch_range": {
+        "min": 48,
+        "max": 72
+      },
+      "average_pitch": 60.07,
+      "average_velocity": 99.43,
+      "average_duration_beats": 0.5714,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 48,
+          "name": "C3",
+          "count": 6
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 4
+        },
+        {
+          "pitch": 66,
+          "name": "F#4",
+          "count": 2
+        },
+        {
+          "pitch": 59,
+          "name": "B3",
+          "count": 2
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 2
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 2
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 12,
+        "C#": 0,
+        "D": 0,
+        "D#": 0,
+        "E": 4,
+        "F": 0,
+        "F#": 2,
+        "G": 2,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 4
+      },
+      "velocity_distribution": {
+        "hard_91_115": 26,
+        "medium_61_90": 2
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 2,
+        "medium_1/8": 22,
+        "short_1/16": 4
+      },
+      "interval_distribution": {
+        "-12": 4,
+        "-7": 1,
+        "-6": 2,
+        "-5": 2,
+        "-2": 2,
+        "0": 2,
+        "2": 2,
+        "3": 2,
+        "4": 2,
+        "7": 2,
+        "8": 2,
+        "9": 2,
+        "11": 2
+      },
+      "rhythmic_density_notes_per_beat": 1.75,
+      "estimated_key": "C major",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 28,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_24.mid",
+      "path": "midi_dataset\\midi_24.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 34,
+      "unique_pitches": [
+        50,
+        52,
+        54,
+        55,
+        57,
+        60,
+        62,
+        64,
+        67,
+        71,
+        72,
+        74
+      ],
+      "pitch_range": {
+        "min": 50,
+        "max": 74
+      },
+      "average_pitch": 62.76,
+      "average_velocity": 98.94,
+      "average_duration_beats": 0.5294,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 6
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 4
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 2
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 2
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 2
+        },
+        {
+          "pitch": 54,
+          "name": "F#3",
+          "count": 2
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 2
+        },
+        {
+          "pitch": 52,
+          "name": "E3",
+          "count": 2
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 2
+        },
+        {
+          "pitch": 50,
+          "name": "D3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 6,
+        "C#": 0,
+        "D": 6,
+        "D#": 0,
+        "E": 6,
+        "F": 0,
+        "F#": 2,
+        "G": 8,
+        "G#": 0,
+        "A": 2,
+        "A#": 0,
+        "B": 4
+      },
+      "velocity_distribution": {
+        "hard_91_115": 34
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 1,
+        "medium_1/8": 33
+      },
+      "interval_distribution": {
+        "-14": 2,
+        "-13": 2,
+        "-11": 2,
+        "-10": 2,
+        "-8": 2,
+        "-5": 4,
+        "3": 2,
+        "4": 3,
+        "5": 4,
+        "7": 4,
+        "8": 2,
+        "10": 2,
+        "13": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.125,
+      "estimated_key": "G major",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 34,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_25.mid",
+      "path": "midi_dataset\\midi_25.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 32,
+      "unique_pitches": [
+        50,
+        53,
+        55,
+        58,
+        62,
+        64,
+        65,
+        69,
+        70
+      ],
+      "pitch_range": {
+        "min": 50,
+        "max": 70
+      },
+      "average_pitch": 61.81,
+      "average_velocity": 100.75,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 8
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 6
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 4
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 4
+        },
+        {
+          "pitch": 50,
+          "name": "D3",
+          "count": 2
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 0,
+        "C#": 0,
+        "D": 10,
+        "D#": 0,
+        "E": 4,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 6,
+        "A#": 4,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 28,
+        "medium_61_90": 4
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-14": 4,
+        "-12": 2,
+        "-7": 2,
+        "-5": 4,
+        "-2": 3,
+        "4": 2,
+        "7": 4,
+        "8": 4,
+        "9": 6
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "D minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_26.mid",
+      "path": "midi_dataset\\midi_26.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 28,
+      "unique_pitches": [
+        48,
+        53,
+        56,
+        58,
+        60,
+        63,
+        65,
+        67,
+        70,
+        72,
+        75,
+        82
+      ],
+      "pitch_range": {
+        "min": 48,
+        "max": 82
+      },
+      "average_pitch": 64.71,
+      "average_velocity": 98.36,
+      "average_duration_beats": 0.7768,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 4
+        },
+        {
+          "pitch": 56,
+          "name": "G#3",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 2
+        },
+        {
+          "pitch": 82,
+          "name": "A#5",
+          "count": 2
+        },
+        {
+          "pitch": 75,
+          "name": "D#5",
+          "count": 2
+        },
+        {
+          "pitch": 63,
+          "name": "D#4",
+          "count": 2
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 2
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 2
+        },
+        {
+          "pitch": 48,
+          "name": "C3",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 6,
+        "C#": 0,
+        "D": 0,
+        "D#": 4,
+        "E": 0,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 2,
+        "A": 0,
+        "A#": 8,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 26,
+        "medium_61_90": 2
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 1,
+        "medium_1/8": 24,
+        "very_long_1/2_to_bar": 3
+      },
+      "interval_distribution": {
+        "-12": 2,
+        "-11": 2,
+        "-10": 2,
+        "-8": 2,
+        "-7": 2,
+        "-4": 2,
+        "-3": 2,
+        "2": 2,
+        "5": 4,
+        "9": 2,
+        "10": 4,
+        "14": 1
+      },
+      "rhythmic_density_notes_per_beat": 1.75,
+      "estimated_key": "D# major",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 28,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_27.mid",
+      "path": "midi_dataset\\midi_27.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 34,
+      "unique_pitches": [
+        49,
+        51,
+        54,
+        58,
+        59,
+        63,
+        68,
+        70,
+        71,
+        73,
+        75
+      ],
+      "pitch_range": {
+        "min": 49,
+        "max": 75
+      },
+      "average_pitch": 62.35,
+      "average_velocity": 97.65,
+      "average_duration_beats": 0.7059,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 63,
+          "name": "D#4",
+          "count": 6
+        },
+        {
+          "pitch": 51,
+          "name": "D#3",
+          "count": 6
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 4
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 4
+        },
+        {
+          "pitch": 75,
+          "name": "D#5",
+          "count": 2
+        },
+        {
+          "pitch": 73,
+          "name": "C#5",
+          "count": 2
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 2
+        },
+        {
+          "pitch": 49,
+          "name": "C#3",
+          "count": 2
+        },
+        {
+          "pitch": 68,
+          "name": "G#4",
+          "count": 2
+        },
+        {
+          "pitch": 59,
+          "name": "B3",
+          "count": 2
+        },
+        {
+          "pitch": 54,
+          "name": "F#3",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 0,
+        "C#": 4,
+        "D": 0,
+        "D#": 14,
+        "E": 0,
+        "F": 0,
+        "F#": 2,
+        "G": 0,
+        "G#": 2,
+        "A": 0,
+        "A#": 6,
+        "B": 6
+      },
+      "velocity_distribution": {
+        "hard_91_115": 28,
+        "medium_61_90": 6
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 4,
+        "medium_1/8": 28,
+        "very_long_1/2_to_bar": 2
+      },
+      "interval_distribution": {
+        "-13": 2,
+        "-12": 2,
+        "-7": 4,
+        "-5": 4,
+        "-3": 2,
+        "-2": 4,
+        "2": 4,
+        "3": 2,
+        "8": 4,
+        "9": 1,
+        "12": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.125,
+      "estimated_key": "D# minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 34,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_28.mid",
+      "path": "midi_dataset\\midi_28.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 32,
+      "unique_pitches": [
+        46,
+        48,
+        55,
+        58,
+        60,
+        62,
+        65,
+        67,
+        68,
+        72,
+        75,
+        77
+      ],
+      "pitch_range": {
+        "min": 46,
+        "max": 77
+      },
+      "average_pitch": 63.12,
+      "average_velocity": 99.56,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 6
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 4
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 2
+        },
+        {
+          "pitch": 46,
+          "name": "A#2",
+          "count": 2
+        },
+        {
+          "pitch": 48,
+          "name": "C3",
+          "count": 2
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 2
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 2
+        },
+        {
+          "pitch": 68,
+          "name": "G#4",
+          "count": 2
+        },
+        {
+          "pitch": 77,
+          "name": "F5",
+          "count": 2
+        },
+        {
+          "pitch": 75,
+          "name": "D#5",
+          "count": 2
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 12,
+        "C#": 0,
+        "D": 2,
+        "D#": 2,
+        "E": 0,
+        "F": 6,
+        "F#": 0,
+        "G": 4,
+        "G#": 2,
+        "A": 0,
+        "A#": 4,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 30,
+        "short_1/16": 2
+      },
+      "interval_distribution": {
+        "-13": 2,
+        "-12": 2,
+        "-9": 2,
+        "-8": 2,
+        "-7": 1,
+        "0": 2,
+        "1": 2,
+        "2": 4,
+        "3": 2,
+        "5": 4,
+        "7": 6,
+        "10": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "C minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_29.mid",
+      "path": "midi_dataset\\midi_29.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 36,
+      "unique_pitches": [
+        55,
+        57,
+        60,
+        64,
+        69,
+        71,
+        74,
+        76,
+        77
+      ],
+      "pitch_range": {
+        "min": 55,
+        "max": 77
+      },
+      "average_pitch": 67.83,
+      "average_velocity": 99,
+      "average_duration_beats": 0.7361,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 6
+        },
+        {
+          "pitch": 77,
+          "name": "F5",
+          "count": 6
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 4
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 4
+        },
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 4
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 2
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 2,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 8,
+        "F": 6,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 10,
+        "A#": 0,
+        "B": 2
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32,
+        "medium_61_90": 4
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 3,
+        "medium_1/8": 26,
+        "short_1/16": 4,
+        "very_long_1/2_to_bar": 3
+      },
+      "interval_distribution": {
+        "-9": 2,
+        "-8": 2,
+        "-7": 4,
+        "-5": 2,
+        "-3": 2,
+        "-2": 4,
+        "0": 3,
+        "1": 4,
+        "2": 4,
+        "5": 2,
+        "7": 2,
+        "11": 2,
+        "14": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.25,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 36,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_3.mid",
+      "path": "midi_dataset\\midi_3.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 133.0,
+      "note_count": 34,
+      "unique_pitches": [
+        55,
+        57,
+        58,
+        60,
+        62,
+        64,
+        65,
+        69
+      ],
+      "pitch_range": {
+        "min": 55,
+        "max": 69
+      },
+      "average_pitch": 61.06,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 10
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 6
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 4
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 4
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 2
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 2
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 2,
+        "C#": 0,
+        "D": 2,
+        "D#": 0,
+        "E": 10,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 8,
+        "A#": 4,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 34
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 34
+      },
+      "interval_distribution": {
+        "-7": 2,
+        "-6": 2,
+        "-5": 2,
+        "-4": 2,
+        "-3": 2,
+        "-1": 3,
+        "0": 6,
+        "1": 2,
+        "2": 6,
+        "5": 4,
+        "10": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.125,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 34,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_30.mid",
+      "path": "midi_dataset\\midi_30.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 40,
+      "unique_pitches": [
+        51,
+        53,
+        55,
+        56,
+        60,
+        63,
+        65,
+        70,
+        72,
+        74,
+        79,
+        80
+      ],
+      "pitch_range": {
+        "min": 51,
+        "max": 80
+      },
+      "average_pitch": 66.2,
+      "average_velocity": 101.05,
+      "average_duration_beats": 0.5125,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 8
+        },
+        {
+          "pitch": 63,
+          "name": "D#4",
+          "count": 6
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 70,
+          "name": "A#4",
+          "count": 4
+        },
+        {
+          "pitch": 80,
+          "name": "G#5",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 2
+        },
+        {
+          "pitch": 56,
+          "name": "G#3",
+          "count": 2
+        },
+        {
+          "pitch": 51,
+          "name": "D#3",
+          "count": 2
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 2
+        },
+        {
+          "pitch": 79,
+          "name": "G5",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 12,
+        "C#": 0,
+        "D": 4,
+        "D#": 8,
+        "E": 0,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 4,
+        "A": 0,
+        "A#": 4,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 40
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 40
+      },
+      "interval_distribution": {
+        "-14": 2,
+        "-10": 4,
+        "-9": 3,
+        "-7": 2,
+        "-6": 2,
+        "-5": 2,
+        "-2": 2,
+        "0": 2,
+        "1": 2,
+        "2": 4,
+        "5": 2,
+        "8": 2,
+        "9": 2,
+        "10": 2,
+        "11": 2,
+        "12": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.5,
+      "estimated_key": "C minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 40,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_4.mid",
+      "path": "midi_dataset\\midi_4.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 145.0,
+      "note_count": 32,
+      "unique_pitches": [
+        57,
+        64,
+        66,
+        67,
+        71
+      ],
+      "pitch_range": {
+        "min": 57,
+        "max": 71
+      },
+      "average_pitch": 64,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 8
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 8
+        },
+        {
+          "pitch": 66,
+          "name": "F#4",
+          "count": 8
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 4
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 0,
+        "C#": 0,
+        "D": 0,
+        "D#": 0,
+        "E": 8,
+        "F": 0,
+        "F#": 8,
+        "G": 4,
+        "G#": 0,
+        "A": 8,
+        "A#": 0,
+        "B": 4
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-14": 4,
+        "-7": 4,
+        "-2": 7,
+        "-1": 4,
+        "7": 4,
+        "9": 4,
+        "10": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "E minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_5.mid",
+      "path": "midi_dataset\\midi_5.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 140.0,
+      "note_count": 32,
+      "unique_pitches": [
+        57,
+        60,
+        64,
+        67,
+        71,
+        74
+      ],
+      "pitch_range": {
+        "min": 57,
+        "max": 74
+      },
+      "average_pitch": 65,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 8
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 8
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 4
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 4
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 4
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 8,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 4,
+        "F": 0,
+        "F#": 0,
+        "G": 8,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 4
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-14": 7,
+        "-7": 4,
+        "3": 4,
+        "4": 4,
+        "7": 8,
+        "14": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.0317,
+      "estimated_key": "G major",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_6.mid",
+      "path": "midi_dataset\\midi_6.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 141.0,
+      "note_count": 32,
+      "unique_pitches": [
+        69,
+        72,
+        74,
+        76,
+        77,
+        81
+      ],
+      "pitch_range": {
+        "min": 69,
+        "max": 81
+      },
+      "average_pitch": 74,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 8
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 8
+        },
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 6
+        },
+        {
+          "pitch": 77,
+          "name": "F5",
+          "count": 6
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 2
+        },
+        {
+          "pitch": 81,
+          "name": "A5",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 2,
+        "C#": 0,
+        "D": 8,
+        "D#": 0,
+        "E": 6,
+        "F": 6,
+        "F#": 0,
+        "G": 0,
+        "G#": 0,
+        "A": 10,
+        "A#": 0,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-7": 4,
+        "-5": 4,
+        "-4": 2,
+        "-3": 4,
+        "-1": 1,
+        "1": 2,
+        "2": 6,
+        "3": 2,
+        "5": 2,
+        "8": 2,
+        "12": 2
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "D minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_7.mid",
+      "path": "midi_dataset\\midi_7.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 131.0,
+      "note_count": 48,
+      "unique_pitches": [
+        33,
+        36,
+        40,
+        41,
+        50,
+        52,
+        53,
+        57,
+        60
+      ],
+      "pitch_range": {
+        "min": 33,
+        "max": 60
+      },
+      "average_pitch": 48,
+      "average_velocity": 100,
+      "average_duration_beats": 0.4167,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 52,
+          "name": "E3",
+          "count": 12
+        },
+        {
+          "pitch": 50,
+          "name": "D3",
+          "count": 8
+        },
+        {
+          "pitch": 40,
+          "name": "E2",
+          "count": 4
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 53,
+          "name": "F3",
+          "count": 4
+        },
+        {
+          "pitch": 36,
+          "name": "C2",
+          "count": 4
+        },
+        {
+          "pitch": 33,
+          "name": "A1",
+          "count": 4
+        },
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 4
+        },
+        {
+          "pitch": 41,
+          "name": "F2",
+          "count": 4
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 8,
+        "C#": 0,
+        "D": 8,
+        "D#": 0,
+        "E": 16,
+        "F": 8,
+        "F#": 0,
+        "G": 0,
+        "G#": 0,
+        "A": 8,
+        "A#": 0,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 48
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32,
+        "short_1/16": 16
+      },
+      "interval_distribution": {
+        "-19": 4,
+        "-17": 4,
+        "-16": 4,
+        "-10": 3,
+        "-7": 4,
+        "0": 4,
+        "2": 4,
+        "8": 4,
+        "9": 4,
+        "12": 4,
+        "14": 4,
+        "24": 4
+      },
+      "rhythmic_density_notes_per_beat": 3.0,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 48,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_8.mid",
+      "path": "midi_dataset\\midi_8.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 165.0,
+      "note_count": 56,
+      "unique_pitches": [
+        55,
+        57,
+        58,
+        60,
+        64,
+        65,
+        70,
+        72,
+        74,
+        76,
+        77,
+        79,
+        81
+      ],
+      "pitch_range": {
+        "min": 55,
+        "max": 81
+      },
+      "average_pitch": 66.29,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5179,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 57,
+          "name": "A3",
+          "count": 8
+        },
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 8
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 6
+        },
+        {
+          "pitch": 58,
+          "name": "A#3",
+          "count": 6
+        },
+        {
+          "pitch": 60,
+          "name": "C4",
+          "count": 4
+        },
+        {
+          "pitch": 79,
+          "name": "G5",
+          "count": 4
+        },
+        {
+          "pitch": 55,
+          "name": "G3",
+          "count": 4
+        },
+        {
+          "pitch": 77,
+          "name": "F5",
+          "count": 4
+        },
+        {
+          "pitch": 74,
+          "name": "D5",
+          "count": 4
+        },
+        {
+          "pitch": 81,
+          "name": "A5",
+          "count": 2
+        },
+        {
+          "pitch": 76,
+          "name": "E5",
+          "count": 2
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 10,
+        "C#": 0,
+        "D": 4,
+        "D#": 0,
+        "E": 10,
+        "F": 6,
+        "F#": 0,
+        "G": 8,
+        "G#": 0,
+        "A": 10,
+        "A#": 8,
+        "B": 0
+      },
+      "velocity_distribution": {
+        "hard_91_115": 56
+      },
+      "duration_distribution_beats": {
+        "long_1/4_to_1/2": 6,
+        "medium_1/8": 42,
+        "short_1/16": 8
+      },
+      "interval_distribution": {
+        "-24": 2,
+        "-22": 2,
+        "-21": 2,
+        "-20": 1,
+        "-16": 2,
+        "-13": 2,
+        "-12": 2,
+        "-10": 2,
+        "-7": 2,
+        "-6": 4,
+        "-5": 2,
+        "-2": 2,
+        "1": 4,
+        "2": 2,
+        "4": 2,
+        "5": 2,
+        "7": 2,
+        "9": 2,
+        "12": 2,
+        "14": 4,
+        "15": 2,
+        "17": 2,
+        "19": 2,
+        "20": 2,
+        "24": 2
+      },
+      "rhythmic_density_notes_per_beat": 3.5,
+      "estimated_key": "A minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V 1",
+          "note_count": 56,
+          "instruments": []
+        }
+      ]
+    },
+    {
+      "file_name": "midi_9.mid",
+      "path": "midi_dataset\\midi_9.mid",
+      "ticks_per_beat": 96,
+      "tempo_bpm_estimate": 155.0,
+      "note_count": 32,
+      "unique_pitches": [
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72
+      ],
+      "pitch_range": {
+        "min": 62,
+        "max": 72
+      },
+      "average_pitch": 66.81,
+      "average_velocity": 100,
+      "average_duration_beats": 0.5,
+      "median_duration_beats": 0.5,
+      "most_common_pitches": [
+        {
+          "pitch": 64,
+          "name": "E4",
+          "count": 10
+        },
+        {
+          "pitch": 71,
+          "name": "B4",
+          "count": 6
+        },
+        {
+          "pitch": 69,
+          "name": "A4",
+          "count": 4
+        },
+        {
+          "pitch": 65,
+          "name": "F4",
+          "count": 4
+        },
+        {
+          "pitch": 67,
+          "name": "G4",
+          "count": 4
+        },
+        {
+          "pitch": 62,
+          "name": "D4",
+          "count": 2
+        },
+        {
+          "pitch": 72,
+          "name": "C5",
+          "count": 2
+        }
+      ],
+      "pitch_class_distribution": {
+        "C": 2,
+        "C#": 0,
+        "D": 2,
+        "D#": 0,
+        "E": 10,
+        "F": 4,
+        "F#": 0,
+        "G": 4,
+        "G#": 0,
+        "A": 4,
+        "A#": 0,
+        "B": 6
+      },
+      "velocity_distribution": {
+        "hard_91_115": 32
+      },
+      "duration_distribution_beats": {
+        "medium_1/8": 32
+      },
+      "interval_distribution": {
+        "-7": 4,
+        "-3": 2,
+        "-2": 4,
+        "-1": 5,
+        "1": 2,
+        "2": 4,
+        "3": 6,
+        "5": 4
+      },
+      "rhythmic_density_notes_per_beat": 2.0,
+      "estimated_key": "E minor",
+      "tracks": [
+        {
+          "track_index": 0,
+          "track_name": "Track 0",
+          "note_count": 0,
+          "instruments": []
+        },
+        {
+          "track_index": 1,
+          "track_name": "Analog Lab V #2 1",
+          "note_count": 32,
+          "instruments": []
+        }
+      ]
+    }
+  ],
+  "failed_files": []
+}
