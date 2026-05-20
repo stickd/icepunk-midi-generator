@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: icepunk-postgres
+    environment:
+      POSTGRES_DB: icepunk
+      POSTGRES_USER: icepunk
+      POSTGRES_PASSWORD: icepunk
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
