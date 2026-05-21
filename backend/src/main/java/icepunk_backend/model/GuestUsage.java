@@ -4,27 +4,24 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "guest_usage")
+public class GuestUsage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
-    private String email;
-    private String passwordHash;
+    private String ipAddress;
 
     private Integer generationsToday = 0;
+
     private LocalDate generationDate = LocalDate.now();
 
-    public User() {
+    public GuestUsage() {
     }
 
-    public User(String username, String email, String passwordHash) {
-        this.username = username;
-        this.email = email;
-        this.passwordHash = passwordHash;
+    public GuestUsage(String ipAddress) {
+        this.ipAddress = ipAddress;
         this.generationsToday = 0;
         this.generationDate = LocalDate.now();
     }
@@ -33,16 +30,8 @@ public class User {
         return id;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getIpAddress() {
+        return ipAddress;
     }
 
     public Integer getGenerationsToday() {
@@ -57,16 +46,8 @@ public class User {
         this.id = id;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
     public void setGenerationsToday(Integer generationsToday) {

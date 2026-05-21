@@ -1,5 +1,6 @@
 package icepunk_backend.controller;
 
+import icepunk_backend.dto.AuthResponse;
 import icepunk_backend.dto.LoginRequest;
 import icepunk_backend.dto.RegisterRequest;
 import icepunk_backend.dto.UserResponse;
@@ -31,14 +32,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public UserResponse login(@Valid @RequestBody LoginRequest request) {
+    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
 
-        User user = authService.login(request);
+        String token = authService.login(request);
 
-        return new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail()
-        );
+        return new AuthResponse(token);
     }
 }

@@ -20,7 +20,7 @@ OUTPUT_DIR = Path("generated_midi")
 DEFAULT_BPM = 146
 DEFAULT_TICKS_PER_BEAT = 480
 
-GENERATE_COUNT = 10
+GENERATE_COUNT = 5
 
 # Loop mode: генерируем 2 бара и копируем их, чтобы получить 4-bar loop
 MOTIF_BARS = 2

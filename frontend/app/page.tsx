@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Download, Loader2 } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import AuthModal from "@/components/AuthModal";
+
+type AuthMode = "login" | "register" | null;
 
 type Snowflake = {
   id: number;
@@ -13,12 +16,29 @@ type Snowflake = {
   opacity: number;
 };
 
+const TOKEN_KEY = "icepunk_token";
+
 export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [snowflakes, setSnowflakes] = useState<Snowflake[]>([]);
 
+  const [authMode, setAuthMode] = useState<AuthMode>(null);
+  const [authStatus, setAuthStatus] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
   useEffect(() => {
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+
+    if (savedToken) {
+      setToken(savedToken);
+      setStatus("You are logged in.");
+    }
+
     const flakes = Array.from({ length: 80 }).map((_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -36,10 +56,36 @@ export default function Home() {
       setIsGenerating(true);
       setStatus("Generating frozen MIDI patterns...");
 
-      const response = await fetch("http://localhost:8080/generate");
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+
+      const response = await fetch("http://localhost:8080/generate", {
+        method: "GET",
+        headers: savedToken
+          ? {
+              Authorization: `Bearer ${savedToken}`,
+            }
+          : {},
+      });
+
+      if (response.status === 429) {
+        setStatus(
+          savedToken
+            ? "Daily generation limit reached, come back tomorrow."
+            : "Daily free generation limit reached.",
+        );
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem(TOKEN_KEY);
+        setToken(null);
+        setStatus("Session expired. Please log in again.");
+        return;
+      }
 
       if (!response.ok) {
-        throw new Error("Generation failed");
+        setStatus("Generation failed. Please try again.");
+        return;
       }
 
       const blob = await response.blob();
@@ -56,10 +102,71 @@ export default function Home() {
 
       setStatus("MIDI pack downloaded.");
     } catch {
-      setStatus("Backend is not ready yet.");
+      setStatus("Backend is not available right now.");
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function handleAuth() {
+    if (!authMode) return;
+
+    try {
+      setAuthStatus("Loading...");
+
+      const endpoint = authMode === "login" ? "login" : "register";
+
+      const body =
+        authMode === "login"
+          ? { email, password }
+          : { username, email, password };
+
+      const response = await fetch(`http://localhost:8080/auth/${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Auth failed");
+      }
+
+      if (data.token) {
+        localStorage.setItem(TOKEN_KEY, data.token);
+        setToken(data.token);
+      }
+
+      setAuthStatus(
+        authMode === "login"
+          ? "Logged in successfully."
+          : data.token
+            ? "Account created and logged in successfully."
+            : "Account created successfully.",
+      );
+
+      setStatus(
+        authMode === "login" || data.token
+          ? "You are logged in."
+          : "Account created. Now you can log in.",
+      );
+
+      setAuthMode(null);
+      setEmail("");
+      setUsername("");
+      setPassword("");
+    } catch (error) {
+      setAuthStatus(error instanceof Error ? error.message : "Auth failed");
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setStatus("You are logged out.");
   }
 
   return (
@@ -68,7 +175,7 @@ export default function Home() {
 
       <div className="pointer-events-none absolute inset-0">
         {snowflakes.map((snow) => (
-          <motion.div
+          <div
             key={snow.id}
             className="absolute top-[-10px] rounded-full bg-white"
             style={{
@@ -76,79 +183,45 @@ export default function Home() {
               width: snow.size,
               height: snow.size,
               opacity: snow.opacity,
-            }}
-            animate={{
-              y: ["0vh", "110vh"],
-              x: [0, 20, -20, 0],
-            }}
-            transition={{
-              duration: snow.duration,
-              repeat: Infinity,
-              ease: "linear",
-              delay: snow.delay,
+              animation: `fall ${snow.duration}s linear ${snow.delay}s infinite`,
             }}
           />
         ))}
       </div>
 
-      <section className="relative z-10 flex min-h-screen items-center justify-center px-6">
-        <div className="mx-auto max-w-4xl text-center">
-          <motion.p
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="mb-5 text-sm font-medium uppercase tracking-[0.5em] text-cyan-300"
-          >
-            MIDI GENERATOR
-          </motion.p>
+      <Navbar
+        isLoggedIn={!!token}
+        onLoginClick={() => {
+          setAuthStatus("");
+          setAuthMode("login");
+        }}
+        onRegisterClick={() => {
+          setAuthStatus("");
+          setAuthMode("register");
+        }}
+        onLogoutClick={handleLogout}
+      />
 
-          <motion.h1
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="bg-gradient-to-b from-white via-cyan-100 to-blue-400 bg-clip-text text-7xl font-black tracking-tight text-transparent sm:text-9xl"
-          >
-            iCEPUNK
-          </motion.h1>
+      <Hero
+        isGenerating={isGenerating}
+        status={status}
+        onGenerate={handleGenerateMidi}
+      />
 
-          <motion.p
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.2 }}
-            className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300"
-          >
-            Generate emotional frozen melodies and futuristic underground MIDI
-            loops.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.4 }}
-            className="mt-12 flex flex-col items-center gap-4"
-          >
-            <button
-              onClick={handleGenerateMidi}
-              disabled={isGenerating}
-              className="group relative overflow-hidden rounded-full border border-cyan-300/30 bg-cyan-300 px-8 py-4 text-base font-bold text-slate-950 shadow-[0_0_60px_rgba(34,211,238,0.45)] transition-all duration-300 hover:scale-105 hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <span className="relative z-10 flex items-center gap-3">
-                {isGenerating ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  <Download size={20} />
-                )}
-
-                {isGenerating ? "Generating..." : "Generate MIDI Pack"}
-              </span>
-
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent transition duration-700 group-hover:translate-x-full" />
-            </button>
-
-            {status && <p className="text-sm text-cyan-200/80">{status}</p>}
-          </motion.div>
-        </div>
-      </section>
+      {authMode && (
+        <AuthModal
+          mode={authMode}
+          email={email}
+          username={username}
+          password={password}
+          authStatus={authStatus}
+          setEmail={setEmail}
+          setUsername={setUsername}
+          setPassword={setPassword}
+          onSubmit={handleAuth}
+          onClose={() => setAuthMode(null)}
+        />
+      )}
     </main>
   );
 }

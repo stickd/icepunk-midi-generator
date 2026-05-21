@@ -6,6 +6,7 @@ import icepunk_backend.exception.EmailAlreadyExistsException;
 import icepunk_backend.exception.InvalidCredentialsException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
+import icepunk_backend.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,13 +15,16 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public User register(RegisterRequest request) {
@@ -40,7 +44,7 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public User login(LoginRequest request) {
+    public String login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
@@ -54,6 +58,6 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        return user;
+        return jwtService.generateToken(user.getEmail());
     }
 }
