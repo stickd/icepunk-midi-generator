@@ -35,20 +35,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
+        // If the request does not contain a valid Bearer token,
+        // continue processing without authentication
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
+            // Remove the "Bearer " prefix and extract the JWT token
             String token = authHeader.substring(7);
+
+            // Validate the token and extract the user's email
             String email = jwtService.extractEmail(token);
 
+            // Continue only if an email was extracted and no user is authenticated yet
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 User user = userRepository.findByEmail(email).orElse(null);
 
                 if (user != null) {
+                    // Create an authentication object for the authenticated user
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     email,
@@ -56,14 +63,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     Collections.emptyList()
                             );
 
+                    // Attach request details (IP address, session info, etc.)
                     authToken.setDetails(
                             new WebAuthenticationDetailsSource().buildDetails(request)
                     );
-
+                    
+                    // Store the authenticated user in Spring Security context
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception exception) {
+             // Clear authentication if the token is invalid or expired
             SecurityContextHolder.clearContext();
         }
 

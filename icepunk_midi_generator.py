@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import sys
 
 import mido
 from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo
@@ -15,7 +16,10 @@ from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo
 # =========================
 
 DATASET_DIR = Path("midi_dataset")
-OUTPUT_DIR = Path("generated_midi")
+if len(sys.argv) > 1:
+    OUTPUT_DIR = Path(sys.argv[1])
+else:
+    OUTPUT_DIR = Path("generated_midi")
 
 DEFAULT_BPM = 146
 DEFAULT_TICKS_PER_BEAT = 480
@@ -660,7 +664,7 @@ def write_midi(notes: list[Note], output_path: Path, bpm: float) -> None:
     mid.save(output_path)
 
 def clear_output_folder() -> None:
-    OUTPUT_DIR.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     for file in OUTPUT_DIR.iterdir():
         if file.is_file() and file.suffix.lower() in {".mid", ".midi"}:

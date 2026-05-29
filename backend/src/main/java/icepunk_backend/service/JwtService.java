@@ -18,25 +18,60 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long expiration;
 
-    public String generateToken(String email) {
-        return Jwts.builder()
-                .subject(email)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey())
-                .compact();
-    }
+// Generates a new JWT token for a user based on their email address
+public String generateToken(String email) {
+    return Jwts.builder()
 
-    public String extractEmail(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
-    }
+            // Store the user's email in the Subject field of the token
+            .subject(email)
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-    }
+            // Set the token creation time
+            .issuedAt(new Date())
+
+            // Set the token expiration time
+            // Current time + configured lifetime from application.properties
+            .expiration(new Date(System.currentTimeMillis() + expiration))
+
+            // Sign the token with the secret key
+            // This prevents the token from being modified or forged
+            .signWith(getSigningKey())
+
+            // Build the final JWT string
+            .compact();
+}
+
+// Extracts the user's email address from a JWT token
+public String extractEmail(String token) {
+    return Jwts.parser()
+
+            // Use the same secret key to verify the token signature
+            .verifyWith(getSigningKey())
+
+            // Build the parser instance
+            .build()
+
+            // Parse the token and validate:
+            // - signature
+            // - expiration date
+            // - token structure
+            .parseSignedClaims(token)
+
+            // Get the payload section of the token
+            .getPayload()
+
+            // Extract and return the Subject field (email)
+            .getSubject();
+}
+
+    // Creates a SecretKey object from the configured JWT secret string
+private SecretKey getSigningKey() {
+
+    // Convert the secret string into a byte array using UTF-8 encoding
+    // JWT signing algorithms work with bytes, not plain strings
+    byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+
+    // Create and return an HMAC-SHA signing key from the byte array
+    // This key is used to sign and verify JWT tokens
+    return Keys.hmacShaKeyFor(keyBytes);
+}
 }
