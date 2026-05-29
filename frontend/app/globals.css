@@ -24,11 +24,16 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-@keyframes fall {
-  from {
-    transform: translateY(0);
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10vh) translateX(0);
   }
-  to {
-    transform: translateY(110vh);
+
+  50% {
+    transform: translateY(50vh) translateX(20px);
+  }
+
+  100% {
+    transform: translateY(110vh) translateX(-20px);
   }
 }
