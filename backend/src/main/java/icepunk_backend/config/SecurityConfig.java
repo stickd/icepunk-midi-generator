@@ -30,34 +30,52 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/auth/register",
-                                "/auth/login",
-                                "/generate"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+    @Bean 
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http
+            // Disable CSRF because we use JWT instead of sessions
+            .csrf(csrf -> csrf.disable())
+
+            // Enable CORS configuration
+            .cors(Customizer.withDefaults())
+
+            // Make Spring Security stateless (no HTTP sessions)
+            .sessionManagement(session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            // Configure endpoint authorization rules
+            .authorizeHttpRequests(auth -> auth
+
+                    // Public endpoints accessible without authentication
+                    .requestMatchers(
+                            "/auth/register",
+                            "/auth/login",
+                            "/generate"
+                    ).permitAll()
+
+                    // All other endpoints require a valid JWT token
+                    .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .build();
+}
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        // Configure Cross-Origin Resource Sharing (CORS)
         CorsConfiguration config = new CorsConfiguration();
 
+        // Allow requests only from the frontend application
         config.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        // Allowed HTTP methods
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Allow all request headers
         config.setAllowedHeaders(List.of("*"));
 
+        // Apply CORS configuration to all endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 

@@ -4,16 +4,13 @@ import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.MidiGenerationService;
+import icepunk_backend.service.ZipStorageService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -21,6 +18,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 @RestController
@@ -30,25 +28,32 @@ public class GenerateController {
     private final MidiGenerationService midiGenerationService;
     private final GenerationLimitService generationLimitService;
     private final UserRepository userRepository;
+    private final ZipStorageService zipStorageService;
 
     public GenerateController(
             MidiGenerationService midiGenerationService,
             GenerationLimitService generationLimitService,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ZipStorageService zipStorageService
     ) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
         this.userRepository = userRepository;
+        this.zipStorageService = zipStorageService;
     }
 
     @GetMapping("/generate")
-    public ResponseEntity<Resource> generate(HttpServletRequest request) throws Exception {
+    public ResponseEntity<GenerateResponse> generate(HttpServletRequest request) throws Exception {
 
         Authentication authentication = SecurityContextHolder
                 .getContext()
                 .getAuthentication();
 
-        if (authentication != null && authentication.isAuthenticated()) {
+        if (
+                authentication != null
+                        && authentication.isAuthenticated()
+                        && !(authentication instanceof AnonymousAuthenticationToken)
+        ) {
             String email = authentication.getName();
 
             User user = userRepository.findByEmail(email)
@@ -62,14 +67,25 @@ public class GenerateController {
 
         Path zipPath = midiGenerationService.generateZip();
 
-        Resource resource = new FileSystemResource(zipPath);
+        String downloadUrl = zipStorageService.uploadZip(zipPath);
 
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"icepunk-midi-pack.zip\""
-                )
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource);
+        Files.deleteIfExists(zipPath);
+
+        return ResponseEntity.ok(
+                new GenerateResponse(downloadUrl)
+        );
+    }
+
+    public static class GenerateResponse {
+
+        private final String downloadUrl;
+
+        public GenerateResponse(String downloadUrl) {
+            this.downloadUrl = downloadUrl;
+        }
+
+        public String getDownloadUrl() {
+            return downloadUrl;
+        }
     }
 }

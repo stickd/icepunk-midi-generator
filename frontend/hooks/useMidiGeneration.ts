@@ -14,44 +14,13 @@ export function useMidiGeneration(onUnauthorized?: () => void) {
 
       const savedToken = localStorage.getItem(TOKEN_KEY);
 
-      const response = await generateMidiPack(savedToken);
+      const data = await generateMidiPack(savedToken);
 
-      if (response.status === 429) {
-        setStatus(
-          savedToken
-            ? "Daily generation limit reached, come back tomorrow."
-            : "Daily free generation limit reached.",
-        );
-        return;
-      }
-
-      if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem(TOKEN_KEY);
-        setStatus("Session expired. Please log in again.");
-        onUnauthorized?.();
-        return;
-      }
-
-      if (!response.ok) {
-        setStatus("Generation failed. Please try again.");
-        return;
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "icepunk-midi-pack.zip";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
+      window.location.href = data.downloadUrl;
 
       setStatus("MIDI pack downloaded.");
     } catch {
-      setStatus("Backend is not available right now.");
+      setStatus("Generation failed. Please try again.");
     } finally {
       setIsGenerating(false);
     }

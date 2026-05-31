@@ -43,8 +43,14 @@ export async function authUser(mode: AuthMode, body: LoginBody | RegisterBody) {
   return registerUser(body as RegisterBody);
 }
 
-export async function generateMidiPack(token?: string | null) {
-  return fetch(`${API_URL}/generate`, {
+type GenerateMidiResponse = {
+  downloadUrl: string;
+};
+
+export async function generateMidiPack(
+  token?: string | null,
+): Promise<GenerateMidiResponse> {
+  const response = await fetch(`${API_URL}/generate`, {
     method: "GET",
     headers: token
       ? {
@@ -52,4 +58,10 @@ export async function generateMidiPack(token?: string | null) {
         }
       : {},
   });
+
+  if (!response.ok) {
+    throw new Error("Failed to generate MIDI pack");
+  }
+
+  return response.json();
 }
