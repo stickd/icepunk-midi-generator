@@ -12,8 +12,8 @@ import java.time.LocalDate;
 @Service
 public class GenerationLimitService {
 
-    private static final int GUEST_DAILY_LIMIT = 1;
-    private static final int USER_DAILY_LIMIT = 5;
+    private static final int GUEST_DAILY_LIMIT = 3;
+    private static final int USER_DAILY_LIMIT = 7;
 
     private final GuestUsageRepository guestUsageRepository;
     private final UserRepository userRepository;

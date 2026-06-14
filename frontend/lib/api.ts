@@ -60,7 +60,9 @@ export async function generateMidiPack(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to generate MIDI pack");
+    const message = await response.text();
+
+    throw new Error(message || `HTTP_${response.status}`);
   }
 
   return response.json();
