@@ -12,14 +12,16 @@ export default function Navbar({
   onLogoutClick,
 }: NavbarProps) {
   return (
-    <nav className="relative z-20 flex items-center justify-between px-6 py-5">
-      <div className="font-black tracking-[0.35em] text-cyan-200">iCEPUNK</div>
+    <nav className="fixed left-0 top-0 z-30 flex w-full items-center justify-between px-8 py-7 md:px-14">
+      <div className="bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-sm font-black tracking-[0.42em] text-transparent">
+        iCEPUNK
+      </div>
 
-      <div className="flex gap-3">
+      <div className="flex items-center gap-4">
         {isLoggedIn ? (
           <button
             onClick={onLogoutClick}
-            className="rounded-full border border-cyan-300/30 px-5 py-2 text-sm text-cyan-100 hover:bg-cyan-300/10"
+            className="text-sm font-semibold text-white/75 transition hover:text-white active:scale-95"
           >
             Logout
           </button>
@@ -27,14 +29,14 @@ export default function Navbar({
           <>
             <button
               onClick={onLoginClick}
-              className="rounded-full border border-cyan-300/30 px-5 py-2 text-sm text-cyan-100 hover:bg-cyan-300/10"
+              className="text-sm font-semibold text-white/75 transition hover:text-white active:scale-95"
             >
               Login
             </button>
 
             <button
               onClick={onRegisterClick}
-              className="rounded-full bg-cyan-300 px-5 py-2 text-sm font-bold text-slate-950 hover:bg-white"
+              className="rounded-full bg-white px-6 py-3 text-sm font-black text-slate-950 shadow-[0_10px_35px_rgba(255,255,255,0.12)] transition hover:scale-105 hover:bg-cyan-50 active:scale-95"
             >
               Sign up
             </button>
