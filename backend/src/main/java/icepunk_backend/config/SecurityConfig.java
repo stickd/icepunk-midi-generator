@@ -30,7 +30,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean 
+    @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http
             // Disable CSRF because we use JWT instead of sessions
@@ -51,7 +51,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                     .requestMatchers(
                             "/auth/register",
                             "/auth/login",
-                            "/generate"
+                            "/generate",
+                            "/generation-stats"
                     ).permitAll()
 
                     // All other endpoints require a valid JWT token

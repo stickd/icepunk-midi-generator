@@ -6,6 +6,7 @@ import icepunk_backend.model.User;
 import icepunk_backend.repository.GuestUsageRepository;
 import icepunk_backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -26,11 +27,12 @@ public class GenerationLimitService {
         this.userRepository = userRepository;
     }
 
+    @Transactional
     public void checkAndIncreaseGuestLimit(String ipAddress) {
         LocalDate today = LocalDate.now();
 
         GuestUsage guestUsage = guestUsageRepository
-                .findByIpAddress(ipAddress)
+                .findByIpAddressForUpdate(ipAddress)
                 .orElseGet(() -> new GuestUsage(ipAddress));
 
         if (!today.equals(guestUsage.getGenerationDate())) {
@@ -46,19 +48,23 @@ public class GenerationLimitService {
         guestUsageRepository.save(guestUsage);
     }
 
+    @Transactional
     public void checkAndIncreaseUserLimit(User user) {
+        User lockedUser = userRepository.findByEmailForUpdate(user.getEmail())
+                .orElseThrow();
+
         LocalDate today = LocalDate.now();
 
-        if (!today.equals(user.getGenerationDate())) {
-            user.setGenerationDate(today);
-            user.setGenerationsToday(0);
+        if (!today.equals(lockedUser.getGenerationDate())) {
+            lockedUser.setGenerationDate(today);
+            lockedUser.setGenerationsToday(0);
         }
 
-        if (user.getGenerationsToday() >= USER_DAILY_LIMIT) {
+        if (lockedUser.getGenerationsToday() >= USER_DAILY_LIMIT) {
             throw new GenerationLimitException("User daily generation limit reached");
         }
 
-        user.setGenerationsToday(user.getGenerationsToday() + 1);
-        userRepository.save(user);
+        lockedUser.setGenerationsToday(lockedUser.getGenerationsToday() + 1);
+        userRepository.save(lockedUser);
     }
 }

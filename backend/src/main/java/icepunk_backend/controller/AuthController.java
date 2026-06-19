@@ -3,11 +3,12 @@ package icepunk_backend.controller;
 import icepunk_backend.dto.AuthResponse;
 import icepunk_backend.dto.LoginRequest;
 import icepunk_backend.dto.RegisterRequest;
-import icepunk_backend.dto.UserResponse;
-import icepunk_backend.model.User;
 import icepunk_backend.service.AuthService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/auth")
@@ -20,20 +21,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public UserResponse register(@Valid @RequestBody RegisterRequest request) {
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+        String token = authService.register(request);
 
-        User user = authService.register(request);
-
-        return new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail()
-        );
+        return new AuthResponse(token);
     }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-
         String token = authService.login(request);
 
         return new AuthResponse(token);

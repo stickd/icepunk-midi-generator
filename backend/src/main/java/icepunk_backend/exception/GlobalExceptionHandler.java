@@ -66,4 +66,16 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(response);
     }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, String>> handleRuntimeException(
+            RuntimeException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(response);
+    }
 }

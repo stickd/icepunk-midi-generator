@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
-import { authUser, TOKEN_KEY } from "@/lib/api";
+import { authUser, getGenerationStats, TOKEN_KEY } from "@/lib/api";
 
 import Snowfall from "@/components/Snowfall";
 import Navbar from "@/components/Navbar";
@@ -11,28 +11,97 @@ import AuthModal from "@/components/AuthModal";
 
 type AuthMode = "login" | "register" | null;
 
+const TOKEN_CHANGE_EVENT = "icepunk-token-change";
+
+function subscribeToTokenChanges(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(TOKEN_CHANGE_EVENT, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(TOKEN_CHANGE_EVENT, callback);
+  };
+}
+
+function normalizeToken(token: string | null) {
+  if (!token || token === "undefined" || token === "null") {
+    return null;
+  }
+
+  return token;
+}
+
+function getTokenSnapshot() {
+  return normalizeToken(localStorage.getItem(TOKEN_KEY));
+}
+
+function getServerTokenSnapshot() {
+  return null;
+}
+
+function notifyTokenChanged() {
+  window.dispatchEvent(new Event(TOKEN_CHANGE_EVENT));
+}
+
+function saveToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+  notifyTokenChanged();
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  notifyTokenChanged();
+}
+
+function useStoredToken() {
+  return useSyncExternalStore(
+    subscribeToTokenChanges,
+    getTokenSnapshot,
+    getServerTokenSnapshot,
+  );
+}
+
 export default function Home() {
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [authStatus, setAuthStatus] = useState("");
-  const [token, setToken] = useState<string | null>(null);
+  const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
+  const [isLoadingGenerations, setIsLoadingGenerations] = useState(true);
+  const token = useStoredToken();
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const { isGenerating, status, setStatus, handleGenerateMidi } =
-    useMidiGeneration(() => {
-      setToken(null);
-    });
+    useMidiGeneration(clearToken, setTotalGenerations);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem(TOKEN_KEY);
+    let isMounted = true;
 
-    if (savedToken) {
-      setToken(savedToken);
-      setStatus("You are logged in.");
+    async function loadGenerationStats() {
+      try {
+        const data = await getGenerationStats();
+
+        if (isMounted) {
+          setTotalGenerations(data.totalGenerations);
+        }
+      } catch {
+        if (isMounted) {
+          setTotalGenerations(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingGenerations(false);
+        }
+      }
     }
-  }, [setStatus]);
+
+    loadGenerationStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleAuth() {
     if (!authMode) return;
@@ -56,9 +125,12 @@ export default function Home() {
 
       const data = await response.json();
 
-      localStorage.setItem(TOKEN_KEY, data.token);
+      if (!data.token || typeof data.token !== "string") {
+        setAuthStatus("Auth failed. Token was not returned.");
+        return;
+      }
 
-      setToken(data.token);
+      saveToken(data.token);
       setStatus("You are logged in.");
 
       setAuthStatus("");
@@ -73,8 +145,7 @@ export default function Home() {
   }
 
   function handleLogout() {
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
+    clearToken();
     setStatus("You are logged out.");
   }
 
@@ -103,6 +174,8 @@ export default function Home() {
         isGenerating={isGenerating}
         status={status}
         onGenerate={handleGenerateMidi}
+        totalGenerations={totalGenerations}
+        isLoadingGenerations={isLoadingGenerations}
       />
 
       {authMode && (

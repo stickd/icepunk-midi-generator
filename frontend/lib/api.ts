@@ -35,7 +35,10 @@ export async function registerUser(body: RegisterBody) {
   });
 }
 
-export async function authUser(mode: AuthMode, body: LoginBody | RegisterBody) {
+export async function authUser(
+  mode: AuthMode,
+  body: LoginBody | RegisterBody,
+): Promise<Response> {
   if (mode === "login") {
     return loginUser(body as LoginBody);
   }
@@ -43,15 +46,34 @@ export async function authUser(mode: AuthMode, body: LoginBody | RegisterBody) {
   return registerUser(body as RegisterBody);
 }
 
+export type GenerationStatsResponse = {
+  totalGenerations: number;
+};
+
 type GenerateMidiResponse = {
   downloadUrl: string;
+  totalGenerations: number;
 };
+
+export async function getGenerationStats(): Promise<GenerationStatsResponse> {
+  const response = await fetch(`${API_URL}/generation-stats`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  return response.json();
+}
 
 export async function generateMidiPack(
   token?: string | null,
 ): Promise<GenerateMidiResponse> {
   const response = await fetch(`${API_URL}/generate`, {
-    method: "GET",
+    method: "POST",
     headers: token
       ? {
           Authorization: `Bearer ${token}`,
@@ -62,7 +84,7 @@ export async function generateMidiPack(
   if (!response.ok) {
     const message = await response.text();
 
-    throw new Error(message || `HTTP_${response.status}`);
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
   }
 
   return response.json();

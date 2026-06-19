@@ -1,9 +1,16 @@
 package icepunk_backend.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.nio.file.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -14,36 +21,64 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class MidiGenerationService {
 
-    private static final String PROJECT_DIR = "/home/nikul/iCEPUNKMIDIGENERATOR";
-    private static final String PYTHON_PATH = PROJECT_DIR + "/venv/bin/python3";
-    private static final String SCRIPT_NAME = "icepunk_midi_generator.py";
+    private final Path projectDir;
+    private final String pythonPath;
+    private final String scriptName;
+    private final long timeoutSeconds;
+    private final Semaphore semaphore;
 
-    private final Semaphore semaphore = new Semaphore(2);
+    public MidiGenerationService(
+            @Value("${icepunk.generator.project-dir}") String projectDir,
+            @Value("${icepunk.generator.python-path}") String pythonPath,
+            @Value("${icepunk.generator.script-name}") String scriptName,
+            @Value("${icepunk.generator.timeout-seconds}") long timeoutSeconds,
+            @Value("${icepunk.generator.max-concurrent}") int maxConcurrentGenerations
+    ) {
+        this.projectDir = Paths.get(projectDir).toAbsolutePath().normalize();
+        this.pythonPath = resolvePythonPath(pythonPath, this.projectDir);
+        this.scriptName = scriptName;
+        this.timeoutSeconds = timeoutSeconds;
+        this.semaphore = new Semaphore(maxConcurrentGenerations);
+    }
+
+    private String resolvePythonPath(String configuredPythonPath, Path projectDir) {
+        Path projectVenvPython = projectDir.resolve("venv").resolve("bin").resolve("python3");
+
+        if (configuredPythonPath == null || configuredPythonPath.isBlank()) {
+            return projectVenvPython.toString();
+        }
+
+        if ("python3".equals(configuredPythonPath) && Files.exists(projectVenvPython)) {
+            return projectVenvPython.toString();
+        }
+
+        return configuredPythonPath;
+    }
 
     public Path generateZip() throws Exception {
-
         if (!semaphore.tryAcquire()) {
             throw new RuntimeException("Server is busy. Try again later.");
         }
 
+        Path outputDir = null;
+
         try {
             String generationId = UUID.randomUUID().toString();
 
-            Path outputDir = Paths.get(PROJECT_DIR, "generated_midi", generationId);
+            outputDir = projectDir.resolve("generated_midi").resolve(generationId);
             Files.createDirectories(outputDir);
 
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    PYTHON_PATH,
-                    SCRIPT_NAME,
+                    pythonPath,
+                    scriptName,
                     outputDir.toString()
             );
 
-            processBuilder.directory(new File(PROJECT_DIR));
+            processBuilder.directory(projectDir.toFile());
             processBuilder.redirectErrorStream(true);
 
             Process process = processBuilder.start();
-
-            boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
 
             if (!finished) {
                 process.destroyForcibly();
@@ -65,22 +100,19 @@ public class MidiGenerationService {
                 throw new RuntimeException("Python generator failed with exit code: " + exitCode);
             }
 
-            Path zipPath = Paths.get(
-                    PROJECT_DIR,
-                    "icepunk-midi-pack-" + generationId + ".zip"
-            );
-
+            Path zipPath = projectDir.resolve("icepunk-midi-pack-" + generationId + ".zip");
             createZipFromDirectory(outputDir, zipPath);
 
             return zipPath;
-
         } finally {
+            if (outputDir != null) {
+                deleteDirectoryIfExists(outputDir);
+            }
             semaphore.release();
         }
     }
 
     private void createZipFromDirectory(Path sourceDir, Path zipPath) throws IOException {
-
         if (Files.exists(zipPath)) {
             Files.delete(zipPath);
         }
@@ -105,6 +137,18 @@ public class MidiGenerationService {
                             throw new RuntimeException(e);
                         }
                     });
+        }
+    }
+
+    private void deleteDirectoryIfExists(Path directory) throws IOException {
+        if (!Files.exists(directory)) {
+            return;
+        }
+
+        try (Stream<Path> paths = Files.walk(directory)) {
+            paths.sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
         }
     }
 }

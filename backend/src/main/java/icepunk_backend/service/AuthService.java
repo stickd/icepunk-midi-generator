@@ -27,8 +27,7 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    public User register(RegisterRequest request) {
-
+    public String register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyExistsException("Email already exists");
         }
@@ -41,11 +40,12 @@ public class AuthService {
                 passwordHash
         );
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        return jwtService.generateToken(savedUser.getEmail());
     }
 
     public String login(LoginRequest request) {
-
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
