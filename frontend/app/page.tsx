@@ -8,6 +8,7 @@ import Snowfall from "@/components/Snowfall";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import AuthModal from "@/components/AuthModal";
+import FeedbackSection from "@/components/FeedbackSection";
 
 type AuthMode = "login" | "register" | null;
 
@@ -177,6 +178,8 @@ export default function Home() {
         totalGenerations={totalGenerations}
         isLoadingGenerations={isLoadingGenerations}
       />
+
+      <FeedbackSection />
 
       {authMode && (
         <AuthModal
