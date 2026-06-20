@@ -27,18 +27,33 @@ public class GenerationLimitService {
         this.userRepository = userRepository;
     }
 
+    @Transactional(readOnly = true)
+    public void checkGuestLimit(String ipAddress) {
+        LocalDate today = LocalDate.now();
+
+        GuestUsage guestUsage = guestUsageRepository
+                .findByIpAddress(ipAddress)
+                .orElseGet(() -> new GuestUsage(ipAddress));
+
+        if (isLimitReached(
+                guestUsage.getGenerationDate(),
+                guestUsage.getGenerationsToday(),
+                GUEST_DAILY_LIMIT,
+                today
+        )) {
+            throw new GenerationLimitException("Guest daily generation limit reached");
+        }
+    }
+
     @Transactional
-    public void checkAndIncreaseGuestLimit(String ipAddress) {
+    public void incrementGuestUsage(String ipAddress) {
         LocalDate today = LocalDate.now();
 
         GuestUsage guestUsage = guestUsageRepository
                 .findByIpAddressForUpdate(ipAddress)
                 .orElseGet(() -> new GuestUsage(ipAddress));
 
-        if (!today.equals(guestUsage.getGenerationDate())) {
-            guestUsage.setGenerationDate(today);
-            guestUsage.setGenerationsToday(0);
-        }
+        resetUsageIfNeeded(guestUsage, today);
 
         if (guestUsage.getGenerationsToday() >= GUEST_DAILY_LIMIT) {
             throw new GenerationLimitException("Guest daily generation limit reached");
@@ -48,17 +63,31 @@ public class GenerationLimitService {
         guestUsageRepository.save(guestUsage);
     }
 
+    @Transactional(readOnly = true)
+    public void checkUserLimit(User user) {
+        User currentUser = userRepository.findByEmail(user.getEmail())
+                .orElseThrow();
+
+        LocalDate today = LocalDate.now();
+
+        if (isLimitReached(
+                currentUser.getGenerationDate(),
+                currentUser.getGenerationsToday(),
+                USER_DAILY_LIMIT,
+                today
+        )) {
+            throw new GenerationLimitException("User daily generation limit reached");
+        }
+    }
+
     @Transactional
-    public void checkAndIncreaseUserLimit(User user) {
+    public void incrementUserUsage(User user) {
         User lockedUser = userRepository.findByEmailForUpdate(user.getEmail())
                 .orElseThrow();
 
         LocalDate today = LocalDate.now();
 
-        if (!today.equals(lockedUser.getGenerationDate())) {
-            lockedUser.setGenerationDate(today);
-            lockedUser.setGenerationsToday(0);
-        }
+        resetUsageIfNeeded(lockedUser, today);
 
         if (lockedUser.getGenerationsToday() >= USER_DAILY_LIMIT) {
             throw new GenerationLimitException("User daily generation limit reached");
@@ -66,5 +95,28 @@ public class GenerationLimitService {
 
         lockedUser.setGenerationsToday(lockedUser.getGenerationsToday() + 1);
         userRepository.save(lockedUser);
+    }
+
+    private boolean isLimitReached(
+            LocalDate generationDate,
+            int generationsToday,
+            int dailyLimit,
+            LocalDate today
+    ) {
+        return today.equals(generationDate) && generationsToday >= dailyLimit;
+    }
+
+    private void resetUsageIfNeeded(GuestUsage guestUsage, LocalDate today) {
+        if (!today.equals(guestUsage.getGenerationDate())) {
+            guestUsage.setGenerationDate(today);
+            guestUsage.setGenerationsToday(0);
+        }
+    }
+
+    private void resetUsageIfNeeded(User user, LocalDate today) {
+        if (!today.equals(user.getGenerationDate())) {
+            user.setGenerationDate(today);
+            user.setGenerationsToday(0);
+        }
     }
 }

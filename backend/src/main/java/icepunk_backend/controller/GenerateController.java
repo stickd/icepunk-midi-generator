@@ -51,6 +51,8 @@ public class GenerateController {
                 .getContext()
                 .getAuthentication();
 
+        GenerationActor generationActor;
+
         if (
                 authentication != null
                         && authentication.isAuthenticated()
@@ -61,23 +63,37 @@ public class GenerateController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow();
 
-            generationLimitService.checkAndIncreaseUserLimit(user);
+            generationLimitService.checkUserLimit(user);
+            generationActor = GenerationActor.user(user);
         } else {
             String ipAddress = request.getRemoteAddr();
-            generationLimitService.checkAndIncreaseGuestLimit(ipAddress);
+            generationLimitService.checkGuestLimit(ipAddress);
+            generationActor = GenerationActor.guest(ipAddress);
         }
 
-        Path zipPath = midiGenerationService.generateZip();
+        Path zipPath = null;
 
-        String downloadUrl = zipStorageService.uploadZip(zipPath);
+        try {
+            zipPath = midiGenerationService.generateZip();
 
-        long totalGenerations = generationStatsService.incrementTotalGenerations();
+            String downloadUrl = zipStorageService.uploadZip(zipPath);
 
-        Files.deleteIfExists(zipPath);
+            if (generationActor.user != null) {
+                generationLimitService.incrementUserUsage(generationActor.user);
+            } else {
+                generationLimitService.incrementGuestUsage(generationActor.ipAddress);
+            }
 
-        return ResponseEntity.ok(
-                new GenerateResponse(downloadUrl, totalGenerations)
-        );
+            long totalGenerations = generationStatsService.incrementTotalGenerations();
+
+            return ResponseEntity.ok(
+                    new GenerateResponse(downloadUrl, totalGenerations)
+            );
+        } finally {
+            if (zipPath != null) {
+                Files.deleteIfExists(zipPath);
+            }
+        }
     }
 
     public static class GenerateResponse {
@@ -96,6 +112,25 @@ public class GenerateController {
 
         public long getTotalGenerations() {
             return totalGenerations;
+        }
+    }
+
+    private static class GenerationActor {
+
+        private final User user;
+        private final String ipAddress;
+
+        private GenerationActor(User user, String ipAddress) {
+            this.user = user;
+            this.ipAddress = ipAddress;
+        }
+
+        private static GenerationActor user(User user) {
+            return new GenerationActor(user, null);
+        }
+
+        private static GenerationActor guest(String ipAddress) {
+            return new GenerationActor(null, ipAddress);
         }
     }
 }
