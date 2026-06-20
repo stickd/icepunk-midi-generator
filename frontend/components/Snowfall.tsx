@@ -16,7 +16,7 @@ function fixed(value: number) {
   return value.toFixed(4);
 }
 
-const SNOWFLAKES: Snowflake[] = Array.from({ length: 70 }, (_, index) => {
+const SNOWFLAKES: Snowflake[] = Array.from({ length: 32 }, (_, index) => {
   const size = fixed(pseudoRandom(index + 101) * 5 + 3);
 
   return {
@@ -31,7 +31,10 @@ const SNOWFLAKES: Snowflake[] = Array.from({ length: 70 }, (_, index) => {
 
 export default function Snowfall() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden motion-reduce:hidden"
+    >
       {SNOWFLAKES.map((flake) => (
         <span
           key={flake.id}

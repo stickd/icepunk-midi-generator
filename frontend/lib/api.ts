@@ -55,9 +55,12 @@ type GenerateMidiResponse = {
   totalGenerations: number;
 };
 
-export async function getGenerationStats(): Promise<GenerationStatsResponse> {
+export async function getGenerationStats(
+  signal?: AbortSignal,
+): Promise<GenerationStatsResponse> {
   const response = await fetch(`${API_URL}/generation-stats`, {
     method: "GET",
+    signal,
   });
 
   if (!response.ok) {

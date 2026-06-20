@@ -1,8 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { MessageSquare, Send } from "lucide-react";
 
 type FeedbackStatus = null | "success" | "error";
 
@@ -88,13 +86,9 @@ export default function FeedbackSection() {
   }
 
   return (
-    <section className="relative z-10 px-6 pb-28 pt-10">
+    <section className="relative z-10 px-6 pb-28 pt-10 [contain-intrinsic-size:900px] [content-visibility:auto]">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.55 }}
+        <div
           className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-white/[0.035] p-8 shadow-[0_24px_90px_rgba(8,47,73,0.28)] backdrop-blur-xl md:p-10"
         >
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(56,189,248,0.035),rgba(255,255,255,0.02))]" />
@@ -102,7 +96,7 @@ export default function FeedbackSection() {
 
           <div className="relative">
             <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-100/10 text-cyan-100 shadow-[0_0_42px_rgba(125,211,252,0.18)]">
-              <MessageSquare size={22} strokeWidth={1.8} />
+              <span className="h-2.5 w-2.5 rounded-full bg-cyan-100 shadow-[0_0_24px_rgba(125,211,252,0.95)]" />
             </div>
 
             <p className="mb-4 text-xs font-semibold uppercase tracking-[0.34em] text-cyan-200/60">
@@ -130,14 +124,10 @@ export default function FeedbackSection() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.form
+        <form
           onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.28 }}
-          transition={{ duration: 0.55, delay: 0.08 }}
           className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-slate-950/45 p-5 shadow-[0_24px_90px_rgba(8,47,73,0.26)] backdrop-blur-2xl md:p-7"
           aria-live="polite"
         >
@@ -202,51 +192,35 @@ export default function FeedbackSection() {
               />
             </label>
 
-            <motion.button
+            <button
               type="submit"
               disabled={loading}
-              whileHover={!loading ? { y: -2, scale: 1.01 } : {}}
-              whileTap={!loading ? { scale: 0.97 } : {}}
-              className="group relative mt-2 h-14 overflow-hidden rounded-full border border-white/75 bg-gradient-to-b from-white via-cyan-50 to-sky-200 px-6 text-base font-black text-slate-950 shadow-[0_14px_44px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,1),inset_0_-8px_18px_rgba(14,165,233,0.14)] transition disabled:cursor-not-allowed disabled:opacity-60"
+              className="group relative mt-2 h-14 overflow-hidden rounded-full border border-white/75 bg-gradient-to-b from-white via-cyan-50 to-sky-200 px-6 text-base font-black text-slate-950 shadow-[0_14px_44px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,1),inset_0_-8px_18px_rgba(14,165,233,0.14)] transition hover:-translate-y-0.5 hover:scale-[1.01] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:scale-100"
             >
               <span className="absolute inset-y-0 -left-[70%] w-[55%] skew-x-[-18deg] bg-gradient-to-r from-transparent via-white/80 to-transparent transition-all duration-700 group-hover:left-[120%]" />
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/25 border-t-slate-950" />
                 ) : (
-                  <Send size={17} strokeWidth={2.2} />
+                  <span className="h-2 w-2 rounded-full bg-slate-950" />
                 )}
                 {loading ? "Sending..." : "Send Feedback"}
               </span>
-            </motion.button>
+            </button>
 
-            <AnimatePresence mode="wait">
-              {status === "success" && (
-                <motion.p
-                  key="feedback-success"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="rounded-2xl border border-cyan-200/20 bg-cyan-200/10 px-4 py-3 text-center text-sm font-semibold text-cyan-50"
-                >
-                  Thanks for helping improve IcePunk.
-                </motion.p>
-              )}
+            {status === "success" && (
+              <p className="rounded-2xl border border-cyan-200/20 bg-cyan-200/10 px-4 py-3 text-center text-sm font-semibold text-cyan-50">
+                Thanks for helping improve IcePunk.
+              </p>
+            )}
 
-              {status === "error" && (
-                <motion.p
-                  key="feedback-error"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="rounded-2xl border border-rose-200/20 bg-rose-300/10 px-4 py-3 text-center text-sm font-semibold text-rose-100"
-                >
-                  {errorMessage || "Feedback could not be sent right now."}
-                </motion.p>
-              )}
-            </AnimatePresence>
+            {status === "error" && (
+              <p className="rounded-2xl border border-rose-200/20 bg-rose-300/10 px-4 py-3 text-center text-sm font-semibold text-rose-100">
+                {errorMessage || "Feedback could not be sent right now."}
+              </p>
+            )}
           </div>
-        </motion.form>
+        </form>
       </div>
     </section>
   );

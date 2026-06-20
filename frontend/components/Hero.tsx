@@ -1,21 +1,8 @@
-import GenerateButton from "./GenerateButton";
-import GenerationCounter from "./GenerationCounter";
-
 type HeroProps = {
-  isGenerating: boolean;
-  status: string;
-  onGenerate: () => void;
-  totalGenerations: number | null;
-  isLoadingGenerations?: boolean;
+  children: React.ReactNode;
 };
 
-export default function Hero({
-  isGenerating,
-  status,
-  onGenerate,
-  totalGenerations,
-  isLoadingGenerations = false,
-}: HeroProps) {
+export default function Hero({ children }: HeroProps) {
   return (
     <section className="relative z-10 flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pb-20 pt-20 text-center">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -36,18 +23,7 @@ export default function Hero({
         Create dark, cold and melodic MIDI loops inspired by the iCEPUNK sound.
       </p>
 
-      <GenerationCounter
-        totalGenerations={totalGenerations}
-        isLoading={isLoadingGenerations}
-      />
-
-      <GenerateButton isGenerating={isGenerating} onGenerate={onGenerate} />
-
-      {status && (
-        <div className="mt-8 rounded-full border border-white/10 bg-white/[0.03] px-6 py-3 backdrop-blur-xl">
-          <p className="text-sm text-slate-300">{status}</p>
-        </div>
-      )}
+      {children}
     </section>
   );
 }
