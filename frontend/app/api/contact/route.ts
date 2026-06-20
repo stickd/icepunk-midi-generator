@@ -54,9 +54,8 @@ export async function POST(req: Request) {
     }
 
     const resendApiKey = process.env.RESEND_API_KEY;
-    const toEmail = process.env.FEEDBACK_TO_EMAIL ?? "nikulin.danilo@gmail.com";
-    const fromEmail =
-      process.env.FEEDBACK_FROM_EMAIL ?? "IcePunk <onboarding@resend.dev>";
+    const toEmail = process.env.FEEDBACK_TO_EMAIL;
+    const fromEmail = process.env.FEEDBACK_FROM_EMAIL;
 
     if (!resendApiKey) {
       console.info("IcePunk feedback received:", {
@@ -67,6 +66,15 @@ export async function POST(req: Request) {
       });
 
       return Response.json({ success: true });
+    }
+
+    if (!toEmail || !fromEmail) {
+      console.error("Feedback email env is not configured.");
+
+      return Response.json(
+        { error: "Feedback email is not configured." },
+        { status: 500 },
+      );
     }
 
     const response = await fetch("https://api.resend.com/emails", {
