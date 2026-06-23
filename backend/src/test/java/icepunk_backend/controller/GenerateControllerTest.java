@@ -2,6 +2,7 @@ package icepunk_backend.controller;
 
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
+import icepunk_backend.service.ClientIpService;
 import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.MidiGenerationService;
@@ -35,13 +36,15 @@ class GenerateControllerTest {
     private final GenerationStatsService generationStatsService = mock(GenerationStatsService.class);
     private final UserRepository userRepository = mock(UserRepository.class);
     private final ZipStorageService zipStorageService = mock(ZipStorageService.class);
+    private final ClientIpService clientIpService = mock(ClientIpService.class);
 
     private final GenerateController controller = new GenerateController(
             midiGenerationService,
             generationLimitService,
             generationStatsService,
             userRepository,
-            zipStorageService
+            zipStorageService,
+            clientIpService
     );
 
     @TempDir
@@ -145,6 +148,7 @@ class GenerateControllerTest {
     private MockHttpServletRequest guestRequest() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRemoteAddr("127.0.0.1");
+        when(clientIpService.getClientIp(request)).thenReturn("127.0.0.1");
         return request;
     }
 
@@ -154,6 +158,7 @@ class GenerateControllerTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("nikul@example.com", null, List.of())
         );
+        when(clientIpService.getClientIp(org.mockito.ArgumentMatchers.any())).thenReturn("127.0.0.1");
         return user;
     }
 

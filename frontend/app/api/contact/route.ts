@@ -38,6 +38,14 @@ export async function POST(req: Request) {
     const feedbackType = clean(body.feedbackType);
     const message = clean(body.message);
 
+    if (name.length > 100) {
+      return Response.json({ error: "Name is too long." }, { status: 400 });
+    }
+
+    if (email.length > 254) {
+      return Response.json({ error: "Email is too long." }, { status: 400 });
+    }
+
     if (email && !isValidEmail(email)) {
       return Response.json({ error: "Invalid email." }, { status: 400 });
     }
@@ -53,11 +61,18 @@ export async function POST(req: Request) {
       );
     }
 
+    if (message.length > 5000) {
+      return Response.json(
+        { error: "Message should be 5000 characters or less." },
+        { status: 400 },
+      );
+    }
+
     const resendApiKey = process.env.RESEND_API_KEY;
     const toEmail = process.env.FEEDBACK_TO_EMAIL;
     const fromEmail = process.env.FEEDBACK_FROM_EMAIL;
 
-    if (!resendApiKey) {
+    if (!resendApiKey && process.env.NODE_ENV !== "production") {
       console.info("IcePunk feedback received:", {
         name,
         email,
@@ -68,7 +83,7 @@ export async function POST(req: Request) {
       return Response.json({ success: true });
     }
 
-    if (!toEmail || !fromEmail) {
+    if (!resendApiKey || !toEmail || !fromEmail) {
       console.error("Feedback email env is not configured.");
 
       return Response.json(

@@ -4,11 +4,14 @@ import icepunk_backend.dto.LoginRequest;
 import icepunk_backend.dto.RegisterRequest;
 import icepunk_backend.exception.EmailAlreadyExistsException;
 import icepunk_backend.exception.InvalidCredentialsException;
+import icepunk_backend.exception.UsernameAlreadyExistsException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Locale;
 
 @Service
 public class AuthService {
@@ -28,15 +31,22 @@ public class AuthService {
     }
 
     public String register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        String email = normalizeEmail(request.getEmail());
+        String username = request.getUsername().trim();
+
+        if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException("Email already exists");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new UsernameAlreadyExistsException("Username already exists");
         }
 
         String passwordHash = passwordEncoder.encode(request.getPassword());
 
         User user = new User(
-                request.getUsername(),
-                request.getEmail(),
+                username,
+                email,
                 passwordHash
         );
 
@@ -46,7 +56,9 @@ public class AuthService {
     }
 
     public String login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        String email = normalizeEmail(request.getEmail());
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         boolean passwordMatches = passwordEncoder.matches(
@@ -59,5 +71,9 @@ public class AuthService {
         }
 
         return jwtService.generateToken(user.getEmail());
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

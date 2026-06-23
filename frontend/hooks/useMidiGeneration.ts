@@ -52,6 +52,11 @@ export function useMidiGeneration(
           return;
         }
 
+        if (error.message.includes("Server is busy") || error.message.includes("HTTP_429")) {
+          setStatus("The generator is busy right now. Please try again in a moment.");
+          return;
+        }
+
         if (error.message.includes("HTTP_401")) {
           localStorage.removeItem(TOKEN_KEY);
           setStatus("Your session expired. Please log in again.");

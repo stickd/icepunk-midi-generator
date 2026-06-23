@@ -6,6 +6,7 @@ import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.MidiGenerationService;
 import icepunk_backend.service.ZipStorageService;
+import icepunk_backend.service.ClientIpService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -29,19 +30,22 @@ public class GenerateController {
     private final GenerationStatsService generationStatsService;
     private final UserRepository userRepository;
     private final ZipStorageService zipStorageService;
+    private final ClientIpService clientIpService;
 
     public GenerateController(
             MidiGenerationService midiGenerationService,
             GenerationLimitService generationLimitService,
             GenerationStatsService generationStatsService,
             UserRepository userRepository,
-            ZipStorageService zipStorageService
+            ZipStorageService zipStorageService,
+            ClientIpService clientIpService
     ) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
         this.generationStatsService = generationStatsService;
         this.userRepository = userRepository;
         this.zipStorageService = zipStorageService;
+        this.clientIpService = clientIpService;
     }
 
     @PostMapping("/generate")
@@ -51,6 +55,7 @@ public class GenerateController {
                 .getContext()
                 .getAuthentication();
 
+        String ipAddress = clientIpService.getClientIp(request);
         GenerationActor generationActor;
 
         if (
@@ -64,9 +69,8 @@ public class GenerateController {
                     .orElseThrow();
 
             generationLimitService.checkUserLimit(user);
-            generationActor = GenerationActor.user(user);
+            generationActor = GenerationActor.user(user, ipAddress);
         } else {
-            String ipAddress = request.getRemoteAddr();
             generationLimitService.checkGuestLimit(ipAddress);
             generationActor = GenerationActor.guest(ipAddress);
         }
@@ -125,8 +129,8 @@ public class GenerateController {
             this.ipAddress = ipAddress;
         }
 
-        private static GenerationActor user(User user) {
-            return new GenerationActor(user, null);
+        private static GenerationActor user(User user, String ipAddress) {
+            return new GenerationActor(user, ipAddress);
         }
 
         private static GenerationActor guest(String ipAddress) {

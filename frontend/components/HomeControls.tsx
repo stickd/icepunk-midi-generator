@@ -131,6 +131,21 @@ export default function HomeControls() {
       const response = await authUser(authMode, body);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          setAuthStatus("Too many attempts. Please try again later.");
+          return;
+        }
+
+        if (response.status === 409) {
+          setAuthStatus("An account with that email or username already exists.");
+          return;
+        }
+
+        if (response.status === 400) {
+          setAuthStatus("Check your email, username, and password length.");
+          return;
+        }
+
         setAuthStatus("Auth failed. Check your data.");
         return;
       }

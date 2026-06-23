@@ -80,7 +80,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
         config.setAllowedOrigins(allowedOrigins);
 
         // Allowed HTTP methods
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
 
         // Allow all request headers
         config.setAllowedHeaders(List.of("*"));

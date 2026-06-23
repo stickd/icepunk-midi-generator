@@ -1,5 +1,6 @@
 package icepunk_backend.service;
 
+import icepunk_backend.exception.ServerBusyException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -57,7 +58,7 @@ public class MidiGenerationService {
 
     public Path generateZip() throws Exception {
         if (!semaphore.tryAcquire()) {
-            throw new RuntimeException("Server is busy. Try again later.");
+            throw new ServerBusyException("Server is busy. Try again later.");
         }
 
         Path outputDir = null;

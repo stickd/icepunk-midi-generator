@@ -21,15 +21,23 @@ COPY analysis_output analysis_output
 
 RUN python3 -m venv /app/venv \
     && /app/venv/bin/pip install --no-cache-dir -r requirements.txt \
-    && mkdir -p /app/generated_midi
+    && mkdir -p /app/generated_midi \
+    && groupadd --system icepunk \
+    && useradd --system --gid icepunk --home-dir /app icepunk \
+    && chown -R icepunk:icepunk /app
 
 COPY --from=build /workspace/backend/target/*.jar /app/backend.jar
+
+RUN chown icepunk:icepunk /app/backend.jar
 
 ENV SERVER_PORT=8081
 ENV ICEPUNK_GENERATOR_PROJECT_DIR=/app
 ENV ICEPUNK_GENERATOR_PYTHON_PATH=/app/venv/bin/python3
 ENV ICEPUNK_GENERATOR_SCRIPT_NAME=icepunk_midi_generator.py
+ENV JAVA_OPTS=""
 
 EXPOSE 8081
 
-ENTRYPOINT ["java", "-jar", "/app/backend.jar"]
+USER icepunk
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/backend.jar"]
