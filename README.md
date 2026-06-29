@@ -230,8 +230,40 @@ npm run start
 - feedback form
 - backend restart keeps generation counter
 
+## Database Migrations
+
+Schema is managed by [Flyway](https://flywaydb.org/). Migration files live in `backend/src/main/resources/db/migration/` and follow the naming convention `V{version}__{description}.sql`.
+
+### Profile behaviour
+
+| Profile | `ddl-auto` | Flyway |
+|---|---|---|
+| *(none / default)* | `update` (env var) | enabled |
+| `local` | `update` | enabled, baseline mode |
+| `test` | `create-drop` | disabled (H2 in-memory) |
+| `prod` | `validate` | enabled, strict |
+
+### Running with a profile
+
+```bash
+# local profile (recommended for development)
+cd backend
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+```
+
+### Introducing Flyway to an existing local database
+
+If you already have a database created by a previous `ddl-auto=update` run, use the `local` profile. It sets `baseline-on-migrate=true` and `baseline-version=1`, which marks the existing schema as V1 without re-running the migration.
+
+### Adding a new migration
+
+1. Create `backend/src/main/resources/db/migration/V{next}__{description}.sql`
+2. Never modify an already-applied migration file
+3. Test the migration locally before merging
+
 ## Notes
 
 - `analysis_output/midi_analysis.json` is required at runtime by the Python generator.
 - The production compose creates the MinIO bucket and sets anonymous download access for ZIP files.
 - For real production, rotate any secrets that were ever committed to git history.
+- The production Spring profile (`prod`) must be activated by setting `SPRING_PROFILES_ACTIVE=prod` in the deployment environment or compose file.

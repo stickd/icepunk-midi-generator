@@ -38,3 +38,6 @@ build/
 .DS_Store
 analysis_output/
 *:Zone.Identifier
+
+# Private notes
+protocol.md

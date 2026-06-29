@@ -11,7 +11,7 @@ RUN cd backend && ./mvnw -DskipTests package
 FROM eclipse-temurin:21-jre
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 python3-venv \
+    && apt-get install -y --no-install-recommends python3 python3-venv curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
