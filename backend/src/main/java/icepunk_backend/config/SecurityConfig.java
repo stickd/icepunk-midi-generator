@@ -65,6 +65,13 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/generation-stats"
                     ).permitAll()
 
+                    // Swagger / OpenAPI documentation (springdoc)
+                    .requestMatchers(
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html"
+                    ).permitAll()
+
                     // All other endpoints require a valid JWT token
                     .anyRequest().authenticated()
             )
