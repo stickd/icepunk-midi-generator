@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * | EP                                  | Request                                  | Expected                         |
  * |-------------------------------------|------------------------------------------|----------------------------------|
  * | public endpoint, no token           | GET /generation-stats                    | 200 (permitAll)                  |
+ * | health endpoint, no token           | GET /actuator/health                     | 200 (permitAll)                  |
  * | unknown endpoint, no token          | GET /internal/secret                     | 403 (anyRequest().authenticated)|
  * | CSRF disabled on stateless POST     | POST /auth/login (no CSRF token)         | 401, NOT 403                     |
  * | CORS applied for allowed origin     | GET /generation-stats with Origin header | Access-Control-Allow-Origin set  |
@@ -36,6 +37,14 @@ class SecurityConfigTest {
         mockMvc.perform(get("/generation-stats"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalGenerations").exists());
+    }
+
+    @Test
+    void healthEndpointIsReachableWithoutToken() throws Exception {
+        // Docker / load-balancer healthchecks hit /actuator/health unauthenticated.
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
     }
 
     @Test

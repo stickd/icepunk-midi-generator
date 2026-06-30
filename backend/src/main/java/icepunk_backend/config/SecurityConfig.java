@@ -65,6 +65,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/generation-stats"
                     ).permitAll()
 
+                    // Health endpoint (used by Docker / load-balancer healthchecks)
+                    .requestMatchers("/actuator/health").permitAll()
+
                     // Swagger / OpenAPI documentation (springdoc)
                     .requestMatchers(
                             "/v3/api-docs/**",
