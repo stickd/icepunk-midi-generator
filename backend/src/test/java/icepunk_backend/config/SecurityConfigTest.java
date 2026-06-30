@@ -1,0 +1,64 @@
+package icepunk_backend.config;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/*
+ * | EP                                  | Request                                  | Expected                         |
+ * |-------------------------------------|------------------------------------------|----------------------------------|
+ * | public endpoint, no token           | GET /generation-stats                    | 200 (permitAll)                  |
+ * | unknown endpoint, no token          | GET /internal/secret                     | 403 (anyRequest().authenticated)|
+ * | CSRF disabled on stateless POST     | POST /auth/login (no CSRF token)         | 401, NOT 403                     |
+ * | CORS applied for allowed origin     | GET /generation-stats with Origin header | Access-Control-Allow-Origin set  |
+ *
+ * Full @SpringBootTest on the H2 test profile so the real SecurityFilterChain,
+ * JwtAuthFilter and CORS config are exercised end-to-end.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+class SecurityConfigTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void publicEndpointIsReachableWithoutToken() throws Exception {
+        mockMvc.perform(get("/generation-stats"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalGenerations").exists());
+    }
+
+    @Test
+    void unknownEndpointRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/internal/secret"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void csrfIsDisabledForStatelessPostEndpoints() throws Exception {
+        // No CSRF token sent. If CSRF were enabled this POST would be 403.
+        // Instead it reaches the controller and fails auth with 401 (unknown user).
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"nobody@example.com\",\"password\":\"whatever1\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void corsHeadersAppliedForAllowedOrigin() throws Exception {
+        mockMvc.perform(get("/generation-stats")
+                        .header("Origin", "http://localhost:3000"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"));
+    }
+}
