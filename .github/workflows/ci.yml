@@ -43,5 +43,8 @@ jobs:
       - name: Syntax check
         run: python -m py_compile icepunk_midi_generator.py
 
-      - name: Run tests
-        run: python -m pytest tests/ -v
+      - name: Unit tests
+        run: python -m pytest tests/ -m "not slow" -v --tb=short
+
+      - name: Smoke tests (run generator, verify output)
+        run: python -m pytest tests/ -m slow -v --tb=short
