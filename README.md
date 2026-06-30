@@ -255,6 +255,18 @@ SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
 
 If you already have a database created by a previous `ddl-auto=update` run, use the `local` profile. It sets `baseline-on-migrate=true` and `baseline-version=1`, which marks the existing schema as V1 without re-running the migration.
 
+### First production deploy onto an existing database
+
+> **One-time step.** Required before the first deploy of the `prod` profile onto a database that was previously created by Hibernate (`ddl-auto=update`).
+
+The `prod` profile runs Flyway in strict mode (`baseline-on-migrate=false`). If the production database already has tables but no `flyway_schema_history` table, Flyway aborts on startup with *"Found non-empty schema(s) without schema history table"* and the backend never comes up.
+
+Pick one before the first `prod` deploy:
+
+1. **Baseline the existing schema (recommended).** For the first deploy only, start the backend once with `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` and `SPRING_FLYWAY_BASELINE_VERSION=1`. This stamps the current schema as V1 without re-running it. Remove both env vars for subsequent deploys.
+2. **Manual baseline.** Run `flyway baseline -baselineVersion=1` against the prod database out-of-band, then deploy normally.
+3. **Fresh database.** If the prod database is empty (or you recreate the volume), V1 applies cleanly and no baseline is needed.
+
 ### Adding a new migration
 
 1. Create `backend/src/main/resources/db/migration/V{next}__{description}.sql`
