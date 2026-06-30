@@ -30,7 +30,10 @@ import static org.mockito.Mockito.when;
  * | unexpected runtime       | handleRuntimeException        | 500             | generic, no stack trace     |
  *
  * Note: 403 forbidden is enforced by Spring Security's filter chain, not this
- * @RestControllerAdvice, so it is covered by SecurityConfig/MockMvc tests, not here.
+ * @RestControllerAdvice (an AccessDeniedException is raised in the filters,
+ * before the DispatcherServlet, so this advice never sees it). The forbidden
+ * cases — no token and invalid token on a protected endpoint — are therefore
+ * covered in SecurityConfigTest, not here.
  */
 class GlobalExceptionHandlerTest {
 

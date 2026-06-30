@@ -18,7 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * |-------------------------------------|------------------------------------------|----------------------------------|
  * | public endpoint, no token           | GET /generation-stats                    | 200 (permitAll)                  |
  * | health endpoint, no token           | GET /actuator/health                     | 200 (permitAll)                  |
- * | unknown endpoint, no token          | GET /internal/secret                     | 403 (anyRequest().authenticated)|
+ * | protected endpoint, no token        | GET /internal/secret                     | 403 (anyRequest().authenticated)|
+ * | protected endpoint, invalid token   | GET /internal/secret + bad Bearer        | 403 (filter degrades cleanly)    |
  * | CSRF disabled on stateless POST     | POST /auth/login (no CSRF token)         | 401, NOT 403                     |
  * | CORS applied for allowed origin     | GET /generation-stats with Origin header | Access-Control-Allow-Origin set  |
  *
@@ -50,6 +51,16 @@ class SecurityConfigTest {
     @Test
     void unknownEndpointRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/internal/secret"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void protectedEndpointWithInvalidTokenIsForbidden() throws Exception {
+        // JwtAuthFilter swallows a malformed/expired token and continues
+        // unauthenticated, so the request still hits anyRequest().authenticated()
+        // and is rejected with 403 — it must NOT leak a 500 from the bad token.
+        mockMvc.perform(get("/internal/secret")
+                        .header("Authorization", "Bearer not-a-real-jwt"))
                 .andExpect(status().isForbidden());
     }
 
