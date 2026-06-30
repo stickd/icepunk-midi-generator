@@ -69,16 +69,7 @@ public class MidiGenerationService {
             outputDir = projectDir.resolve("generated_midi").resolve(generationId);
             Files.createDirectories(outputDir);
 
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    pythonPath,
-                    scriptName,
-                    outputDir.toString()
-            );
-
-            processBuilder.directory(projectDir.toFile());
-            processBuilder.redirectErrorStream(true);
-
-            Process process = processBuilder.start();
+            Process process = startGeneratorProcess(outputDir);
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
 
             if (!finished) {
@@ -111,6 +102,25 @@ public class MidiGenerationService {
             }
             semaphore.release();
         }
+    }
+
+    /**
+     * Launches the Python generator subprocess that writes its MIDI output into
+     * {@code outputDir}. Extracted as an overridable seam so tests can substitute
+     * a controllable {@link Process} (timeout, non-zero exit, success) without
+     * forking a real OS process.
+     */
+    Process startGeneratorProcess(Path outputDir) throws IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                pythonPath,
+                scriptName,
+                outputDir.toString()
+        );
+
+        processBuilder.directory(projectDir.toFile());
+        processBuilder.redirectErrorStream(true);
+
+        return processBuilder.start();
     }
 
     private void createZipFromDirectory(Path sourceDir, Path zipPath) throws IOException {
