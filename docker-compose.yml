@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: icepunk
       POSTGRES_USER: icepunk
-      POSTGRES_PASSWORD: icepunk
+      POSTGRES_PASSWORD: icepunk_local_dev
     ports:
       - "5433:5432"
     volumes:
