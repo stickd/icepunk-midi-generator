@@ -340,7 +340,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image for vulnerabilities (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: icepunk-backend:${{ github.sha }}
           format: sarif
@@ -367,7 +367,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Scan filesystem for vulnerable dependencies (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
