@@ -72,7 +72,11 @@ export async function POST(req: Request) {
     const toEmail = process.env.FEEDBACK_TO_EMAIL;
     const fromEmail = process.env.FEEDBACK_FROM_EMAIL;
 
-    if (!resendApiKey && process.env.NODE_ENV !== "production") {
+    const allowLogFallback =
+      process.env.NODE_ENV !== "production" ||
+      process.env.FEEDBACK_EMAIL_TEST_FALLBACK === "true";
+
+    if (!resendApiKey && allowLogFallback) {
       console.info("IcePunk feedback received:", {
         name,
         email,

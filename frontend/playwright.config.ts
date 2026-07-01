@@ -17,6 +17,7 @@ export default defineConfig({
     timeout: 180_000,
     env: {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081',
+      FEEDBACK_EMAIL_TEST_FALLBACK: 'true',
     },
   },
   projects: [
