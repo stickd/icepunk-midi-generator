@@ -1,6 +1,5 @@
 """Unit tests for pure helper functions in icepunk_midi_generator."""
 import mido
-import pytest
 
 import icepunk_midi_generator as gen
 
@@ -235,6 +234,166 @@ class TestScoreGeneratedNotes:
         smooth = [self._note(p, float(i)) for i, p in enumerate(pitches)]
         jumpy  = [self._note(p, float(i)) for i, p in enumerate([48, 75, 51, 72, 54, 69, 57, 66, 60, 63])]
         assert gen.score_generated_notes(jumpy) < gen.score_generated_notes(smooth)
+
+
+# ─── normalize_to_4_bars ──────────────────────────────────────────────────────
+
+class TestNormalizeTo4Bars:
+    def _note(self, pitch=60, start=0.0, duration=1.0):
+        return gen.Note(
+            pitch=pitch,
+            velocity=80,
+            start_beat=start,
+            duration_beats=duration,
+            register=gen.detect_register(pitch),
+        )
+
+    def test_empty_list_returns_empty(self):
+        assert gen.normalize_to_4_bars([]) == []
+
+    def test_note_within_range_unchanged(self):
+        result = gen.normalize_to_4_bars([self._note(start=2.0, duration=1.0)])
+        assert result[0].start_beat == 2.0
+        assert result[0].duration_beats == 1.0
+
+    def test_note_past_16_beats_wraps(self):
+        # TOTAL_BEATS = 16; start=18.0 → wraps to 2.0
+        result = gen.normalize_to_4_bars([self._note(start=18.0, duration=1.0)])
+        assert result[0].start_beat == 2.0
+
+    def test_duration_truncated_to_avoid_overrun(self):
+        # start=15.0, duration=4.0 would overrun TOTAL_BEATS(16) by 3 beats
+        result = gen.normalize_to_4_bars([self._note(start=15.0, duration=4.0)])
+        assert result[0].start_beat == 15.0
+        assert result[0].duration_beats == 1.0
+
+    def test_non_positive_duration_is_dropped(self):
+        # duration <= 0 fails the `duration <= 0` guard regardless of start position.
+        result = gen.normalize_to_4_bars([self._note(start=2.0, duration=0.0)])
+        assert result == []
+
+    def test_register_recomputed_from_pitch(self):
+        result = gen.normalize_to_4_bars([self._note(pitch=40, start=0.0)])
+        assert result[0].register == gen.detect_register(40)
+
+
+# ─── remove_too_dense_duplicates ──────────────────────────────────────────────
+
+class TestRemoveTooDenseDuplicates:
+    def _note(self, pitch=60, start=0.0):
+        return gen.Note(
+            pitch=pitch,
+            velocity=80,
+            start_beat=start,
+            duration_beats=1.0,
+            register=gen.detect_register(pitch),
+        )
+
+    def test_empty_list_returns_empty(self):
+        assert gen.remove_too_dense_duplicates([]) == []
+
+    def test_exact_duplicate_start_and_pitch_removed(self):
+        notes = [self._note(60, 1.0), self._note(60, 1.0)]
+        result = gen.remove_too_dense_duplicates(notes)
+        assert len(result) == 1
+
+    def test_different_pitches_at_same_start_survive(self):
+        notes = [self._note(60, 1.0), self._note(64, 1.0)]
+        result = gen.remove_too_dense_duplicates(notes)
+        assert len(result) == 2
+
+    def test_same_pitch_at_different_starts_survive(self):
+        notes = [self._note(60, 1.0), self._note(60, 2.0)]
+        result = gen.remove_too_dense_duplicates(notes)
+        assert len(result) == 2
+
+    def test_result_sorted_by_start_then_pitch(self):
+        notes = [self._note(64, 2.0), self._note(60, 1.0), self._note(62, 1.0)]
+        result = gen.remove_too_dense_duplicates(notes)
+        assert [(n.start_beat, n.pitch) for n in result] == [(1.0, 60), (1.0, 62), (2.0, 64)]
+
+
+# ─── reduce_repeated_notes ─────────────────────────────────────────────────────
+
+class TestReduceRepeatedNotes:
+    def _note(self, pitch=60, start=0.0):
+        return gen.Note(
+            pitch=pitch,
+            velocity=80,
+            start_beat=start,
+            duration_beats=1.0,
+            register=gen.detect_register(pitch),
+        )
+
+    def test_fewer_than_3_notes_returned_unchanged(self):
+        notes = [self._note(60, 0.0), self._note(60, 1.0)]
+        result = gen.reduce_repeated_notes(notes, "A minor")
+        assert result == notes
+
+    def test_short_run_of_two_survives(self):
+        notes = [self._note(60, 0.0), self._note(60, 1.0), self._note(64, 2.0)]
+        result = gen.reduce_repeated_notes(notes, "A minor")
+        pitches = [n.pitch for n in result]
+        assert pitches[:2] == [60, 60]
+
+    def test_run_of_3_plus_same_pitch_third_note_changed(self):
+        notes = [self._note(60, 0.0), self._note(60, 1.0), self._note(60, 2.0)]
+        result = gen.reduce_repeated_notes(notes, "A minor")
+        pitches = [n.pitch for n in result]
+        assert pitches[0] == 60
+        assert pitches[1] == 60
+        assert pitches[2] != 60
+
+    def test_run_of_4_breaks_up_third_and_continues(self):
+        notes = [self._note(60, float(i)) for i in range(4)]
+        result = gen.reduce_repeated_notes(notes, "A minor")
+        pitches = [n.pitch for n in result]
+        # 1st,2nd unchanged; 3rd forced to differ from 2nd (previous_pitch)
+        assert pitches[0] == 60 and pitches[1] == 60
+        assert pitches[2] != 60
+
+    def test_empty_list_after_length_check_not_reached(self):
+        # len < 3 short-circuits before touching notes; explicit empty-list case
+        assert gen.reduce_repeated_notes([], "A minor") == []
+
+    def test_register_recomputed_from_final_pitch(self):
+        notes = [self._note(60, float(i)) for i in range(3)]
+        result = gen.reduce_repeated_notes(notes, "A minor")
+        for note in result:
+            assert note.register == gen.detect_register(note.pitch)
+
+
+# ─── force_first_note_to_start ─────────────────────────────────────────────────
+
+class TestForceFirstNoteToStart:
+    def _note(self, pitch=60, start=0.0):
+        return gen.Note(
+            pitch=pitch,
+            velocity=80,
+            start_beat=start,
+            duration_beats=1.0,
+            register=gen.detect_register(pitch),
+        )
+
+    def test_empty_list_returns_empty(self):
+        assert gen.force_first_note_to_start([]) == []
+
+    def test_first_note_already_at_zero_unchanged(self):
+        notes = [self._note(60, 0.0), self._note(64, 1.0)]
+        result = gen.force_first_note_to_start(notes)
+        assert result[0].start_beat == 0.0
+        assert result[1].start_beat == 1.0
+
+    def test_first_note_shifts_to_zero(self):
+        notes = [self._note(60, 2.0), self._note(64, 3.0)]
+        result = gen.force_first_note_to_start(notes)
+        assert result[0].start_beat == 0.0
+
+    def test_all_other_notes_shift_by_same_delta(self):
+        notes = [self._note(60, 2.0), self._note(64, 5.0), self._note(67, 3.5)]
+        result = gen.force_first_note_to_start(sorted(notes, key=lambda n: n.start_beat))
+        starts = sorted(n.start_beat for n in result)
+        assert starts == [0.0, 1.5, 3.0]
 
 
 # ─── write_midi ───────────────────────────────────────────────────────────────

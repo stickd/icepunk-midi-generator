@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import json
 import random
-import sys
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar, cast
 
 from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo
 
@@ -17,10 +17,7 @@ from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo
 
 ANALYSIS_FILE = Path("analysis_output/midi_analysis.json")
 
-if len(sys.argv) > 1:
-    OUTPUT_DIR = Path(sys.argv[1])
-else:
-    OUTPUT_DIR = Path("generated_midi")
+DEFAULT_OUTPUT_DIR = Path("generated_midi")
 
 GENERATE_COUNT = 10
 
@@ -94,7 +91,10 @@ class SourcePattern:
 # BASIC HELPERS
 # =========================
 
-def clamp(value: int, min_value: int, max_value: int) -> int:
+Number = TypeVar("Number", int, float)
+
+
+def clamp(value: Number, min_value: Number, max_value: Number) -> Number:
     return max(min_value, min(max_value, value))
 
 
@@ -177,7 +177,7 @@ def load_analysis() -> dict[str, Any]:
         )
 
     with ANALYSIS_FILE.open("r", encoding="utf-8") as file:
-        return json.load(file)
+        return cast(dict[str, Any], json.load(file))
 
 
 def load_patterns(analysis: dict[str, Any]) -> tuple[list[SourcePattern], dict[str, Any]]:
@@ -255,7 +255,7 @@ def load_patterns(analysis: dict[str, Any]) -> tuple[list[SourcePattern], dict[s
 
 def choose_target_key(style: dict[str, Any]) -> str:
     if style["keys"]:
-        return weighted_choice(style["keys"])
+        return cast(str, weighted_choice(style["keys"]))
 
     return "A minor"
 
@@ -307,7 +307,7 @@ def mutate_note(note: Note, target_key: str) -> Note:
 
     if random.random() < RHYTHM_MUTATION_PROBABILITY:
         start = quantize_beat(start + random.choice([-0.25, 0.25]))
-        start = clamp_float(start, 0.0, TOTAL_BEATS - 0.25)
+        start = clamp(start, 0.0, TOTAL_BEATS - 0.25)
 
     if random.random() < VELOCITY_MUTATION_PROBABILITY:
         velocity += random.randint(-10, 10)
@@ -322,10 +322,6 @@ def mutate_note(note: Note, target_key: str) -> Note:
         duration_beats=round(duration, 4),
         register=detect_register(pitch),
     )
-
-
-def clamp_float(value: float, min_value: float, max_value: float) -> float:
-    return max(min_value, min(max_value, value))
 
 
 # =========================
@@ -443,7 +439,7 @@ def remove_too_dense_duplicates(notes: list[Note]) -> list[Note]:
     cleaned: list[Note] = []
 
     for note in sorted(notes, key=lambda n: (n.start_beat, n.pitch)):
-        key = (round(note.start_beat, 3), note.pitch)
+        key = (round(note.start_beat, 4), note.pitch)
 
         if key in seen:
             continue
@@ -508,7 +504,14 @@ def force_first_note_to_start(notes: list[Note]) -> list[Note]:
     first_start = notes[0].start_beat
 
     if first_start <= 0.0:
-        notes[0].start_beat = 0.0
+        first = notes[0]
+        notes[0] = Note(
+            pitch=first.pitch,
+            velocity=first.velocity,
+            start_beat=0.0,
+            duration_beats=first.duration_beats,
+            register=first.register,
+        )
         return notes
 
     shifted: list[Note] = []
@@ -564,8 +567,8 @@ def score_generated_notes(notes: list[Note]) -> float:
         score -= 15
 
     starts = [note.start_beat for note in notes]
-    repeated_positions = len(starts) - len(set(starts))
-    score += min(repeated_positions, 14)
+    polyphony_bonus = len(starts) - len(set(starts))
+    score += min(polyphony_bonus, 14)
 
     big_jumps = 0
 
@@ -646,10 +649,10 @@ def write_midi(notes: list[Note], output_path: Path, bpm: float) -> None:
     mid.save(output_path)
 
 
-def clear_output_folder() -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+def clear_output_folder(output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    for file in OUTPUT_DIR.iterdir():
+    for file in output_dir.iterdir():
         if file.is_file() and file.suffix.lower() in {".mid", ".midi"}:
             file.unlink()
 
@@ -658,8 +661,8 @@ def clear_output_folder() -> None:
 # MAIN
 # =========================
 
-def generate_midi_files() -> None:
-    clear_output_folder()
+def generate_midi_files(output_dir: Path = DEFAULT_OUTPUT_DIR) -> None:
+    clear_output_folder(output_dir)
 
     analysis = load_analysis()
     patterns, style = load_patterns(analysis)
@@ -667,7 +670,7 @@ def generate_midi_files() -> None:
     print("MIDI GENERATOR FROM STYLE ANALYSIS")
     print("==================================")
     print(f"Analysis file:  {ANALYSIS_FILE.resolve()}")
-    print(f"Output folder:  {OUTPUT_DIR.resolve()}")
+    print(f"Output folder:  {output_dir.resolve()}")
     print()
     print("STYLE DNA")
     print("---------")
@@ -682,7 +685,7 @@ def generate_midi_files() -> None:
         notes, key, score = generate_best_notes(patterns, style, attempts=50)
 
         safe_key = key.replace(" ", "_").replace("#", "sharp")
-        output_path = OUTPUT_DIR / f"generated_pattern_{index}_{safe_key}.mid"
+        output_path = output_dir / f"generated_pattern_{index}_{safe_key}.mid"
 
         write_midi(notes, output_path, bpm=style["bpm"])
 
@@ -695,5 +698,17 @@ def generate_midi_files() -> None:
     print("Done.")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate MIDI patterns from style analysis")
+    parser.add_argument(
+        "output_dir",
+        type=Path,
+        nargs="?",
+        default=DEFAULT_OUTPUT_DIR,
+        help="Directory to write generated .mid files into (default: generated_midi)",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    generate_midi_files()
+    generate_midi_files(parse_args().output_dir)
