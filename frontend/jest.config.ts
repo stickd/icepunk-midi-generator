@@ -4,6 +4,7 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   setupFiles: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup-after-env.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
