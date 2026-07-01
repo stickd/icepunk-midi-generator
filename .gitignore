@@ -42,3 +42,8 @@ analysis_output/
 # Private notes
 protocol.md
 docs/python-engine-code-review.md
+
+# Playwright
+playwright-report/
+test-results/
+frontend/e2e/.seed-user.json
