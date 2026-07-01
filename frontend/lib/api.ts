@@ -1,6 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8081";
+const REQUEST_TIMEOUT_MS = 15000;
 
 export const TOKEN_KEY = "icepunk_token";
+
+function withTimeout(signal?: AbortSignal): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+
+  return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+}
 
 type AuthMode = "login" | "register";
 
@@ -22,6 +29,7 @@ export async function loginUser(body: LoginBody) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: withTimeout(),
   });
 }
 
@@ -32,6 +40,7 @@ export async function registerUser(body: RegisterBody) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: withTimeout(),
   });
 }
 
@@ -60,7 +69,7 @@ export async function getGenerationStats(
 ): Promise<GenerationStatsResponse> {
   const response = await fetch(`${API_URL}/generation-stats`, {
     method: "GET",
-    signal,
+    signal: withTimeout(signal),
   });
 
   if (!response.ok) {
@@ -74,6 +83,7 @@ export async function getGenerationStats(
 
 export async function generateMidiPack(
   token?: string | null,
+  signal?: AbortSignal,
 ): Promise<GenerateMidiResponse> {
   const response = await fetch(`${API_URL}/generate`, {
     method: "POST",
@@ -82,6 +92,7 @@ export async function generateMidiPack(
           Authorization: `Bearer ${token}`,
         }
       : {},
+    signal: withTimeout(signal),
   });
 
   if (!response.ok) {

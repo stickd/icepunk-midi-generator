@@ -2,8 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
@@ -21,6 +25,9 @@ jobs:
           java-version: '21'
           distribution: temurin
           cache: maven
+
+      - name: Ensure mvnw is executable
+        run: chmod +x mvnw
 
       - name: Run tests
         run: ./mvnw verify
@@ -43,8 +50,100 @@ jobs:
       - name: Syntax check
         run: python -m py_compile icepunk_midi_generator.py
 
+      - name: Lint
+        run: ruff check icepunk_midi_generator.py tests/
+
+      - name: Type check
+        run: mypy icepunk_midi_generator.py --strict
+
       - name: Unit tests
-        run: python -m pytest tests/ -m "not slow" -v --tb=short
+        run: python -m pytest tests/ -m "not slow" -v --tb=short --junit-xml=unit-results.xml
 
       - name: Smoke tests (run generator, verify output)
-        run: python -m pytest tests/ -m slow -v --tb=short
+        run: python -m pytest tests/ -m slow -v --tb=short --junit-xml=smoke-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-results
+          path: |
+            unit-results.xml
+            smoke-results.xml
+
+  newman:
+    name: API smoke test (Newman)
+    runs-on: ubuntu-latest
+    needs: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Ensure mvnw is executable
+        run: chmod +x backend/mvnw
+
+      - name: Start Postgres and MinIO
+        run: docker compose up -d --wait
+
+      - name: Provision the MinIO bucket
+        run: |
+          docker run --rm --network host \
+            -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
+            minio/mc mb --ignore-existing local/icepunk-zips
+          docker run --rm --network host \
+            -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
+            minio/mc anonymous set download local/icepunk-zips
+
+      - name: Set up the Python venv for the MIDI generator
+        run: |
+          python3 -m venv venv
+          venv/bin/pip install -r requirements.txt
+
+      - name: Start the backend
+        working-directory: backend
+        run: |
+          nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
+          echo $! > ../backend.pid
+
+      - name: Wait for the backend to become healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8081/actuator/health > /dev/null; then
+              echo "Backend is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not become healthy in time"
+          cat backend.log
+          exit 1
+
+      - name: Run Newman
+        run: |
+          npx --yes newman run postman/icepunk.postman_collection.json \
+            -e postman/ci.postman_environment.json \
+            --reporters cli,junit \
+            --reporter-junit-export newman-results.xml
+
+      - name: Upload Newman results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-results
+          path: newman-results.xml
+
+      - name: Stop the backend and infra
+        if: always()
+        run: |
+          if [ -f backend.pid ]; then kill "$(cat backend.pid)" || true; fi
+          docker compose down
