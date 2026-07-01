@@ -6,6 +6,8 @@ COPY backend/.mvn backend/.mvn
 COPY backend/mvnw backend/pom.xml backend/
 COPY backend/src backend/src
 
+# Tests are not run here: the CI `docker` job only builds this image after the
+# `backend` job (./mvnw verify) has already passed for this exact commit.
 RUN cd backend && ./mvnw -DskipTests package
 
 FROM eclipse-temurin:21-jre
