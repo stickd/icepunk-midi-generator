@@ -21,13 +21,19 @@ test.describe.serial('authenticated MIDI generation', () => {
   })
 
   test('an authenticated user can generate and download a MIDI pack', async () => {
+    const startedAt = Date.now()
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Generate MIDI Pack' }).click()
     const download = await downloadPromise
+    const elapsedMs = Date.now() - startedAt
 
     expect(download.suggestedFilename()).toMatch(/\.zip$/)
     await expect(page.getByText('MIDI pack downloaded.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Generate MIDI Pack' })).toBeEnabled()
+
+    // Client-side fetch aborts generation requests after 15s (lib/api.ts), so
+    // a healthy generation should complete well inside that budget.
+    expect(elapsedMs).toBeLessThan(10_000)
   })
 
   test('the downloaded ZIP file is a valid, non-empty archive', async () => {

@@ -51,7 +51,7 @@ describe("HomeControls", () => {
       expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
 
       const modal = await findModal("Welcome back");
-      fireEvent.click(modal.getByRole("button", { name: "✕" }));
+      fireEvent.click(modal.getByRole("button", { name: "Close" }));
 
       await waitFor(() => {
         expect(screen.queryByRole("heading", { name: "Welcome back" })).not.toBeInTheDocument();

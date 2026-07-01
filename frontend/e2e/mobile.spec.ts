@@ -37,6 +37,6 @@ test('key controls are visible and usable at a mobile viewport', async ({ page }
   await modal.getByPlaceholder('Username').fill('mobile-tester')
   await expect(modal.getByPlaceholder('Username')).toHaveValue('mobile-tester')
 
-  await modal.getByRole('button', { name: '✕' }).click()
+  await modal.getByRole('button', { name: 'Close' }).click()
   await expect(modal).not.toBeVisible()
 })

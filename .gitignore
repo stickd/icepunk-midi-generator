@@ -47,3 +47,6 @@ docs/python-engine-code-review.md
 playwright-report/
 test-results/
 frontend/e2e/.seed-user.json
+
+# Jest coverage
+coverage/

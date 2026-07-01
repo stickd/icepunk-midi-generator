@@ -29,11 +29,16 @@ export default function AuthModal({
     "rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-200/40 focus:bg-white/[0.09] focus:ring-4 focus:ring-cyan-300/10";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 backdrop-blur-xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 backdrop-blur-xl"
+    >
       <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-[0_0_100px_rgba(103,232,249,0.18)] backdrop-blur-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-white">
+            <h2 id="auth-modal-title" className="text-3xl font-black tracking-tight text-white">
               {mode === "login" ? "Welcome back" : "Create account"}
             </h2>
             <p className="mt-2 text-sm text-slate-400">
@@ -45,6 +50,7 @@ export default function AuthModal({
 
           <button
             onClick={onClose}
+            aria-label="Close"
             className="rounded-full border border-white/10 px-3 py-1 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
           >
             ✕
