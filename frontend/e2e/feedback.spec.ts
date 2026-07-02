@@ -1,6 +1,17 @@
 import { expect, test } from '@playwright/test'
 
 test('a visitor can submit the feedback form', async ({ page }) => {
+  await page.route('**/api/contact', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'Feedback sent successfully.',
+      }),
+    })
+  })
+
   await page.goto('/')
 
   const form = page.locator('form', { has: page.getByPlaceholder('Your name') })
