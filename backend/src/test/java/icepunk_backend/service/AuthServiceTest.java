@@ -148,4 +148,18 @@ class AuthServiceTest {
 
         assertEquals("jwt-token", token);
     }
+
+    @Test
+    void maskEmailForLogsKeepsOnlyFirstLocalCharacterAndDomain() {
+        assertEquals("j***@gmail.com", AuthService.maskEmailForLogs("john.doe@gmail.com"));
+        assertEquals("f***@bar.com", AuthService.maskEmailForLogs("  Foo@Bar.COM "));
+    }
+
+    @Test
+    void maskEmailForLogsHandlesBoundaryValues() {
+        assertEquals("***", AuthService.maskEmailForLogs(null));
+        assertEquals("***", AuthService.maskEmailForLogs(" "));
+        assertEquals("a***@example.com", AuthService.maskEmailForLogs("a@example.com"));
+        assertEquals("i***", AuthService.maskEmailForLogs("invalid-email"));
+    }
 }

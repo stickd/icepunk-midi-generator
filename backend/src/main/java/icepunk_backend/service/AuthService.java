@@ -36,12 +36,13 @@ public class AuthService {
 
     public String register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
+        String maskedEmail = maskEmailForLogs(email);
         String username = request.getUsername().trim();
 
-        log.info("Registration attempt for email={}", email);
+        log.info("Registration attempt for email={}", maskedEmail);
 
         if (userRepository.existsByEmail(email)) {
-            log.warn("Registration rejected: email already exists email={}", email);
+            log.warn("Registration rejected: email already exists email={}", maskedEmail);
             throw new EmailAlreadyExistsException("Email already exists");
         }
 
@@ -60,18 +61,19 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        log.info("Registration succeeded for email={}", savedUser.getEmail());
+        log.info("Registration succeeded for email={}", maskEmailForLogs(savedUser.getEmail()));
         return jwtService.generateToken(savedUser.getEmail());
     }
 
     public String login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
+        String maskedEmail = maskEmailForLogs(email);
 
-        log.info("Login attempt for email={}", email);
+        log.info("Login attempt for email={}", maskedEmail);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.warn("Login rejected: unknown email={}", email);
+                    log.warn("Login rejected: unknown email={}", maskedEmail);
                     return new InvalidCredentialsException("Invalid email or password");
                 });
 
@@ -81,15 +83,32 @@ public class AuthService {
         );
 
         if (!passwordMatches) {
-            log.warn("Login rejected: bad password for email={}", email);
+            log.warn("Login rejected: bad password for email={}", maskedEmail);
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        log.info("Login succeeded for email={}", email);
+        log.info("Login succeeded for email={}", maskedEmail);
         return jwtService.generateToken(user.getEmail());
     }
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    static String maskEmailForLogs(String email) {
+        if (email == null || email.isBlank()) {
+            return "***";
+        }
+
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
+        int atIndex = normalized.indexOf('@');
+        String localPart = atIndex > 0 ? normalized.substring(0, atIndex) : normalized;
+        String domainPart = atIndex >= 0 ? normalized.substring(atIndex) : "";
+
+        if (localPart.isEmpty()) {
+            return "***" + domainPart;
+        }
+
+        return localPart.charAt(0) + "***" + domainPart;
     }
 }
