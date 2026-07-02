@@ -87,6 +87,18 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 
 Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation and successful ZIP upload.
 
+## Generated ZIP Retention
+
+Generated MIDI ZIP files are temporary download artifacts. New generated ZIPs are stored in the S3/MinIO bucket under the `generated_midi/` prefix and are automatically cleaned up by the backend after the configured retention period.
+
+The default retention period is 2 days. Change it with:
+
+```env
+GENERATED_ZIP_RETENTION_DAYS=2
+```
+
+The cleanup task only deletes objects inside `generated_midi/` and never deletes files newer than the configured number of days.
+
 ## Production Backend Docker
 
 The production backend image is built from the repository root because it needs:
@@ -136,6 +148,7 @@ SPRING_JPA_HIBERNATE_DDL_AUTO=update
 JWT_EXPIRATION=86400000
 ICEPUNK_GENERATOR_TIMEOUT_SECONDS=60
 ICEPUNK_GENERATOR_MAX_CONCURRENT=2
+GENERATED_ZIP_RETENTION_DAYS=2
 S3_REGION=eu-central-1
 ```
 

@@ -20,6 +20,7 @@ import java.util.UUID;
 public class ZipStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(ZipStorageService.class);
+    static final String GENERATED_ZIP_PREFIX = "generated_midi/";
 
     private final S3Client s3Client;
 
@@ -34,7 +35,7 @@ public class ZipStorageService {
     }
 
     public String uploadZip(Path zipPath) {
-        String key = "zips/" + UUID.randomUUID() + ".zip";
+        String key = GENERATED_ZIP_PREFIX + UUID.randomUUID() + ".zip";
 
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucket)

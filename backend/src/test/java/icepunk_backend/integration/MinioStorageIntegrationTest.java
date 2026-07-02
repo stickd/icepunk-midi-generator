@@ -98,19 +98,19 @@ class MinioStorageIntegrationTest {
     }
 
     @Test
-    void uploadStoresZipUnderZipsPrefixAndReturnsPublicUrl() throws Exception {
+    void uploadStoresZipUnderGeneratedMidiPrefixAndReturnsPublicUrl() throws Exception {
         Path zip = newZipFile("midi-pack-bytes");
 
         String url = zipStorageService.uploadZip(zip);
 
-        String expectedPrefix = MINIO.getS3URL() + "/" + BUCKET + "/zips/";
+        String expectedPrefix = MINIO.getS3URL() + "/" + BUCKET + "/generated_midi/";
         assertTrue(url.startsWith(expectedPrefix), () -> "unexpected url: " + url);
         assertTrue(url.endsWith(".zip"), () -> "unexpected url: " + url);
 
-        // The object actually landed in storage under the zips/ prefix.
+        // The object actually landed in storage under the generated_midi/ prefix.
         List<S3Object> objects = listObjects(BUCKET);
         assertEquals(1, objects.size());
-        assertTrue(objects.get(0).key().startsWith("zips/"));
+        assertTrue(objects.get(0).key().startsWith("generated_midi/"));
         assertTrue(objects.get(0).key().endsWith(".zip"));
     }
 

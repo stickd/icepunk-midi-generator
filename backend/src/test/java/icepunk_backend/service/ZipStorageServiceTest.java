@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 /*
  * | EP                  | Expected                                                  |
  * |---------------------|-----------------------------------------------------------|
- * | S3 key format       | "zips/{uuid}.zip"                                         |
+ * | S3 key format       | "generated_midi/{uuid}.zip"                               |
  * | content type        | "application/zip"                                        |
  * | bucket param        | configured s3.bucket                                     |
  * | returned public URL | "{s3.public-url}/{key}"                                  |
@@ -62,8 +62,8 @@ class ZipStorageServiceTest {
         PutObjectRequest request = requestCaptor.getValue();
         assertEquals(BUCKET, request.bucket());
         assertEquals("application/zip", request.contentType());
-        assertTrue(request.key().matches("zips/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.zip"),
-                "key should be zips/{uuid}.zip but was " + request.key());
+        assertTrue(request.key().matches("generated_midi/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.zip"),
+                "key should be generated_midi/{uuid}.zip but was " + request.key());
         assertEquals(PUBLIC_URL + "/" + request.key(), url);
     }
 
