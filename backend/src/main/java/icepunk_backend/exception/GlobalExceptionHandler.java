@@ -92,6 +92,30 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(StorageTimeoutException.class)
+    public ResponseEntity<Map<String, String>> handleStorageTimeout(
+            StorageTimeoutException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(response);
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<Map<String, String>> handleStorage(
+            StorageException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(response);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrityViolation() {
         Map<String, String> response = new HashMap<>();

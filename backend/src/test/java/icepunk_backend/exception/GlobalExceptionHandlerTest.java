@@ -27,6 +27,8 @@ import static org.mockito.Mockito.when;
  * | generation limit         | handleGenerationLimit         | 429             | error = message             |
  * | rate limit               | handleRateLimit               | 429             | error = message             |
  * | server busy              | handleServerBusy              | 429             | error = message             |
+ * | storage timeout          | handleStorageTimeout          | 504             | error = message             |
+ * | storage error            | handleStorage                 | 502             | error = message             |
  * | unexpected runtime       | handleRuntimeException        | 500             | generic, no stack trace     |
  *
  * Note: 403 forbidden is enforced by Spring Security's filter chain, not this
@@ -107,6 +109,24 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
         assertEquals("Server is busy. Try again later.", response.getBody().get("error"));
+    }
+
+    @Test
+    void storageTimeoutReturns504() {
+        ResponseEntity<Map<String, String>> response =
+                handler.handleStorageTimeout(new StorageTimeoutException("MIDI pack upload timed out. Please try again."));
+
+        assertEquals(HttpStatus.GATEWAY_TIMEOUT, response.getStatusCode());
+        assertEquals("MIDI pack upload timed out. Please try again.", response.getBody().get("error"));
+    }
+
+    @Test
+    void storageFailureReturns502() {
+        ResponseEntity<Map<String, String>> response =
+                handler.handleStorage(new StorageException("MIDI pack upload failed. Please try again."));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, response.getStatusCode());
+        assertEquals("MIDI pack upload failed. Please try again.", response.getBody().get("error"));
     }
 
     @Test

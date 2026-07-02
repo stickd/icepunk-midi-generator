@@ -1,6 +1,7 @@
 package icepunk_backend.integration;
 
 import icepunk_backend.config.S3Config;
+import icepunk_backend.exception.StorageException;
 import icepunk_backend.service.ZipStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,10 @@ class MinioStorageIntegrationTest {
         registry.add("s3.access-key", MINIO::getUserName);
         registry.add("s3.secret-key", MINIO::getPassword);
         registry.add("s3.public-url", () -> MINIO.getS3URL() + "/" + BUCKET);
+        registry.add("s3.connection-timeout-seconds", () -> "3");
+        registry.add("s3.socket-timeout-seconds", () -> "15");
+        registry.add("s3.api-call-timeout-seconds", () -> "30");
+        registry.add("s3.api-call-attempt-timeout-seconds", () -> "20");
     }
 
     @Autowired
@@ -140,7 +145,7 @@ class MinioStorageIntegrationTest {
 
         Path zip = newZipFile("doomed");
 
-        assertThrows(S3Exception.class, () -> failing.uploadZip(zip));
+        assertThrows(StorageException.class, () -> failing.uploadZip(zip));
         assertEquals(0, listObjects(BUCKET).size(),
                 "a failed upload must not leak an object into storage");
     }

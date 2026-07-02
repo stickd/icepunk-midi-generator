@@ -5,16 +5,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
+import software.amazon.awssdk.core.exception.ApiCallTimeoutException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import icepunk_backend.exception.StorageException;
+import icepunk_backend.exception.StorageTimeoutException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -59,5 +65,29 @@ class ZipStorageServiceTest {
         assertTrue(request.key().matches("zips/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.zip"),
                 "key should be zips/{uuid}.zip but was " + request.key());
         assertEquals(PUBLIC_URL + "/" + request.key(), url);
+    }
+
+    @Test
+    void uploadZipConvertsS3TimeoutToStorageTimeoutException() throws Exception {
+        Path zip = Files.writeString(tempDir.resolve("pack.zip"), "zip-bytes");
+        doThrow(ApiCallTimeoutException.builder().message("api call timed out").build())
+                .when(s3Client)
+                .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        StorageTimeoutException exception = assertThrows(StorageTimeoutException.class, () -> service.uploadZip(zip));
+
+        assertEquals("MIDI pack upload timed out. Please try again.", exception.getMessage());
+    }
+
+    @Test
+    void uploadZipConvertsS3FailureToStorageException() throws Exception {
+        Path zip = Files.writeString(tempDir.resolve("pack.zip"), "zip-bytes");
+        doThrow(SdkClientException.builder().message("connection reset").build())
+                .when(s3Client)
+                .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        StorageException exception = assertThrows(StorageException.class, () -> service.uploadZip(zip));
+
+        assertEquals("MIDI pack upload failed. Please try again.", exception.getMessage());
     }
 }
