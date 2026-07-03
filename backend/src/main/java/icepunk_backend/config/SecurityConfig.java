@@ -62,7 +62,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/auth/register",
                             "/auth/login",
                             "/generate",
-                            "/generation-stats"
+                            "/generation-stats",
+                            "/uploads/feed"
                     ).permitAll()
 
                     // Health endpoint (used by Docker / load-balancer healthchecks)

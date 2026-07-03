@@ -88,6 +88,27 @@ export type UploadProjectResponse = {
   metadata: Record<string, unknown>;
 };
 
+export type PublicUploadFeedItem = {
+  id: number;
+  ownerId: number;
+  ownerUsername: string;
+  title: string;
+  midiUrl: string;
+  sampleUrl: string | null;
+  uploadedAt: string;
+  visibility: UploadVisibility;
+  metadata: Record<string, unknown>;
+};
+
+export type PublicUploadFeedResponse = {
+  items: PublicUploadFeedItem[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+};
+
 export async function getGenerationStats(
   signal?: AbortSignal,
 ): Promise<GenerationStatsResponse> {
@@ -116,6 +137,30 @@ export async function generateMidiPack(
           Authorization: `Bearer ${token}`,
         }
       : {},
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getPublicUploadFeed(
+  page = 0,
+  size = 10,
+  signal?: AbortSignal,
+): Promise<PublicUploadFeedResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  const response = await fetch(`${API_URL}/uploads/feed?${params.toString()}`, {
+    method: "GET",
     signal: withTimeout(signal),
   });
 

@@ -61,10 +61,16 @@ export default function GenerationFeedCard({
         <strong>
           About this pack: {generation.midiCount} midis · {generation.downloads} downloads
         </strong>
+        <span>Preview sound: {generation.sound}</span>
         <a href="#exclusive" onClick={(event) => event.preventDefault()}>
           Exclusive pack
         </a>
-        <a href="#download" onClick={(event) => event.preventDefault()}>
+        <a
+          href={generation.midiUrl ?? "#download"}
+          onClick={(event) => {
+            if (!generation.midiUrl) event.preventDefault();
+          }}
+        >
           Download this pack
         </a>
         <a href="#dataset" onClick={(event) => event.preventDefault()}>

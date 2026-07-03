@@ -6,6 +6,9 @@ export type MockGeneration = {
   midiCount: number;
   downloads: number;
   sound: string;
+  midiUrl?: string;
+  sampleUrl?: string | null;
+  uploadedAt?: string;
 };
 
 export type MockGeneratedMidi = {

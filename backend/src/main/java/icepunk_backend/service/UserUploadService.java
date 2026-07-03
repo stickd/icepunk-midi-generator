@@ -1,11 +1,15 @@
 package icepunk_backend.service;
 
+import icepunk_backend.dto.PublicUploadFeedItem;
+import icepunk_backend.dto.PublicUploadFeedResponse;
 import icepunk_backend.dto.UserUploadResponse;
 import icepunk_backend.exception.UploadValidationException;
 import icepunk_backend.model.UploadVisibility;
 import icepunk_backend.model.User;
 import icepunk_backend.model.UserUploadedProject;
 import icepunk_backend.repository.UserUploadedProjectRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +40,7 @@ public class UserUploadService {
             "audio/wave",
             "audio/x-wav"
     );
+    private static final int MAX_FEED_PAGE_SIZE = 50;
 
     private final UserUploadStorageService storageService;
     private final UserUploadedProjectRepository projectRepository;
@@ -52,6 +57,25 @@ public class UserUploadService {
         this.projectRepository = projectRepository;
         this.maxMidiSizeBytes = maxMidiSizeBytes;
         this.maxSampleSizeBytes = maxSampleSizeBytes;
+    }
+
+    @Transactional(readOnly = true)
+    public PublicUploadFeedResponse getPublicFeed(int page, int size) {
+        int normalizedPage = Math.max(0, page);
+        int normalizedSize = Math.max(1, Math.min(size, MAX_FEED_PAGE_SIZE));
+        Page<UserUploadedProject> projects = projectRepository.findByVisibilityOrderByUploadedAtDesc(
+                UploadVisibility.PUBLIC,
+                PageRequest.of(normalizedPage, normalizedSize)
+        );
+
+        return new PublicUploadFeedResponse(
+                projects.getContent().stream().map(this::toPublicFeedItem).toList(),
+                projects.getNumber(),
+                projects.getSize(),
+                projects.getTotalElements(),
+                projects.getTotalPages(),
+                projects.hasNext()
+        );
     }
 
     @Transactional
@@ -202,6 +226,22 @@ public class UserUploadService {
                 midiUrl,
                 project.getSampleObjectKey(),
                 sampleUrl,
+                project.getUploadedAt(),
+                project.getVisibility(),
+                project.getMetadata()
+        );
+    }
+
+    private PublicUploadFeedItem toPublicFeedItem(UserUploadedProject project) {
+        User owner = project.getOwner();
+
+        return new PublicUploadFeedItem(
+                project.getId(),
+                owner.getId(),
+                owner.getUsername(),
+                project.getTitle(),
+                storageService.publicUrlForObjectKey(project.getMidiObjectKey()),
+                storageService.publicUrlForObjectKey(project.getSampleObjectKey()),
                 project.getUploadedAt(),
                 project.getVisibility(),
                 project.getMetadata()

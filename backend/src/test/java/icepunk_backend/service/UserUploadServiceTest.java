@@ -1,5 +1,6 @@
 package icepunk_backend.service;
 
+import icepunk_backend.dto.PublicUploadFeedResponse;
 import icepunk_backend.dto.UserUploadResponse;
 import icepunk_backend.exception.UploadValidationException;
 import icepunk_backend.model.UploadVisibility;
@@ -9,9 +10,13 @@ import icepunk_backend.repository.UserUploadedProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.InputStream;
+import java.time.OffsetDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -161,6 +166,39 @@ class UserUploadServiceTest {
         assertEquals("Visibility must be PRIVATE, UNLISTED, or PUBLIC.", exception.getMessage());
         verify(storageService, never()).upload(any(), any(), any(), anyLong(), any(InputStream.class));
         verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void getPublicFeedReturnsNewestPublicUploadsWithPagination() {
+        UserUploadedProject publicProject = new UserUploadedProject();
+        publicProject.setId(8L);
+        publicProject.setOwner(owner);
+        publicProject.setTitle("Public Lead");
+        publicProject.setMidiObjectKey("user_uploads/42/public.mid");
+        publicProject.setSampleObjectKey("user_uploads/42/public.wav");
+        publicProject.setUploadedAt(OffsetDateTime.parse("2026-07-03T08:00:00Z"));
+        publicProject.setVisibility(UploadVisibility.PUBLIC);
+
+        when(projectRepository.findByVisibilityOrderByUploadedAtDesc(
+                eq(UploadVisibility.PUBLIC),
+                eq(PageRequest.of(0, 2))
+        )).thenReturn(new PageImpl<>(List.of(publicProject), PageRequest.of(0, 2), 3));
+        when(storageService.publicUrlForObjectKey("user_uploads/42/public.mid"))
+                .thenReturn("https://cdn.example.com/user_uploads/42/public.mid");
+        when(storageService.publicUrlForObjectKey("user_uploads/42/public.wav"))
+                .thenReturn("https://cdn.example.com/user_uploads/42/public.wav");
+
+        PublicUploadFeedResponse response = service.getPublicFeed(0, 2);
+
+        assertEquals(1, response.getItems().size());
+        assertEquals(0, response.getPage());
+        assertEquals(2, response.getSize());
+        assertEquals(3, response.getTotalItems());
+        assertEquals(2, response.getTotalPages());
+        assertEquals(true, response.isHasNext());
+        assertEquals(8L, response.getItems().getFirst().getId());
+        assertEquals("nikul", response.getItems().getFirst().getOwnerUsername());
+        assertEquals("https://cdn.example.com/user_uploads/42/public.mid", response.getItems().getFirst().getMidiUrl());
     }
 
     private MockMultipartFile file(String name, String filename, String contentType, byte[] content) {

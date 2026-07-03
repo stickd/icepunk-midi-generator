@@ -41,6 +41,13 @@ class SecurityConfigTest {
     }
 
     @Test
+    void publicUploadFeedIsReachableWithoutToken() throws Exception {
+        mockMvc.perform(get("/uploads/feed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray());
+    }
+
+    @Test
     void healthEndpointIsReachableWithoutToken() throws Exception {
         // Docker / load-balancer healthchecks hit /actuator/health unauthenticated.
         mockMvc.perform(get("/actuator/health"))

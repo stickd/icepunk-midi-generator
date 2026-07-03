@@ -65,6 +65,14 @@ public class UserUploadStorageService {
         return new StoredUpload(key, publicUrl + "/" + key);
     }
 
+    public String publicUrlForObjectKey(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return null;
+        }
+
+        return publicUrl + "/" + objectKey;
+    }
+
     private String extensionFrom(String filename) {
         if (filename == null) {
             return "";

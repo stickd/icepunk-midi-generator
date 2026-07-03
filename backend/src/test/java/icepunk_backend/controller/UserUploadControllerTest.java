@@ -1,5 +1,6 @@
 package icepunk_backend.controller;
 
+import icepunk_backend.dto.PublicUploadFeedResponse;
 import icepunk_backend.dto.UserUploadResponse;
 import icepunk_backend.model.UploadVisibility;
 import icepunk_backend.model.User;
@@ -12,6 +13,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -64,5 +66,23 @@ class UserUploadControllerTest {
         assertEquals(uploadResponse, response.getBody());
         verify(userRepository).findByEmail("nikul@example.com");
         verify(userUploadService).uploadProject(owner, "Frozen Lead", "PUBLIC", midi, sample);
+    }
+
+    @Test
+    void publicFeedDelegatesToUploadService() {
+        PublicUploadFeedResponse feedResponse = new PublicUploadFeedResponse(
+                List.of(),
+                1,
+                5,
+                0,
+                0,
+                false
+        );
+        when(userUploadService.getPublicFeed(1, 5)).thenReturn(feedResponse);
+
+        PublicUploadFeedResponse response = controller.publicFeed(1, 5);
+
+        assertEquals(feedResponse, response);
+        verify(userUploadService).getPublicFeed(1, 5);
     }
 }
