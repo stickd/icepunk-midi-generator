@@ -3,7 +3,7 @@
 import { ChangeEvent, DragEvent, FormEvent, useRef, useState } from "react";
 import { TOKEN_KEY, uploadMidiProject, UploadVisibility } from "@/lib/api";
 import { notifyFeedRefresh } from "@/lib/events";
-import { Badge, Button, FieldLabel, Input, LoadingBar, Select } from "@/components/ui";
+import { Button, FieldLabel, Input, LoadingBar, Select } from "@/components/ui";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
 type UploadSlot = "midi" | "sample";
@@ -174,26 +174,16 @@ export default function UploadProjectSection() {
   }
 
   return (
-    <section className="relative z-10 px-6 pb-12 pt-8 md:pb-16 md:pt-10" id="upload">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-        <div className="lg:pt-6">
-          <Badge className="mb-4" tone="accent">Project vault</Badge>
-          <h2 className="max-w-xl text-4xl font-medium leading-tight tracking-[-0.01em] text-ice-primary md:text-5xl">
-            Upload MIDI Projects
-          </h2>
-          <p className="mt-5 max-w-xl text-base leading-7 text-ice-secondary">
-            Store a MIDI idea with a one-shot sample, then keep it ready for the
-            next IcePunk workflow.
-          </p>
+    <div id="upload">
+      <form aria-live="polite" className="relative grid gap-4" onSubmit={handleSubmit}>
+        <div>
+            <p className="text-sm text-ice-secondary">
+              Store a MIDI idea with a one-shot sample, then keep it ready for the next
+              IcePunk workflow.
+            </p>
         </div>
 
-        <form
-          aria-live="polite"
-          className="relative overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] p-5 shadow-[var(--ice-shadow-card)] backdrop-blur-2xl md:p-7"
-          onSubmit={handleSubmit}
-        >
-          <div className="relative grid gap-4">
-            <div className="grid gap-4 md:grid-cols-[1.4fr_0.8fr]">
+        <div className="grid gap-4 md:grid-cols-[1.4fr_0.8fr]">
               <FieldLabel>
                 Project Title
                 <Input
@@ -324,9 +314,7 @@ export default function UploadProjectSection() {
                 {message}
               </p>
             )}
-          </div>
-        </form>
-      </div>
-    </section>
+      </form>
+    </div>
   );
 }

@@ -2,14 +2,14 @@ package icepunk_backend.integration;
 
 import icepunk_backend.config.S3Config;
 import icepunk_backend.exception.StorageException;
-import icepunk_backend.service.ZipStorageService;
+import icepunk_backend.service.GeneratedPackStorageService;
+import icepunk_backend.service.GeneratedPackStorageService.StoredObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.MinIOContainer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Exercises the real S3 stack — the production {@link S3Config} bean wiring and
- * {@link ZipStorageService} — against a real MinIO server in a Testcontainer.
+ * {@link GeneratedPackStorageService} — against a real MinIO server in a Testcontainer.
  * This is the same MinIO image the app uses locally ({@code docker-compose.yml}),
  * so path-style addressing, bucket policies and anonymous reads behave exactly as
  * they do in a deployed environment, which a mocked {@code S3Client} cannot prove.
@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * container, overriding the dummy values in {@code application-test.properties}.
  */
 @SpringBootTest(
-        classes = { S3Config.class, ZipStorageService.class },
+        classes = { S3Config.class, GeneratedPackStorageService.class },
         webEnvironment = SpringBootTest.WebEnvironment.NONE
 )
 class MinioStorageIntegrationTest {
@@ -76,7 +76,7 @@ class MinioStorageIntegrationTest {
     private S3Client s3Client;
 
     @Autowired
-    private ZipStorageService zipStorageService;
+    private GeneratedPackStorageService storageService;
 
     @BeforeEach
     void ensureEmptyBucket() {
@@ -98,20 +98,35 @@ class MinioStorageIntegrationTest {
     }
 
     @Test
-    void uploadStoresZipUnderGeneratedMidiPrefixAndReturnsPublicUrl() throws Exception {
-        Path zip = newZipFile("midi-pack-bytes");
+    void uploadZipStoresObjectUnderGeneratedMidiPrefixAndReturnsPublicUrl() throws Exception {
+        Path zip = newTempFile("pack", ".zip", "midi-pack-bytes");
 
-        String url = zipStorageService.uploadZip(zip);
+        StoredObject stored = storageService.uploadZip(zip);
+
+        assertTrue(stored.objectKey().startsWith("generated_midi/"), () -> "unexpected key: " + stored.objectKey());
+        assertTrue(stored.objectKey().endsWith(".zip"), () -> "unexpected key: " + stored.objectKey());
 
         String expectedPrefix = MINIO.getS3URL() + "/" + BUCKET + "/generated_midi/";
-        assertTrue(url.startsWith(expectedPrefix), () -> "unexpected url: " + url);
-        assertTrue(url.endsWith(".zip"), () -> "unexpected url: " + url);
+        assertTrue(stored.publicUrl().startsWith(expectedPrefix), () -> "unexpected url: " + stored.publicUrl());
 
         // The object actually landed in storage under the generated_midi/ prefix.
         List<S3Object> objects = listObjects(BUCKET);
         assertEquals(1, objects.size());
-        assertTrue(objects.get(0).key().startsWith("generated_midi/"));
-        assertTrue(objects.get(0).key().endsWith(".zip"));
+        assertEquals(stored.objectKey(), objects.get(0).key());
+    }
+
+    @Test
+    void uploadMidiStoresObjectUnderGeneratedMidiItemsPrefix() throws Exception {
+        Path midi = newTempFile("item", ".mid", "midi-item-bytes");
+
+        StoredObject stored = storageService.uploadMidi(midi);
+
+        assertTrue(stored.objectKey().startsWith("generated_midi_items/"), () -> "unexpected key: " + stored.objectKey());
+        assertTrue(stored.objectKey().endsWith(".mid"), () -> "unexpected key: " + stored.objectKey());
+
+        List<S3Object> objects = listObjects(BUCKET);
+        assertEquals(1, objects.size());
+        assertEquals(stored.objectKey(), objects.get(0).key());
     }
 
     @Test
@@ -124,11 +139,11 @@ class MinioStorageIntegrationTest {
         Path zip = Files.createTempFile("pack", ".zip");
         Files.write(zip, payload);
 
-        String url = zipStorageService.uploadZip(zip);
+        StoredObject stored = storageService.uploadZip(zip);
         Files.deleteIfExists(zip);
 
         HttpResponse<byte[]> response = HttpClient.newHttpClient().send(
-                HttpRequest.newBuilder(URI.create(url)).GET().build(),
+                HttpRequest.newBuilder(URI.create(stored.publicUrl())).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray());
 
         assertEquals(200, response.statusCode(), "public URL must be reachable without credentials");
@@ -136,14 +151,30 @@ class MinioStorageIntegrationTest {
     }
 
     @Test
+    void deleteObjectQuietlyRemovesTheStoredObject() throws Exception {
+        Path zip = newTempFile("pack", ".zip", "to-be-deleted");
+        StoredObject stored = storageService.uploadZip(zip);
+        assertEquals(1, listObjects(BUCKET).size());
+
+        storageService.deleteObjectQuietly(stored.objectKey());
+
+        assertEquals(0, listObjects(BUCKET).size(), "object must be gone from storage after cleanup");
+    }
+
+    @Test
+    void deleteObjectQuietlyDoesNotThrowForMissingKey() {
+        // Cleanup after a partial DB failure must never itself blow up the request.
+        storageService.deleteObjectQuietly("generated_midi/does-not-exist.zip");
+    }
+
+    @Test
     void failedUploadLeavesNoObjectInStorage() throws Exception {
         // Point a throwaway service at a bucket that does not exist: the upload must
         // fail outright and leave the real bucket untouched — no orphaned object.
-        ZipStorageService failing = new ZipStorageService(s3Client);
-        ReflectionTestUtils.setField(failing, "bucket", "missing-bucket-" + UUID.randomUUID());
-        ReflectionTestUtils.setField(failing, "publicUrl", "http://unused");
+        GeneratedPackStorageService failing =
+                new GeneratedPackStorageService(s3Client, "missing-bucket-" + UUID.randomUUID(), "http://unused");
 
-        Path zip = newZipFile("doomed");
+        Path zip = newTempFile("pack", ".zip", "doomed");
 
         assertThrows(StorageException.class, () -> failing.uploadZip(zip));
         assertEquals(0, listObjects(BUCKET).size(),
@@ -152,11 +183,11 @@ class MinioStorageIntegrationTest {
 
     // --- Helpers ----------------------------------------------------------
 
-    private Path newZipFile(String content) throws Exception {
-        Path zip = Files.createTempFile("pack", ".zip");
-        Files.writeString(zip, content);
-        zip.toFile().deleteOnExit();
-        return zip;
+    private Path newTempFile(String prefix, String suffix, String content) throws Exception {
+        Path file = Files.createTempFile(prefix, suffix);
+        Files.writeString(file, content);
+        file.toFile().deleteOnExit();
+        return file;
     }
 
     private boolean bucketExists(String bucket) {

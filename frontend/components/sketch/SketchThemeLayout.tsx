@@ -5,22 +5,24 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import FeedbackSection from "@/components/FeedbackSection";
 import UploadProjectSection from "@/components/UploadProjectSection";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, Panel } from "@/components/ui";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import { authUser, getGenerationStats, getMe, MeResponse, TOKEN_KEY } from "@/lib/api";
 import CreatePackModal, { CreatePackDraft } from "./CreatePackModal";
-import GeneratedMidisModal from "./GeneratedMidisModal";
+import GeneratedPackVisualizer from "./GeneratedPackVisualizer";
 import RandomGeneratePanel, { GenerationSourceState } from "./RandomGeneratePanel";
 import UserGenerationsFeed from "./UserGenerationsFeed";
 
-const DEFAULT_DRAFT: CreatePackDraft = {
-  amount: 17,
-  packName: "SteveMuis",
-  type: "melody",
-};
-
 type AuthMode = "login" | "register" | null;
+type GenerationTab = "generate" | "upload";
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
+
+const TAB_BUTTON_BASE =
+  "rounded-t-xl border border-b-0 px-4 py-2 text-xs font-medium tracking-[0.02em] outline-none transition-colors duration-150 ease-out";
+const TAB_BUTTON_ACTIVE =
+  "border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary";
+const TAB_BUTTON_INACTIVE =
+  "border-transparent bg-transparent text-ice-muted hover:text-ice-secondary";
 
 const AuthModal = dynamic(() => import("@/components/AuthModal"), {
   ssr: false,
@@ -67,13 +69,17 @@ export default function SketchThemeLayout() {
   );
   const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
   const [meFetch, setMeFetch] = useState<{ token: string; me: MeResponse } | null>(null);
-  const [activeModal, setActiveModal] = useState<"create" | "generated" | null>(null);
-  const [packDraft, setPackDraft] = useState<CreatePackDraft>(DEFAULT_DRAFT);
+  const [activeModal, setActiveModal] = useState<"create" | null>(null);
+  const [activeTab, setActiveTab] = useState<GenerationTab>("generate");
   const [sourceState, setSourceState] = useState<GenerationSourceState>({
     source: "FACTORY",
   });
-  const { isGenerating, lastGeneration, status: generationStatus, handleGenerateMidi } =
-    useMidiGeneration(clearToken, setTotalGenerations);
+  const {
+    lastGeneration,
+    resetGeneration,
+    status: generationStatus,
+    handleGenerateMidi,
+  } = useMidiGeneration(clearToken, setTotalGenerations);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -169,23 +175,20 @@ export default function SketchThemeLayout() {
     setStatus("You are logged out.");
   }
 
-  function openGeneratedMidis(draft: CreatePackDraft) {
-    setPackDraft(draft);
-    setActiveModal("generated");
-    setStatus(`${draft.amount} ${draft.type} ideas ready for real ZIP generation.`);
-  }
+  function startGeneration(draft: CreatePackDraft) {
+    setActiveModal(null);
+    setActiveTab("generate");
 
-  function generateCurrentPack() {
     return handleGenerateMidi({
-      amount: packDraft.amount,
+      amount: draft.amount,
       bpm: 146,
       octaves: 1,
-      packName: packDraft.packName,
+      packName: draft.packName,
       pitch: 0,
       publishMode: "PUBLIC",
       source: sourceState.source,
       tempAnalysisId: sourceState.tempAnalysisId,
-      type: packDraft.type === "drums" ? "DRUMS" : "MELODY",
+      type: draft.type === "drums" ? "DRUMS" : "MELODY",
     });
   }
 
@@ -258,18 +261,50 @@ export default function SketchThemeLayout() {
           Midis Generator
         </h1>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="grid gap-6">
-            <RandomGeneratePanel
-              onOpenCreatePack={() => setActiveModal("create")}
-              onSourceStateChange={setSourceState}
-              onStubStatus={setStatus}
-              sourceState={sourceState}
-              status={generationStatus || status}
-            />
+        <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="grid gap-0">
+            <div className="flex gap-1 px-1" role="tablist">
+              <button
+                aria-selected={activeTab === "generate"}
+                className={`${TAB_BUTTON_BASE} ${activeTab === "generate" ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE}`}
+                onClick={() => setActiveTab("generate")}
+                role="tab"
+                type="button"
+              >
+                Generate
+              </button>
+              <button
+                aria-selected={activeTab === "upload"}
+                className={`${TAB_BUTTON_BASE} ${activeTab === "upload" ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE}`}
+                onClick={() => setActiveTab("upload")}
+                role="tab"
+                type="button"
+              >
+                Upload
+              </button>
+            </div>
+            <Panel className="grid gap-5 rounded-tl-none p-5" elevated>
+              {activeTab === "generate" ? (
+                lastGeneration ? (
+                  <GeneratedPackVisualizer generation={lastGeneration} onNewGeneration={resetGeneration} />
+                ) : (
+                  <RandomGeneratePanel
+                    onOpenCreatePack={() => setActiveModal("create")}
+                    onSourceStateChange={setSourceState}
+                    onStubStatus={setStatus}
+                    sourceState={sourceState}
+                    status={generationStatus || status}
+                  />
+                )
+              ) : (
+                <UploadProjectSection />
+              )}
+            </Panel>
+          </div>
+
+          <div className="grid max-h-[720px] gap-4 overflow-y-auto">
             <UserGenerationsFeed onStubStatus={setStatus} />
           </div>
-          <UploadProjectSection />
         </div>
 
         {totalGenerations !== null ? (
@@ -284,18 +319,7 @@ export default function SketchThemeLayout() {
       </div>
 
       {activeModal === "create" ? (
-        <CreatePackModal onClose={() => setActiveModal(null)} onNext={openGeneratedMidis} />
-      ) : null}
-
-      {activeModal === "generated" ? (
-        <GeneratedMidisModal
-          draft={packDraft}
-          isGenerating={isGenerating}
-          lastGeneration={lastGeneration}
-          onClose={() => setActiveModal(null)}
-          onGenerateRealPack={generateCurrentPack}
-          onStubStatus={setStatus}
-        />
+        <CreatePackModal onClose={() => setActiveModal(null)} onNext={startGeneration} />
       ) : null}
 
       {authMode ? (

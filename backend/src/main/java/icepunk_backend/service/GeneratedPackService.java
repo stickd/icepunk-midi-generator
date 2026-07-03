@@ -5,6 +5,8 @@ import icepunk_backend.dto.GeneratedPackResponse;
 import icepunk_backend.dto.GenerationRequest;
 import icepunk_backend.dto.MidiPreviewNoteResponse;
 import icepunk_backend.dto.MidiPreviewResponse;
+import icepunk_backend.exception.ForbiddenActionException;
+import icepunk_backend.exception.ResourceNotFoundException;
 import icepunk_backend.model.GeneratedPack;
 import icepunk_backend.model.GeneratedPackItem;
 import icepunk_backend.model.GeneratedPackType;
@@ -128,6 +130,58 @@ public class GeneratedPackService {
     public Optional<String> getPackDownloadUrl(UUID packId) {
         return packRepository.findById(packId)
                 .map(pack -> storageService.publicUrlForObjectKey(pack.getZipObjectKey()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<GeneratedPackResponse> listPacksByOwner(User owner) {
+        return packRepository.findWithItemsByOwnerId(owner.getId()).stream()
+                .map(pack -> toPackResponse(pack, sortedItems(pack.getItems())))
+                .toList();
+    }
+
+    @Transactional
+    public GeneratedPackResponse renamePack(UUID packId, User requester, String newName) {
+        GeneratedPack pack = requireOwnedPack(packId, requester);
+        pack.setName(normalizedPackName(newName));
+        pack.setUpdatedAt(OffsetDateTime.now());
+        GeneratedPack saved = packRepository.save(pack);
+
+        return toPackResponse(saved, sortedItems(saved.getItems()));
+    }
+
+    @Transactional
+    public GeneratedPackResponse updateVisibility(UUID packId, User requester, GeneratedPackVisibility visibility) {
+        GeneratedPack pack = requireOwnedPack(packId, requester);
+        pack.setVisibility(visibility);
+        pack.setUpdatedAt(OffsetDateTime.now());
+        GeneratedPack saved = packRepository.save(pack);
+
+        return toPackResponse(saved, sortedItems(saved.getItems()));
+    }
+
+    @Transactional
+    public void deletePack(UUID packId, User requester) {
+        GeneratedPack pack = requireOwnedPack(packId, requester);
+
+        List<String> objectKeys = new ArrayList<>();
+        objectKeys.add(pack.getZipObjectKey());
+        pack.getItems().forEach(item -> objectKeys.add(item.getMidiObjectKey()));
+
+        packRepository.delete(pack);
+        packRepository.flush();
+
+        objectKeys.forEach(storageService::deleteObjectQuietly);
+    }
+
+    private GeneratedPack requireOwnedPack(UUID packId, User requester) {
+        GeneratedPack pack = packRepository.findWithItemsById(packId)
+                .orElseThrow(() -> new ResourceNotFoundException("Generated pack not found: " + packId));
+
+        if (pack.getOwner() == null || !pack.getOwner().getId().equals(requester.getId())) {
+            throw new ForbiddenActionException("You do not own this generated pack.");
+        }
+
+        return pack;
     }
 
     private List<GeneratedItemDraft> uploadMidiItems(List<Path> midiFiles, List<String> uploadedKeys) {

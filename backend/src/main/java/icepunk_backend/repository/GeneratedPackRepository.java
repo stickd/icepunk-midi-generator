@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +14,8 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
     @EntityGraph(attributePaths = {"items", "owner"})
     @Query("select pack from GeneratedPack pack where pack.id = :id")
     Optional<GeneratedPack> findWithItemsById(UUID id);
+
+    @EntityGraph(attributePaths = {"items", "owner"})
+    @Query("select pack from GeneratedPack pack where pack.owner.id = :ownerId order by pack.createdAt desc")
+    List<GeneratedPack> findWithItemsByOwnerId(Long ownerId);
 }

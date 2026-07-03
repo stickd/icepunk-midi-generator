@@ -65,10 +65,12 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/generate",
                             "/generation-stats",
                             "/datasets/analyze-temp",
-                            "/generated-packs/**",
                             "/uploads/feed",
                             "/uploads/projects/*/midi"
                     ).permitAll()
+
+                    // Public reads only — rename/visibility/delete and "my packs" stay authenticated
+                    .requestMatchers(HttpMethod.GET, "/generated-packs/**").permitAll()
 
                     // Public profile reads only — POST /users/me/profile stays authenticated
                     .requestMatchers(HttpMethod.GET,
@@ -101,7 +103,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
         config.setAllowedOrigins(allowedOrigins);
 
         // Allowed HTTP methods
-        config.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
 
         // Allow all request headers
         config.setAllowedHeaders(List.of("*"));

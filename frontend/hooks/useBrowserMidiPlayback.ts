@@ -15,8 +15,36 @@ type Instrument = {
 const SAMPLE_ROOT_NOTE = "C4";
 const POSITION_FRAME_MS = 33;
 
+export type BrowserMidiSource = File | string | null;
+
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+async function readMidiSource(source: Exclude<BrowserMidiSource, null>) {
+  if (source instanceof File) {
+    return source.arrayBuffer();
+  }
+
+  const response = await fetch(source);
+  if (!response.ok) {
+    throw new Error(`HTTP_${response.status}`);
+  }
+
+  return response.arrayBuffer();
+}
+
+function midiSourceLabel(source: Exclude<BrowserMidiSource, null>) {
+  if (source instanceof File) {
+    return source.name;
+  }
+
+  try {
+    const segment = new URL(source).pathname.split("/").filter(Boolean).pop();
+    return segment ? decodeURIComponent(segment) : "this MIDI";
+  } catch {
+    return "this MIDI";
+  }
 }
 
 export function useBrowserMidiPlayback() {
@@ -94,7 +122,7 @@ export function useBrowserMidiPlayback() {
   }, [status, stopPositionLoop]);
 
   const play = useCallback(
-    async (midiFile: File | null, sampleFile: File | null = null) => {
+    async (midiSource: BrowserMidiSource, sampleFile: File | null = null) => {
       if (status === "paused" && activeToneRef.current && instrumentRef.current) {
         await activeToneRef.current.start();
         activeToneRef.current.Transport.start();
@@ -104,7 +132,7 @@ export function useBrowserMidiPlayback() {
         return;
       }
 
-      if (!midiFile) {
+      if (!midiSource) {
         setStatus("error");
         setMessage("Choose a MIDI file before playback.");
         return;
@@ -124,8 +152,9 @@ export function useBrowserMidiPlayback() {
         activeToneRef.current = Tone;
         await Tone.start();
 
-        const midi = new Midi(await midiFile.arrayBuffer());
+        const midi = new Midi(await readMidiSource(midiSource));
         const notes = midi.tracks.flatMap((track) => track.notes);
+        const sourceName = midiSourceLabel(midiSource);
 
         if (notes.length === 0) {
           setStatus("error");
@@ -157,7 +186,7 @@ export function useBrowserMidiPlayback() {
           Tone.Transport.start();
           startPositionLoop(Tone);
           setStatus("playing");
-          setMessage(`Playing ${midiFile.name}${sourceLabel}.`);
+          setMessage(`Playing ${sourceName}${sourceLabel}.`);
         };
 
         if (sampleFile) {

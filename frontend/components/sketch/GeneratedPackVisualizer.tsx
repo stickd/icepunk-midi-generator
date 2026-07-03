@@ -1,0 +1,176 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Badge, Button } from "@/components/ui";
+import { GeneratedMidiItem, GenerateMidiResponse } from "@/lib/api";
+import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import BrowserPianoRoll from "./BrowserPianoRoll";
+
+type GeneratedPackVisualizerProps = {
+  generation: GenerateMidiResponse;
+  onNewGeneration: () => void;
+};
+
+function formatDuration(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "n/a";
+  return `${value.toFixed(1)}s`;
+}
+
+export default function GeneratedPackVisualizer({
+  generation,
+  onNewGeneration,
+}: GeneratedPackVisualizerProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const playback = useBrowserMidiPlayback();
+  const items = generation.items;
+  const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
+
+  const title = useMemo(
+    () => activeItem?.fileName ?? generation.name,
+    [activeItem, generation.name],
+  );
+
+  function selectItem(index: number) {
+    if (index === activeIndex) return;
+    playback.stop();
+    setActiveIndex(index);
+  }
+
+  function togglePreview() {
+    if (!activeItem) return;
+
+    if (playback.isPlaying) {
+      playback.stop();
+      return;
+    }
+
+    playback.play(activeItem.downloadUrl, null);
+  }
+
+  return (
+    <div className="grid gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          className="text-xs font-medium uppercase tracking-[0.06em] text-ice-muted transition-colors duration-150 ease-out hover:text-ice-primary"
+          onClick={onNewGeneration}
+          type="button"
+        >
+          <span aria-hidden="true">{"← "}</span>
+          New generation
+        </button>
+        <a
+          className="text-xs font-medium text-ice-secondary underline-offset-4 transition-colors duration-150 ease-out hover:text-ice-primary hover:underline"
+          href={generation.packDownloadUrl || generation.downloadUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          Download whole pack (ZIP)
+        </a>
+      </div>
+
+      <div className="overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.04] shadow-[var(--ice-shadow-card)] backdrop-blur-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/[0.25] px-4 py-3">
+          <span className="truncate text-xs font-medium tracking-[0.02em] text-ice-primary/90">
+            {title}
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge tone="accent">{generation.type === "DRUMS" ? "Drums" : "Melody"}</Badge>
+            {generation.bpm !== null ? <Badge>{generation.bpm} BPM</Badge> : null}
+            {generation.pitch !== null ? <Badge>pitch {generation.pitch}</Badge> : null}
+            {generation.octaves !== null ? <Badge>{generation.octaves} oct</Badge> : null}
+          </div>
+        </div>
+
+        {activeItem ? (
+          <BrowserPianoRoll
+            isPlaying={playback.isPlaying}
+            midiFile={null}
+            midiUrl={activeItem.downloadUrl}
+            playbackPositionSeconds={playback.positionSeconds}
+          />
+        ) : (
+          <div className="grid h-[210px] place-items-center bg-[color:var(--ice-bg-canvas)] p-4 text-center text-xs text-ice-muted">
+            No individual MIDI items were returned. The whole ZIP is still available above.
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] bg-black/[0.2] px-4 py-3">
+          <div className="flex flex-wrap gap-4 text-[10px] uppercase tracking-[0.06em] text-ice-muted">
+            <span>
+              <strong className="text-ice-secondary">{activeItem?.noteCount ?? "n/a"}</strong> notes
+            </span>
+            <span>
+              <strong className="text-ice-secondary">{activeItem?.trackCount ?? "n/a"}</strong> tracks
+            </span>
+            <span>
+              duration{" "}
+              <strong className="text-ice-secondary">
+                {formatDuration(activeItem?.durationSeconds ?? null)}
+              </strong>
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              disabled={!activeItem}
+              onClick={togglePreview}
+              size="sm"
+              type="button"
+              variant={playback.isPlaying ? "primary" : "secondary"}
+            >
+              {playback.isLoading ? (
+                "Loading..."
+              ) : (
+                <>
+                  <span aria-hidden="true">{playback.isPlaying ? "■ " : "▶ "}</span>
+                  {playback.isPlaying ? "Stop" : "Preview"}
+                </>
+              )}
+            </Button>
+            <a
+              className={`inline-flex h-8 items-center rounded-full border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-medium text-ice-primary transition-colors duration-150 ease-out hover:bg-white/[0.08] ${
+                activeItem ? "" : "pointer-events-none opacity-50"
+              }`}
+              href={activeItem?.downloadUrl ?? "#download"}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <span aria-hidden="true">{"↓ "}</span>
+              Download
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {items.length > 1 ? (
+        <div aria-label="Other MIDIs in this pack" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+          {items.map((item, index) => (
+            <button
+              aria-current={index === activeIndex}
+              aria-label={`Preview ${item.fileName}`}
+              className={`overflow-hidden rounded-lg border transition-colors duration-150 ease-out ${
+                index === activeIndex
+                  ? "border-[color:var(--ice-accent-border)] ring-1 ring-[color:var(--ice-accent-border)]"
+                  : "border-white/[0.06] hover:border-white/[0.15]"
+              }`}
+              key={item.id}
+              onClick={() => selectItem(index)}
+              type="button"
+            >
+              <BrowserPianoRoll
+                isPlaying={false}
+                midiFile={null}
+                midiUrl={item.downloadUrl}
+                playbackPositionSeconds={0}
+                size="compact"
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
+        {playback.message}
+      </p>
+    </div>
+  );
+}

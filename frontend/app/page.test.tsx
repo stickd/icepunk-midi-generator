@@ -83,7 +83,7 @@ describe("Home page", () => {
     });
   });
 
-  it("renders the sketch workspace and modal generation flow", async () => {
+  it("renders the sketch workspace and inline generation flow", async () => {
     const { container } = render(<Home />);
 
     expect(
@@ -95,15 +95,24 @@ describe("Home page", () => {
     expect(screen.getByRole("heading", { name: "User Generations Feed" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Factory" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Custom" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Upload MIDI Projects" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Generate" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Upload" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Help Shape IcePunk" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Upload" }));
+    expect(await screen.findByPlaceholderText("Frozen lead sketch")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Generate" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Generate random" }));
     const createDialog = screen.getByRole("dialog", { name: "Create pack" });
     expect(createDialog).toBeInTheDocument();
 
     fireEvent.click(within(createDialog).getByRole("button", { name: /Next/i }));
-    expect(screen.getByRole("dialog", { name: "SteveMuis" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockGenerateMidiPack).toHaveBeenCalled();
+    });
+    expect(await screen.findByRole("button", { name: "New generation" })).toBeInTheDocument();
 
     expect(container.querySelector("main")).toBeInTheDocument();
   });
@@ -128,7 +137,6 @@ describe("Home page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Generate random" }));
     fireEvent.click(within(screen.getByRole("dialog", { name: "Create pack" })).getByRole("button", { name: /Next/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Generate real pack" }));
 
     await waitFor(() => {
       expect(mockGenerateMidiPack).toHaveBeenCalledWith(
@@ -143,7 +151,7 @@ describe("Home page", () => {
       );
     });
     expect(await screen.findByText("icepunk_001.mid")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download ZIP" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Download whole pack (ZIP)" })).toHaveAttribute(
       "href",
       "/generated-packs/pack-1/download",
     );
@@ -151,7 +159,5 @@ describe("Home page", () => {
       "href",
       "/generated-packs/pack-1/items/item-1/download",
     );
-    expect(screen.queryByText(/MIDI 1 ready/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Preview coming soon/i)).not.toBeInTheDocument();
   });
 });

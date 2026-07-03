@@ -79,10 +79,16 @@ export function useMidiGeneration(
     }
   }
 
+  function resetGeneration() {
+    setLastGeneration(null);
+    setStatus("");
+  }
+
   return {
     isGenerating,
     status,
     lastGeneration,
+    resetGeneration,
     setStatus,
     handleGenerateMidi,
   };

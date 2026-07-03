@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Panel, SegmentedControl } from "@/components/ui";
+import { Button, SegmentedControl } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
 import MidiDropZone from "./MidiDropZone";
 
@@ -33,7 +33,7 @@ export default function RandomGeneratePanel({
   const canGenerate = !isCustom || Boolean(sourceState.tempAnalysisId);
 
   return (
-    <Panel className="grid gap-5 p-5" elevated>
+    <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-ice-primary">Create from source</h2>
@@ -76,6 +76,6 @@ export default function RandomGeneratePanel({
           ? "Upload and analyze 1-8 MIDI files before generating from Custom."
           : status}
       </p>
-    </Panel>
+    </div>
   );
 }
