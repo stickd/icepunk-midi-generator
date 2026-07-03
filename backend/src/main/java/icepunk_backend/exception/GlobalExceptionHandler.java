@@ -128,6 +128,18 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(GenerationRequestException.class)
+    public ResponseEntity<Map<String, String>> handleGenerationRequest(
+            GenerationRequestException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleResourceNotFound(
             ResourceNotFoundException exception

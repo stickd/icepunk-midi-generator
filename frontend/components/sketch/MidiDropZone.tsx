@@ -1,57 +1,87 @@
 "use client";
 
 import { DragEvent, useRef, useState } from "react";
-import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { Button } from "@/components/ui";
+import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { analyzeTempMidiFiles } from "@/lib/api";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 
 type MidiDropZoneProps = {
+  onAnalysisComplete: (tempAnalysisId: string) => void;
+  onAnalysisReset: () => void;
   onStubStatus: (message: string) => void;
 };
+
+const MAX_CUSTOM_MIDI_FILES = 8;
 
 function isMidiFile(file: File) {
   const name = file.name.toLowerCase();
   return name.endsWith(".mid") || name.endsWith(".midi");
 }
 
-function isSampleFile(file: File) {
-  const name = file.name.toLowerCase();
-  return name.endsWith(".wav") || name.endsWith(".mp3");
-}
-
-export default function MidiDropZone({ onStubStatus }: MidiDropZoneProps) {
+export default function MidiDropZone({
+  onAnalysisComplete,
+  onAnalysisReset,
+  onStubStatus,
+}: MidiDropZoneProps) {
   const midiInputRef = useRef<HTMLInputElement>(null);
-  const sampleInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [midiFile, setMidiFile] = useState<File | null>(null);
-  const [sampleFile, setSampleFile] = useState<File | null>(null);
+  const [midiFiles, setMidiFiles] = useState<File[]>([]);
+  const [analysisStatus, setAnalysisStatus] = useState<
+    "idle" | "analyzing" | "success" | "error"
+  >("idle");
+  const [analysisMessage, setAnalysisMessage] = useState("");
   const playback = useBrowserMidiPlayback();
+  const previewFile = midiFiles[0] ?? null;
 
   function handleFiles(fileList: FileList | null) {
-    const files = Array.from(fileList ?? []);
-    const midi = files.find((file) => isMidiFile(file));
-    const sample = files.find((file) => isSampleFile(file));
+    const files = Array.from(fileList ?? [])
+      .filter(isMidiFile)
+      .slice(0, MAX_CUSTOM_MIDI_FILES);
 
-    if (midi) {
-      setMidiFile(midi);
-    }
-
-    if (sample) {
-      setSampleFile(sample);
-    }
-
-    if (!midi && !sample) {
-      onStubStatus("Drop a .mid file and a .wav/.mp3 one-shot sample.");
+    if (files.length === 0) {
+      setAnalysisStatus("error");
+      setAnalysisMessage("Drop 1-8 .mid/.midi files.");
+      onAnalysisReset();
       return;
     }
 
-    onStubStatus("Browser playback files are staged locally.");
+    setMidiFiles(files);
+    setAnalysisStatus("idle");
+    setAnalysisMessage(
+      `${files.length} MIDI file${files.length === 1 ? "" : "s"} staged for custom analysis.`,
+    );
+    onAnalysisReset();
+    onStubStatus("Custom MIDI files are staged. Analyze them before generating.");
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setIsDragging(false);
     handleFiles(event.dataTransfer.files);
+  }
+
+  async function analyzeFiles() {
+    if (midiFiles.length === 0) {
+      setAnalysisStatus("error");
+      setAnalysisMessage("Choose at least one MIDI file first.");
+      return;
+    }
+
+    try {
+      setAnalysisStatus("analyzing");
+      setAnalysisMessage("Analyzing uploaded MIDI structure...");
+      const response = await analyzeTempMidiFiles(midiFiles);
+      setAnalysisStatus("success");
+      setAnalysisMessage(
+        `${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`,
+      );
+      onAnalysisComplete(response.tempAnalysisId);
+    } catch {
+      setAnalysisStatus("error");
+      setAnalysisMessage("Custom analysis failed. Check the MIDI files and try again.");
+      onAnalysisReset();
+    }
   }
 
   return (
@@ -69,17 +99,11 @@ export default function MidiDropZone({ onStubStatus }: MidiDropZoneProps) {
       >
         <input
           ref={midiInputRef}
-          className="sr-only"
-          type="file"
           accept=".mid,.midi,audio/midi,audio/x-midi,application/x-midi"
-          onChange={(event) => handleFiles(event.currentTarget.files)}
-        />
-        <input
-          ref={sampleInputRef}
           className="sr-only"
-          type="file"
-          accept=".wav,.mp3,audio/wav,audio/mpeg"
+          multiple
           onChange={(event) => handleFiles(event.currentTarget.files)}
+          type="file"
         />
         <span
           aria-hidden="true"
@@ -87,7 +111,8 @@ export default function MidiDropZone({ onStubStatus }: MidiDropZoneProps) {
         >
           ↧
         </span>
-        <span className="text-sm font-medium text-ice-primary">Drop your midis here</span>
+        <span className="text-sm font-medium text-ice-primary">Upload your midis</span>
+        <span className="text-xs text-ice-muted">1-8 .mid/.midi files</span>
       </label>
 
       <div className="flex flex-wrap justify-center gap-2">
@@ -96,49 +121,67 @@ export default function MidiDropZone({ onStubStatus }: MidiDropZoneProps) {
           onClick={() => midiInputRef.current?.click()}
           type="button"
         >
-          {midiFile ? midiFile.name : "Choose MIDI"}
+          {midiFiles.length > 0 ? `${midiFiles.length} MIDI selected` : "Choose MIDIs"}
         </button>
-        <button
-          className="max-w-[220px] truncate rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-xs text-ice-secondary transition-colors duration-150 ease-out hover:bg-white/[0.08] hover:text-ice-primary"
-          onClick={() => sampleInputRef.current?.click()}
+        <Button
+          disabled={analysisStatus === "analyzing" || midiFiles.length === 0}
+          onClick={analyzeFiles}
+          size="sm"
           type="button"
+          variant="primary"
         >
-          {sampleFile ? sampleFile.name : "Choose one-shot"}
-        </button>
+          {analysisStatus === "analyzing" ? "Analyzing..." : "Analyze MIDIs"}
+        </Button>
       </div>
+
+      {midiFiles.length > 0 ? (
+        <ul
+          aria-label="Selected custom MIDI files"
+          className="mx-auto grid w-full max-w-md gap-1 text-xs text-ice-muted"
+        >
+          {midiFiles.map((file) => (
+            <li
+              className="truncate rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1"
+              key={`${file.name}-${file.size}`}
+            >
+              {file.name}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <div
         aria-label="Browser MIDI playback controls"
         className="flex flex-wrap justify-center gap-2"
       >
         <Button
-          disabled={playback.isLoading || playback.isPlaying}
+          disabled={playback.isLoading || playback.isPlaying || !previewFile}
+          onClick={() => playback.play(previewFile, null)}
           size="sm"
           type="button"
-          onClick={() => playback.play(midiFile, sampleFile)}
         >
           {playback.isLoading ? "Loading..." : playback.isPaused ? "Resume" : "Play"}
         </Button>
-        <Button disabled={!playback.isPlaying} size="sm" type="button" onClick={playback.pause}>
+        <Button disabled={!playback.isPlaying} onClick={playback.pause} size="sm" type="button">
           Pause
         </Button>
         <Button
           disabled={playback.status === "idle"}
+          onClick={playback.stop}
           size="sm"
           type="button"
-          onClick={playback.stop}
         >
           Stop
         </Button>
       </div>
 
       <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
-        {playback.message}
+        {analysisMessage || playback.message}
       </p>
 
       <BrowserPianoRoll
         isPlaying={playback.isPlaying}
-        midiFile={midiFile}
+        midiFile={previewFile}
         playbackPositionSeconds={playback.positionSeconds}
       />
     </div>

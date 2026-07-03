@@ -34,18 +34,19 @@ Keep this file small. Put layout and interaction changes inside `components/sket
 Main home page components:
 
 - `SketchThemeLayout.tsx`
-  Top-level page composition: nav, page heading, the feed + create-pack grid, the preserved
+  Top-level page composition: nav, page heading, source/generation panel, public feed,
   upload/feedback sections, and modal/auth state. Owns modal state, auth state, generation
   stats, and connects real generation/download.
 
-- `CreatePackPanel.tsx`
-  Compact sidebar card (glass `aside`, sticky on desktop) combining the dropzone/"Generate
-  random" flow with the preview-sound/BPM/pitch/octave controls, so the feed is visible
-  immediately below the nav instead of behind a full-width hero.
+- `RandomGeneratePanel.tsx`
+  Real Factory/Custom source selector. Factory uses the bundled backend analysis dataset.
+  Custom renders `MidiDropZone`, waits for a temporary backend analysis id, then enables the
+  generate modal.
 
 - `MidiDropZone.tsx`
-  Local MIDI + one-shot staging area for browser playback and piano-roll visualization. This
-  does not upload to the backend; backend upload lives in `UploadProjectSection`.
+  Custom MIDI staging area for 1-8 `.mid/.midi` files. It calls `/datasets/analyze-temp` through
+  `analyzeTempMidiFiles`, stores the returned `tempAnalysisId` in page state, and shows a local
+  first-file piano-roll/playback preview.
 
 - `UserGenerationsFeed.tsx` and `GenerationFeedCard.tsx`
   Backend-connected public upload feed. Loads real `PUBLIC` uploaded projects from
@@ -101,10 +102,12 @@ These parts are connected to existing production behavior:
 - Logout by clearing `icepunk_token`
 - Generation stats through `getGenerationStats`
 - Real MIDI generation/download through `useMidiGeneration`
+- Factory/Custom generation source selection through `RandomGeneratePanel`
+- Temporary custom MIDI analysis through `MidiDropZone` and `analyzeTempMidiFiles`
 - Public upload feed through `getPublicUploadFeed`
 - Backend MIDI preview URL construction through `getPublicUploadMidiPreviewUrl`
 - Authenticated MIDI project upload through `UploadProjectSection` and `uploadMidiProject`
-- Browser MIDI playback for locally selected MIDI + one-shot sample through `useBrowserMidiPlayback`
+- Browser MIDI playback for locally selected MIDI through `useBrowserMidiPlayback`
 - Uploaded MIDI piano roll visualization and playback sync through `BrowserPianoRoll`,
   `useMidiPianoRoll`, and `useBrowserMidiPlayback`
 - Feedback form through the existing `FeedbackSection`
@@ -115,11 +118,9 @@ When customizing visuals, preserve these connections.
 
 These are frontend-only placeholders and should not call fake backend APIs:
 
-- Backend-connected MIDI conditioning from the drop zone
 - Feed playback
 - Feed favorite/save/comment actions (the real like/unlike API is only wired up on `/u/[username]`
   pack cards so far — the home feed's heart icon is still a stub)
-- Source selector: site / database / favorites
 - Right panel one-shot upload
 - MIDI rating thumbs up/down
 - Carousel behavior
@@ -156,7 +157,7 @@ matching constants documented in `DESIGN.md`.
 ### Layout
 
 Important layout points: `SketchThemeLayout.tsx`'s `lg:grid-cols-[minmax(0,1fr)_320px]` grid
-(feed column + sticky `CreatePackPanel` sidebar), and the modal wrappers in `CreatePackModal.tsx`
+(source/feed column + upload sidebar), `RandomGeneratePanel.tsx`, and the modal wrappers in `CreatePackModal.tsx`
 / `GeneratedMidisModal.tsx` (`max-w-lg` / `max-w-3xl` glass dialogs).
 
 After changing layout, check desktop and mobile widths — the grid collapses to one column below
@@ -205,7 +206,7 @@ npm run dev
 
 Then check:
 
-- `/` renders the dark periwinkle-glass home page with the feed visible immediately under the nav
+- `/` renders the dark periwinkle-glass home page with Factory/Custom source controls
 - Generate random opens Create pack modal
 - Next opens Generated Midis modal
 - Login / Sign up modal still opens

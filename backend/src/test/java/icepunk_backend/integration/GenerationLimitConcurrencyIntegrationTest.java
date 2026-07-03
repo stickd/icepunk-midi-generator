@@ -8,11 +8,12 @@ import icepunk_backend.model.User;
 import icepunk_backend.repository.GenerationStatsRepository;
 import icepunk_backend.repository.GuestUsageRepository;
 import icepunk_backend.repository.UserRepository;
+import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.MidiGenerationService;
-import icepunk_backend.service.ZipStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,9 +21,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -38,7 +41,7 @@ import static org.mockito.Mockito.when;
 /**
  * Drives the real {@link GenerateController} from many threads at once against a
  * real PostgreSQL database, with only the Python subprocess
- * ({@link MidiGenerationService}) and S3 upload ({@link ZipStorageService})
+ * ({@link MidiGenerationService}) and generated object storage
  * stubbed out. This exercises the {@code SELECT ... FOR UPDATE} row locks in
  * {@code GenerationLimitService.incrementGuestUsage/incrementUserUsage}, which
  * are the true enforcement point for the daily caps — the read-only
@@ -81,7 +84,10 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
     private MidiGenerationService midiGenerationService;
 
     @MockitoBean
-    private ZipStorageService zipStorageService;
+    private GeneratedPackStorageService generatedPackStorageService;
+
+    @TempDir
+    Path tempDir;
 
     @BeforeEach
     void resetState() throws Exception {
@@ -92,10 +98,20 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
 
         // Every generation "succeeds" up to the upload: a fresh ZIP is produced
         // (the controller deletes it afterwards) and the upload returns a URL.
-        when(midiGenerationService.generateZip())
-                .thenAnswer(invocation -> Files.createTempFile("pack", ".zip"));
-        when(zipStorageService.uploadZip(any()))
-                .thenReturn("https://cdn.example/pack.zip");
+        when(midiGenerationService.generateFiles(any(), any()))
+                .thenAnswer(invocation -> createGeneratedFiles());
+        when(generatedPackStorageService.uploadMidi(any()))
+                .thenAnswer(invocation -> {
+                    String key = "generated_midi_items/" + UUID.randomUUID() + ".mid";
+                    return new GeneratedPackStorageService.StoredObject(key, "https://cdn.example/" + key);
+                });
+        when(generatedPackStorageService.uploadZip(any()))
+                .thenAnswer(invocation -> {
+                    String key = "generated_midi/" + UUID.randomUUID() + ".zip";
+                    return new GeneratedPackStorageService.StoredObject(key, "https://cdn.example/" + key);
+                });
+        when(generatedPackStorageService.publicUrlForObjectKey(any()))
+                .thenAnswer(invocation -> "https://cdn.example/" + invocation.getArgument(0, String.class));
     }
 
     @Test
@@ -184,5 +200,12 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
         }
 
         return succeeded.get();
+    }
+
+    private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
+        Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + UUID.randomUUID()));
+        Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
+        Path zipPath = Files.writeString(tempDir.resolve("pack-" + UUID.randomUUID() + ".zip"), "zip");
+        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
     }
 }

@@ -56,7 +56,7 @@ public class GeneratedZipCleanupService {
             do {
                 ListObjectsV2Response response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
                         .bucket(bucket)
-                        .prefix(ZipStorageService.GENERATED_ZIP_PREFIX)
+                        .prefix(GeneratedPackStorageService.GENERATED_ZIP_PREFIX)
                         .continuationToken(continuationToken)
                         .build());
 
@@ -82,16 +82,16 @@ public class GeneratedZipCleanupService {
             } while (continuationToken != null);
 
             log.info("Generated ZIP cleanup completed: deleted={} failures={} retentionDays={} prefix={}",
-                    deleted, failures, retentionDays, ZipStorageService.GENERATED_ZIP_PREFIX);
+                    deleted, failures, retentionDays, GeneratedPackStorageService.GENERATED_ZIP_PREFIX);
         } catch (RuntimeException exception) {
             log.warn("Generated ZIP cleanup failed for bucket={} prefix={}: {}",
-                    bucket, ZipStorageService.GENERATED_ZIP_PREFIX, exception.getMessage());
+                    bucket, GeneratedPackStorageService.GENERATED_ZIP_PREFIX, exception.getMessage());
         }
     }
 
     private boolean shouldDelete(S3Object object, Instant cutoff) {
         return object.key() != null
-                && object.key().startsWith(ZipStorageService.GENERATED_ZIP_PREFIX)
+                && object.key().startsWith(GeneratedPackStorageService.GENERATED_ZIP_PREFIX)
                 && object.lastModified() != null
                 && object.lastModified().isBefore(cutoff);
     }

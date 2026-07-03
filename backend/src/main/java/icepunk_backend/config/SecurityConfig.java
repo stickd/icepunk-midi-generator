@@ -64,6 +64,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/auth/login",
                             "/generate",
                             "/generation-stats",
+                            "/datasets/analyze-temp",
+                            "/generated-packs/**",
                             "/uploads/feed",
                             "/uploads/projects/*/midi"
                     ).permitAll()

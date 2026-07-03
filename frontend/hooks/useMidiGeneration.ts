@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { GenerateMidiResponse, generateMidiPack, TOKEN_KEY } from "@/lib/api";
+import {
+  GenerateMidiRequest,
+  GenerateMidiResponse,
+  generateMidiPack,
+  TOKEN_KEY,
+} from "@/lib/api";
 
 export function useMidiGeneration(
   onUnauthorized?: () => void,
@@ -12,7 +17,7 @@ export function useMidiGeneration(
   const [lastGeneration, setLastGeneration] =
     useState<GenerateMidiResponse | null>(null);
 
-  async function handleGenerateMidi() {
+  async function handleGenerateMidi(request: GenerateMidiRequest) {
     try {
       setIsGenerating(true);
       setStatus("Generating frozen MIDI patterns...");
@@ -28,17 +33,11 @@ export function useMidiGeneration(
         onUnauthorized?.();
       }
 
-      const data = await generateMidiPack(token);
+      const data = await generateMidiPack(request, token);
       setLastGeneration(data);
 
-      const downloadLink = document.createElement("a");
-      downloadLink.href = data.downloadUrl;
-      downloadLink.target = "_blank";
-      downloadLink.rel = "noreferrer";
-      downloadLink.click();
-
       onGenerated?.(data.totalGenerations);
-      setStatus("MIDI pack downloaded.");
+      setStatus("MIDI pack generated. Download links are ready.");
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes("Guest daily generation limit reached")) {

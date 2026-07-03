@@ -18,7 +18,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY requirements.txt icepunk_midi_generator.py ./
+COPY requirements.txt icepunk_midi_generator.py icepunk_midi_temp_analyzer.py ./
 COPY analysis_output analysis_output
 
 RUN python3 -m venv /app/venv \
@@ -36,6 +36,7 @@ ENV SERVER_PORT=8081
 ENV ICEPUNK_GENERATOR_PROJECT_DIR=/app
 ENV ICEPUNK_GENERATOR_PYTHON_PATH=/app/venv/bin/python3
 ENV ICEPUNK_GENERATOR_SCRIPT_NAME=icepunk_midi_generator.py
+ENV ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=icepunk_midi_temp_analyzer.py
 ENV JAVA_OPTS=""
 
 EXPOSE 8081
