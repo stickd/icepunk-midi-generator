@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { generateMidiPack, TOKEN_KEY } from "@/lib/api";
+import { GenerateMidiResponse, generateMidiPack, TOKEN_KEY } from "@/lib/api";
 
 export function useMidiGeneration(
   onUnauthorized?: () => void,
@@ -9,6 +9,8 @@ export function useMidiGeneration(
 ) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState("");
+  const [lastGeneration, setLastGeneration] =
+    useState<GenerateMidiResponse | null>(null);
 
   async function handleGenerateMidi() {
     try {
@@ -27,6 +29,7 @@ export function useMidiGeneration(
       }
 
       const data = await generateMidiPack(token);
+      setLastGeneration(data);
 
       const downloadLink = document.createElement("a");
       downloadLink.href = data.downloadUrl;
@@ -74,6 +77,7 @@ export function useMidiGeneration(
   return {
     isGenerating,
     status,
+    lastGeneration,
     setStatus,
     handleGenerateMidi,
   };

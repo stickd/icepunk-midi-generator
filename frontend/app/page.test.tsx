@@ -20,15 +20,20 @@ describe("Home page", () => {
     mockGetGenerationStats.mockResolvedValue({ totalGenerations: 42 });
   });
 
-  it("renders the hero, generation controls, snowfall, and feedback section together", async () => {
+  it("renders the workspace shell, generation controls, upload, and feedback sections together", async () => {
     const { container } = render(<Home />);
 
     expect(
-      await screen.findByRole("heading", { name: "Generate icy MIDI packs" }),
+      await screen.findByRole("heading", {
+        name: "Generate MIDI packs with studio-grade control",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate MIDI Pack" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload MIDI Projects" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Help Shape IcePunk" })).toBeInTheDocument();
 
-    expect(container.querySelector('div[aria-hidden="true"]')).toBeInTheDocument();
+    expect(container.querySelector("#generate")).toBeInTheDocument();
+    expect(container.querySelector("#upload")).toBeInTheDocument();
+    expect(container.querySelector("#feedback")).toBeInTheDocument();
   });
 });

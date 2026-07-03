@@ -12,9 +12,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -70,21 +73,17 @@ public class MidiGenerationService {
             Files.createDirectories(outputDir);
 
             Process process = startGeneratorProcess(outputDir);
+            CompletableFuture<String> processOutput = CompletableFuture.supplyAsync(() -> readProcessOutput(process));
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
 
             if (!finished) {
                 process.destroyForcibly();
+                processOutput.cancel(true);
                 throw new RuntimeException("Python generator timeout");
             }
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream())
-            )) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println("[PYTHON] " + line);
-                }
-            }
+            String output = awaitProcessOutput(processOutput);
+            printProcessOutput(output);
 
             int exitCode = process.exitValue();
 
@@ -121,6 +120,44 @@ public class MidiGenerationService {
         processBuilder.redirectErrorStream(true);
 
         return processBuilder.start();
+    }
+
+    private String readProcessOutput(Process process) {
+        StringBuilder output = new StringBuilder();
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
+        )) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append(System.lineSeparator());
+            }
+        } catch (IOException exception) {
+            throw new RuntimeException("Failed to read Python generator output", exception);
+        }
+
+        return output.toString();
+    }
+
+    private String awaitProcessOutput(CompletableFuture<String> processOutput) {
+        try {
+            return processOutput.get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while reading Python generator output", exception);
+        } catch (ExecutionException exception) {
+            throw new RuntimeException("Failed to read Python generator output", exception.getCause());
+        } catch (TimeoutException exception) {
+            throw new RuntimeException("Python generator output reader timeout", exception);
+        }
+    }
+
+    private void printProcessOutput(String output) {
+        if (output.isBlank()) {
+            return;
+        }
+
+        output.lines().forEach(line -> System.out.println("[PYTHON] " + line));
     }
 
     private void createZipFromDirectory(Path sourceDir, Path zipPath) throws IOException {

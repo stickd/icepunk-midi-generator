@@ -66,6 +66,8 @@ class MidiGenerationServiceTest {
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
+            when(process.getInputStream())
+                    .thenReturn(new ByteArrayInputStream(new byte[0]));
             return process;
         });
 

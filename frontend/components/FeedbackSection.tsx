@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Badge, Button, FieldLabel, Input, Select, Textarea } from "@/components/ui";
 
 type FeedbackStatus = null | "success" | "error";
 
@@ -86,22 +87,19 @@ export default function FeedbackSection() {
   }
 
   return (
-    <section className="relative z-10 px-6 pb-28 pt-10 [contain-intrinsic-size:900px] [content-visibility:auto]">
+    <section id="feedback" className="relative z-10 px-6 pb-24 pt-4 md:pt-8">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
         <div
           className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-white/[0.035] p-8 shadow-[0_24px_90px_rgba(8,47,73,0.28)] backdrop-blur-xl md:p-10"
         >
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(56,189,248,0.035),rgba(255,255,255,0.02))]" />
-          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-200/10 blur-3xl" />
 
           <div className="relative">
             <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-100/10 text-cyan-100 shadow-[0_0_42px_rgba(125,211,252,0.18)]">
               <span className="h-2.5 w-2.5 rounded-full bg-cyan-100 shadow-[0_0_24px_rgba(125,211,252,0.95)]" />
             </div>
 
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.34em] text-cyan-200/60">
-              Community signal
-            </p>
+            <Badge className="mb-4" tone="accent">Community signal</Badge>
 
             <h2 className="max-w-xl bg-gradient-to-b from-white via-cyan-50 to-cyan-300 bg-clip-text text-4xl font-extrabold leading-tight text-transparent md:text-5xl">
               Help Shape IcePunk
@@ -143,70 +141,67 @@ export default function FeedbackSection() {
             />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2 text-sm font-semibold text-cyan-50/85">
+              <FieldLabel>
                 Name <span className="font-normal text-slate-400">(optional)</span>
-                <input
+                <Input
                   name="name"
                   autoComplete="name"
                   placeholder="Your name"
-                  className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                  className="h-14 text-base"
                 />
-              </label>
+              </FieldLabel>
 
-              <label className="grid gap-2 text-sm font-semibold text-cyan-50/85">
+              <FieldLabel>
                 Email <span className="font-normal text-slate-400">(optional)</span>
-                <input
+                <Input
                   name="email"
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                  className="h-14 text-base"
                 />
-              </label>
+              </FieldLabel>
             </div>
 
-            <label className="grid gap-2 text-sm font-semibold text-cyan-50/85">
+            <FieldLabel>
               Feedback Type
-              <select
+              <Select
                 name="feedbackType"
                 defaultValue="Idea"
-                className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white outline-none transition focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                className="h-14 text-base"
               >
                 {feedbackTypes.map((type) => (
                   <option key={type} value={type} className="bg-slate-950">
                     {type}
                   </option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </FieldLabel>
 
-            <label className="grid gap-2 text-sm font-semibold text-cyan-50/85">
+            <FieldLabel>
               Message
-              <textarea
+              <Textarea
                 name="message"
                 required
                 minLength={10}
                 rows={6}
                 placeholder="Tell us what should be colder, sharper, or easier to use."
-                className="resize-none rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-base font-medium leading-7 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                className="min-h-40 text-base leading-7"
               />
-            </label>
+            </FieldLabel>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="group relative mt-2 h-14 overflow-hidden rounded-full border border-white/75 bg-gradient-to-b from-white via-cyan-50 to-sky-200 px-6 text-base font-black text-slate-950 shadow-[0_14px_44px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,1),inset_0_-8px_18px_rgba(14,165,233,0.14)] transition hover:-translate-y-0.5 hover:scale-[1.01] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:scale-100"
+              variant="primary"
+              size="lg"
+              className="mt-2 w-full overflow-hidden font-black"
             >
-              <span className="absolute inset-y-0 -left-[70%] w-[55%] skew-x-[-18deg] bg-gradient-to-r from-transparent via-white/80 to-transparent transition-all duration-700 group-hover:left-[120%]" />
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                {loading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/25 border-t-slate-950" />
-                ) : (
-                  <span className="h-2 w-2 rounded-full bg-slate-950" />
-                )}
-                {loading ? "Sending..." : "Send Feedback"}
-              </span>
-            </button>
+              {loading && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/25 border-t-slate-950" />
+              )}
+              {loading ? "Sending..." : "Send Feedback"}
+            </Button>
 
             {status === "success" && (
               <p className="rounded-2xl border border-cyan-200/20 bg-cyan-200/10 px-4 py-3 text-center text-sm font-semibold text-cyan-50">

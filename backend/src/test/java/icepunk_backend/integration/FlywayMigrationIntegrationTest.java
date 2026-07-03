@@ -42,7 +42,10 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             "generation_stats", Set.of(
                     "id", "total_generations"),
             "guest_usage", Set.of(
-                    "id", "ip_address", "generations_today", "generation_date")
+                    "id", "ip_address", "generations_today", "generation_date"),
+            "user_uploaded_projects", Set.of(
+                    "id", "owner_id", "title", "midi_object_key", "sample_object_key",
+                    "uploaded_at", "visibility", "metadata")
     );
 
     @Autowired
@@ -57,9 +60,11 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
         List<Map<String, Object>> history = jdbcTemplate.queryForList(
                 "SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
 
-        assertEquals(1, history.size(), "exactly one versioned migration is expected");
+        assertEquals(2, history.size(), "exactly two versioned migrations are expected");
         assertEquals("1", history.get(0).get("version"));
+        assertEquals("2", history.get(1).get("version"));
         assertEquals(Boolean.TRUE, history.get(0).get("success"), "the migration must be marked successful");
+        assertEquals(Boolean.TRUE, history.get(1).get("success"), "the migration must be marked successful");
 
         // The tables the migration creates are all present.
         for (String table : EXPECTED_COLUMNS.keySet()) {
@@ -82,11 +87,36 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
         assertNotNullable("users", "email");
         assertNotNullable("users", "password_hash");
         assertNotNullable("guest_usage", "ip_address");
+        assertNotNullable("user_uploaded_projects", "owner_id");
+        assertNotNullable("user_uploaded_projects", "title");
+        assertNotNullable("user_uploaded_projects", "midi_object_key");
+        assertNotNullable("user_uploaded_projects", "uploaded_at");
+        assertNotNullable("user_uploaded_projects", "visibility");
+        assertNotNullable("user_uploaded_projects", "metadata");
 
         // Unique constraints that back the entity's @UniqueConstraint / unique = true.
         assertTrue(uniqueColumnExists("users", "email"), "users.email must be unique");
         assertTrue(uniqueColumnExists("users", "username"), "users.username must be unique");
         assertTrue(uniqueColumnExists("guest_usage", "ip_address"), "guest_usage.ip_address must be unique");
+        assertTrue(uniqueColumnExists("user_uploaded_projects", "midi_object_key"),
+                "user_uploaded_projects.midi_object_key must be unique");
+
+        assertTrue(foreignKeyExists("user_uploaded_projects", "owner_id", "users", "id"),
+                "uploaded projects must reference their owner user");
+        assertTrue(checkConstraintExists("user_uploaded_projects", "ck_user_uploaded_projects_visibility"),
+                "visibility must be constrained to supported states");
+        assertTrue(checkConstraintExists("user_uploaded_projects", "ck_user_uploaded_projects_title_not_blank"),
+                "blank upload titles must be rejected");
+        assertTrue(checkConstraintExists("user_uploaded_projects", "ck_user_uploaded_projects_metadata_object"),
+                "metadata must be constrained to a JSON object");
+        assertTrue(indexExists("idx_user_uploaded_projects_owner_id"),
+                "owner lookup index must exist");
+        assertTrue(indexExists("idx_user_uploaded_projects_owner_uploaded_at"),
+                "owner library sort index must exist");
+        assertTrue(indexExists("idx_user_uploaded_projects_visibility_uploaded_at"),
+                "visibility discovery index must exist");
+        assertTrue(indexExists("idx_user_uploaded_projects_metadata"),
+                "metadata GIN index must exist");
     }
 
     @Test
@@ -105,7 +135,7 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             flyway.clean();
 
             MigrateResult first = flyway.migrate();
-            assertEquals(1, first.migrationsExecuted, "the initial migration should apply once");
+            assertEquals(2, first.migrationsExecuted, "both migrations should apply once");
 
             // "rollback": clean tears the schema back down to empty.
             flyway.clean();
@@ -117,7 +147,7 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             // Re-migrating from empty rebuilds the identical schema — forward-only,
             // deterministic, no manual intervention.
             MigrateResult second = flyway.migrate();
-            assertEquals(1, second.migrationsExecuted, "the migration must replay cleanly from scratch");
+            assertEquals(2, second.migrationsExecuted, "the migrations must replay cleanly from scratch");
         } finally {
             flyway.clean();
         }
@@ -146,6 +176,38 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                         "WHERE table_schema = 'public' AND table_name = ? AND column_name = ?",
                 String.class, table, column);
         assertEquals("NO", nullable, () -> table + "." + column + " must be NOT NULL");
+    }
+
+    private boolean foreignKeyExists(String table, String column, String foreignTable, String foreignColumn) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.table_constraints tc " +
+                        "JOIN information_schema.key_column_usage kcu " +
+                        "  ON tc.constraint_name = kcu.constraint_name " +
+                        " AND tc.table_schema = kcu.table_schema " +
+                        "JOIN information_schema.constraint_column_usage ccu " +
+                        "  ON tc.constraint_name = ccu.constraint_name " +
+                        " AND tc.table_schema = ccu.table_schema " +
+                        "WHERE tc.table_schema = 'public' AND tc.table_name = ? " +
+                        "  AND tc.constraint_type = 'FOREIGN KEY' " +
+                        "  AND kcu.column_name = ? AND ccu.table_name = ? AND ccu.column_name = ?",
+                Integer.class, table, column, foreignTable, foreignColumn);
+        return count != null && count > 0;
+    }
+
+    private boolean checkConstraintExists(String table, String constraint) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.table_constraints " +
+                        "WHERE table_schema = 'public' AND table_name = ? " +
+                        "  AND constraint_type = 'CHECK' AND constraint_name = ?",
+                Integer.class, table, constraint);
+        return count != null && count > 0;
+    }
+
+    private boolean indexExists(String index) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = ?",
+                Integer.class, index);
+        return count != null && count > 0;
     }
 
     /** True if a single-column UNIQUE (or PK) constraint covers {@code column}. */

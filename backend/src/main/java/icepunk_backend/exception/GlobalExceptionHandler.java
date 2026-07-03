@@ -116,6 +116,18 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(UploadValidationException.class)
+    public ResponseEntity<Map<String, String>> handleUploadValidation(
+            UploadValidationException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrityViolation() {
         Map<String, String> response = new HashMap<>();

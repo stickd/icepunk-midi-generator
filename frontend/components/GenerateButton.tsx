@@ -27,7 +27,7 @@ export default function GenerateButton({
       onClick={handleClick}
       disabled={isGenerating}
       className="
-        group relative mt-11 h-[72px] min-w-[360px] overflow-visible rounded-full
+        group relative mt-6 h-[64px] w-full max-w-[360px] overflow-visible rounded-full
         text-lg font-black tracking-tight text-slate-950
         transition-all duration-300
         hover:-translate-y-0.5 hover:scale-[1.018]

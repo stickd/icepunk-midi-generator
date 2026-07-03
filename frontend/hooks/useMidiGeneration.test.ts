@@ -54,6 +54,10 @@ describe("useMidiGeneration", () => {
     });
     expect(onGenerated).toHaveBeenCalledWith(5);
     expect(result.current.status).toBe("MIDI pack downloaded.");
+    expect(result.current.lastGeneration).toEqual({
+      downloadUrl: "https://cdn.example.com/zips/pack.zip",
+      totalGenerations: 5,
+    });
     expect(result.current.isGenerating).toBe(false);
   });
 
