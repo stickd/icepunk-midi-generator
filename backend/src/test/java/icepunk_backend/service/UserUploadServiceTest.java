@@ -17,6 +17,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -199,6 +201,44 @@ class UserUploadServiceTest {
         assertEquals(8L, response.getItems().getFirst().getId());
         assertEquals("nikul", response.getItems().getFirst().getOwnerUsername());
         assertEquals("https://cdn.example.com/user_uploads/42/public.mid", response.getItems().getFirst().getMidiUrl());
+    }
+
+    @Test
+    void getPublicMidiFileReadsPublicProjectMidiBytes() {
+        UserUploadedProject publicProject = new UserUploadedProject();
+        publicProject.setId(8L);
+        publicProject.setOwner(owner);
+        publicProject.setTitle("Public Lead");
+        publicProject.setMidiObjectKey("user_uploads/42/public.mid");
+        publicProject.setUploadedAt(OffsetDateTime.parse("2026-07-03T08:00:00Z"));
+        publicProject.setVisibility(UploadVisibility.PUBLIC);
+        publicProject.setMetadata(Map.of(
+                "midiContentType", "audio/midi",
+                "midiOriginalFilename", "public.mid"
+        ));
+
+        when(projectRepository.findByIdAndVisibility(8L, UploadVisibility.PUBLIC))
+                .thenReturn(Optional.of(publicProject));
+        when(storageService.readObjectBytes("user_uploads/42/public.mid"))
+                .thenReturn(new byte[]{77, 84, 104, 100});
+
+        Optional<UserUploadService.PublicMidiFile> result = service.getPublicMidiFile(8L);
+
+        assertEquals(true, result.isPresent());
+        assertEquals("audio/midi", result.get().contentType());
+        assertEquals("public.mid", result.get().filename());
+        assertEquals(4, result.get().bytes().length);
+    }
+
+    @Test
+    void getPublicMidiFileDoesNotReadPrivateOrMissingProject() {
+        when(projectRepository.findByIdAndVisibility(8L, UploadVisibility.PUBLIC))
+                .thenReturn(Optional.empty());
+
+        Optional<UserUploadService.PublicMidiFile> result = service.getPublicMidiFile(8L);
+
+        assertEquals(true, result.isEmpty());
+        verify(storageService, never()).readObjectBytes(any());
     }
 
     private MockMultipartFile file(String name, String filename, String contentType, byte[] content) {

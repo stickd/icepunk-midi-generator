@@ -11,9 +11,9 @@ The sketch UI is an experimental frontend direction based on a rough hand-drawn 
 - playful handwritten/blocky layout
 - green credit buttons
 - modal-based generation flow
-- community generation feed mockup
+- backend-connected public upload feed
 
-It is currently a visual/product experiment layered on top of existing production logic. Some interactions are real, while others are frontend-only placeholders for future backend features.
+It is currently a visual/product experiment layered on top of existing production logic. The core auth, generation, upload, public feed, feedback, download, and MIDI visualization paths are real. Controls without backend support must be shown as disabled or clearly marked as coming soon.
 
 ## Main Files
 
@@ -41,10 +41,10 @@ Main sketch UI components:
   Dropzone, OR text, Generate random button, source selector, status line.
 
 - `MidiDropZone.tsx`  
-  Frontend-only MIDI reference upload placeholder.
+  Local MIDI + one-shot staging area for browser playback and piano-roll visualization. This does not upload to the backend; backend upload lives in `UploadProjectSection`.
 
 - `UserGenerationsFeed.tsx` and `GenerationFeedCard.tsx`  
-  Mock community feed layout.
+  Backend-connected public upload feed. Loads real `PUBLIC` uploaded projects from `/uploads/feed`, renders title/user/date/metadata, and uses backend MIDI preview URLs for piano-roll visualization.
 
 - `RightControlPanel.tsx`  
   Preview sound selector, one-shot upload placeholder, BPM/pitch/octave controls, mini ad placeholder.
@@ -53,10 +53,10 @@ Main sketch UI components:
   First modal in the flow. Lets user pick MIDI amount, pack name, and Melody/Drums type.
 
 - `GeneratedMidisModal.tsx`  
-  Second modal in the flow. Shows generated MIDI preview UI and connects real download buttons to existing generation logic.
+  Second modal in the flow. Connects real download buttons to existing generation logic. Generated preview/rating controls are disabled because the backend currently returns a ZIP URL, not individual MIDI preview URLs.
 
-- `PianoRollPreview.tsx`  
-  Reusable visual piano-roll preview.
+- `BrowserPianoRoll.tsx`  
+  Real canvas MIDI piano-roll renderer for local `File` sources and backend MIDI preview URLs.
 
 - `CreditButton.tsx`  
   Green credit pill with yellow coin.
@@ -64,8 +64,8 @@ Main sketch UI components:
 - `SketchButton.tsx`  
   Shared rough button component.
 
-- `mockData.ts`  
-  Mock feed and generated MIDI data.
+- `feedTypes.ts`  
+  Shared frontend type for mapped public feed entries.
 
 ### Tests
 
@@ -105,6 +105,9 @@ These parts are connected to existing production behavior:
 - Logout by clearing `icepunk_token`
 - Generation stats through `getGenerationStats`
 - Real MIDI generation/download through `useMidiGeneration`
+- Public upload feed through `getPublicUploadFeed`
+- Backend MIDI preview URL construction through `getPublicUploadMidiPreviewUrl`
+- Authenticated MIDI project upload through `UploadProjectSection` and `uploadMidiProject`
 - Browser MIDI playback for locally selected MIDI + one-shot sample through `useBrowserMidiPlayback`
 - Uploaded MIDI piano roll visualization and playback sync through `BrowserPianoRoll`, `useMidiPianoRoll`, and `useBrowserMidiPlayback`
 - Feedback form through the existing `FeedbackSection`
@@ -117,16 +120,18 @@ These are frontend-only placeholders and should not call fake backend APIs:
 
 - Backend-connected MIDI conditioning from the sketch dropzone
 - Feed playback
-- Feed favorite/download actions
+- Feed favorite/save/comment actions
 - Source selector: site / database / favorites
-- One-shot upload
+- Right panel one-shot upload
 - MIDI rating thumbs up/down
 - Carousel behavior
 - Credit purchase/private-pack logic
 
 If adding new placeholder behavior, keep it isolated inside sketch components and add a short `TODO` comment explaining what backend/API feature is missing.
 
-The sketch dropzone now has real local browser playback for user-selected files, but it still does not upload those files to the backend or use them to condition generated packs.
+The public feed should not use hardcoded demo cards. If the backend returns no public uploads, show the empty state. If the backend request fails, show the error/retry state.
+
+The generated modal should not pretend to show individual generated MIDI notes until the backend returns individual MIDI preview URLs or a frontend ZIP MIDI extraction flow is implemented.
 
 ## How To Customize Styles Safely
 

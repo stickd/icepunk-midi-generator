@@ -6,9 +6,12 @@ import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.UserUploadService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,6 +34,16 @@ public class UserUploadController {
             @RequestParam(value = "size", defaultValue = "10") int size
     ) {
         return userUploadService.getPublicFeed(page, size);
+    }
+
+    @GetMapping("/uploads/projects/{id}/midi")
+    public ResponseEntity<byte[]> publicProjectMidi(@PathVariable("id") Long id) {
+        return userUploadService.getPublicMidiFile(id)
+                .map(file -> ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.filename() + "\"")
+                        .contentType(MediaType.parseMediaType(file.contentType()))
+                        .body(file.bytes()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/uploads/projects")

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserUploadedProjectRepository extends JpaRepository<UserUploadedProject, Long> {
 
@@ -17,5 +18,10 @@ public interface UserUploadedProjectRepository extends JpaRepository<UserUploade
     Page<UserUploadedProject> findByVisibilityOrderByUploadedAtDesc(
             UploadVisibility visibility,
             Pageable pageable
+    );
+
+    Optional<UserUploadedProject> findByIdAndVisibility(
+            Long id,
+            UploadVisibility visibility
     );
 }

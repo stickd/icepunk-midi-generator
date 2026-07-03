@@ -6,6 +6,7 @@ type AuthModalProps = {
   username: string;
   password: string;
   authStatus: string;
+  isSubmitting?: boolean;
   setEmail: (value: string) => void;
   setUsername: (value: string) => void;
   setPassword: (value: string) => void;
@@ -19,6 +20,7 @@ export default function AuthModal({
   username,
   password,
   authStatus,
+  isSubmitting = false,
   setEmail,
   setUsername,
   setPassword,
@@ -83,10 +85,11 @@ export default function AuthModal({
           />
 
           <button
+            disabled={isSubmitting}
             onClick={onSubmit}
-            className="mt-2 rounded-2xl bg-white px-4 py-3 font-bold text-slate-950 shadow-[0_0_40px_rgba(103,232,249,0.22)] transition hover:scale-[1.02] hover:bg-cyan-50 active:scale-[0.98]"
+            className="mt-2 rounded-2xl bg-white px-4 py-3 font-bold text-slate-950 shadow-[0_0_40px_rgba(103,232,249,0.22)] transition hover:scale-[1.02] hover:bg-cyan-50 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 disabled:hover:scale-100"
           >
-            {mode === "login" ? "Login" : "Register"}
+            {isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Register"}
           </button>
 
           {authStatus && (

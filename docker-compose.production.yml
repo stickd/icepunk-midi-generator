@@ -92,6 +92,26 @@ services:
     ports:
       - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8081}:8081"
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FEEDBACK_TO_EMAIL: ${FEEDBACK_TO_EMAIL:-}
+      FEEDBACK_FROM_EMAIL: ${FEEDBACK_FROM_EMAIL:-}
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
+
 volumes:
   postgres_data:
   minio_data:

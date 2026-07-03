@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, FormEvent, useRef, useState } from "react";
 import { TOKEN_KEY, uploadMidiProject, UploadVisibility } from "@/lib/api";
+import { notifyFeedRefresh } from "@/lib/events";
 import { Badge, Button, LoadingBar } from "@/components/ui";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -158,6 +159,7 @@ export default function UploadProjectSection() {
 
       setStatus("success");
       setMessage(`Uploaded "${response.title}" successfully.`);
+      notifyFeedRefresh();
       setTitle("");
       setMidiFile(null);
       setSampleFile(null);

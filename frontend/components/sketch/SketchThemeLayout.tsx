@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import FeedbackSection from "@/components/FeedbackSection";
+import UploadProjectSection from "@/components/UploadProjectSection";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import { authUser, getGenerationStats, TOKEN_KEY } from "@/lib/api";
 import CreatePackModal, { CreatePackDraft } from "./CreatePackModal";
@@ -57,6 +58,7 @@ export default function SketchThemeLayout() {
   const [status, setStatus] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [authStatus, setAuthStatus] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -68,7 +70,7 @@ export default function SketchThemeLayout() {
   const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
   const [activeModal, setActiveModal] = useState<"create" | "generated" | null>(null);
   const [packDraft, setPackDraft] = useState<CreatePackDraft>(DEFAULT_DRAFT);
-  const { isGenerating, status: generationStatus, handleGenerateMidi } =
+  const { isGenerating, lastGeneration, status: generationStatus, handleGenerateMidi } =
     useMidiGeneration(clearToken, setTotalGenerations);
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function SketchThemeLayout() {
     if (!authMode) return;
 
     try {
+      setIsAuthenticating(true);
       setAuthStatus(authMode === "login" ? "Logging in..." : "Creating account...");
 
       const body =
@@ -140,6 +143,8 @@ export default function SketchThemeLayout() {
       setPassword("");
     } catch {
       setAuthStatus("Backend is not available right now.");
+    } finally {
+      setIsAuthenticating(false);
     }
   }
 
@@ -160,7 +165,9 @@ export default function SketchThemeLayout() {
         <section className={styles.topPanel} aria-label="Generator landing">
           <h1 className={styles.title}>Midis Generator</h1>
           <div className={styles.userArea}>
-            <CreditButton ariaLabel="450 credits">450</CreditButton>
+            <CreditButton ariaLabel={token ? "7 daily generations" : "3 daily generations"}>
+              {token ? "7/day" : "3/day"}
+            </CreditButton>
             <span>{token ? "user1" : "guest"}</span>
             <span className={styles.userIcon} aria-label="User profile placeholder" role="img" />
             <div className={styles.authButtons}>
@@ -218,6 +225,7 @@ export default function SketchThemeLayout() {
       </div>
 
       <div className={styles.preservedSection}>
+        <UploadProjectSection />
         <FeedbackSection />
       </div>
 
@@ -229,6 +237,7 @@ export default function SketchThemeLayout() {
         <GeneratedMidisModal
           draft={packDraft}
           isGenerating={isGenerating}
+          lastGeneration={lastGeneration}
           onClose={() => setActiveModal(null)}
           onGenerateRealPack={handleGenerateMidi}
           onStubStatus={setStatus}
@@ -239,6 +248,7 @@ export default function SketchThemeLayout() {
         <AuthModal
           authStatus={authStatus}
           email={email}
+          isSubmitting={isAuthenticating}
           mode={authMode}
           onClose={() => setAuthMode(null)}
           onSubmit={handleAuth}

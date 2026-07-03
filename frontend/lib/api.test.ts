@@ -121,6 +121,14 @@ describe("lib/api", () => {
       const [url] = fetchMock.mock.calls[0];
       expect(url).toBe("http://localhost:8081/auth/login");
     });
+
+    it("builds a backend MIDI preview URL for public upload visualization", async () => {
+      const { getPublicUploadMidiPreviewUrl } = await import("./api");
+
+      expect(getPublicUploadMidiPreviewUrl(42)).toBe(
+        "http://localhost:8081/uploads/projects/42/midi",
+      );
+    });
   });
 
   describe("error handling and response parsing", () => {

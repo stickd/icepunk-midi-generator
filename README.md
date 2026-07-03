@@ -84,8 +84,13 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 - `GET /generation-stats` returns `{ "totalGenerations": 123 }`.
 - `POST /auth/register` creates a user account and returns a JWT token.
 - `POST /auth/login` returns a JWT token.
+- `POST /uploads/projects` uploads an authenticated user's MIDI project and one-shot sample.
+- `GET /uploads/feed?page=0&size=10` returns newest public uploaded projects for the discovery feed.
+- `GET /uploads/projects/{id}/midi` streams a public uploaded MIDI file through the backend for browser piano-roll visualization.
 
 Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation and successful ZIP upload.
+
+The sketch feed uses real public uploaded projects only. Empty feeds show an empty state instead of demo cards, and feed MIDI previews are rendered by parsing the backend MIDI preview endpoint in the browser.
 
 ## Generated ZIP Retention
 
@@ -114,7 +119,7 @@ Build manually:
 docker build -f backend/Dockerfile -t icepunk-backend .
 ```
 
-Or run backend + Postgres + MinIO with:
+Or run the production stack with Postgres, MinIO, backend, and frontend:
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
@@ -141,6 +146,7 @@ S3_BUCKET=icepunk-zips
 S3_PUBLIC_URL=https://your-files-domain.com/icepunk-zips
 
 BACKEND_PORT=8081
+FRONTEND_PORT=3000
 MINIO_API_PORT=9010
 MINIO_CONSOLE_PORT=9011
 
@@ -197,7 +203,7 @@ cd icepunk-midi-generator
 
 3. Create `.env.production` with the production values above.
 
-4. Start backend infrastructure and API:
+4. Start Postgres, MinIO, backend, and frontend:
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
@@ -215,7 +221,7 @@ docker compose --env-file .env.production -f docker-compose.production.yml logs 
 curl https://your-backend-domain.com/generation-stats
 ```
 
-7. Deploy frontend with `NEXT_PUBLIC_API_URL=https://your-backend-domain.com`.
+7. If you deploy frontend separately, build it with `NEXT_PUBLIC_API_URL=https://your-backend-domain.com`.
 
 For a VPS-hosted frontend:
 
@@ -239,6 +245,8 @@ npm run start
 - guest generate
 - logged-in generate
 - ZIP download
+- upload a public MIDI project with a one-shot sample
+- public feed shows the uploaded project
 - global counter update
 - feedback form
 - backend restart keeps generation counter

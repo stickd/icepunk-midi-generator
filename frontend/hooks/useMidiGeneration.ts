@@ -66,6 +66,12 @@ export function useMidiGeneration(
           onUnauthorized?.();
           return;
         }
+
+        if (error.message.includes("HTTP_403")) {
+          setStatus("Please log in again before generating.");
+          onUnauthorized?.();
+          return;
+        }
       }
 
       setStatus("Generation failed. Please try again.");

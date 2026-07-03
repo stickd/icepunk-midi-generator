@@ -31,6 +31,8 @@ describe("Home page", () => {
     expect(screen.getByRole("button", { name: "Generate random" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "User Generations Feed" })).toBeInTheDocument();
     expect(screen.getByLabelText("Choose preview sound")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload MIDI Projects" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Help Shape IcePunk" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Generate random" }));
     expect(screen.getByRole("dialog", { name: "Create pack" })).toBeInTheDocument();

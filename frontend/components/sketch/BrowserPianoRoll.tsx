@@ -13,7 +13,9 @@ const MAX_CANVAS_WIDTH = 32000;
 type BrowserPianoRollProps = {
   isPlaying: boolean;
   midiFile: File | null;
+  midiUrl?: string | null;
   playbackPositionSeconds: number;
+  size?: "normal" | "compact";
 };
 
 function isBlackKey(midi: number) {
@@ -146,12 +148,14 @@ function drawPianoRoll(
 export default function BrowserPianoRoll({
   isPlaying,
   midiFile,
+  midiUrl = null,
   playbackPositionSeconds,
+  size = "normal",
 }: BrowserPianoRollProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(54);
-  const pianoRoll = useMidiPianoRoll(midiFile);
+  const [zoom, setZoom] = useState(size === "compact" ? 38 : 54);
+  const pianoRoll = useMidiPianoRoll(midiFile ?? midiUrl);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -179,7 +183,7 @@ export default function BrowserPianoRoll({
     }
   }, [isPlaying, pianoRoll.data, playbackPositionSeconds, zoom]);
 
-  if (!midiFile) {
+  if (!midiFile && !midiUrl) {
     return (
       <div className={styles.pianoRollEmpty}>
         Choose a MIDI file to render a real piano roll.
@@ -188,10 +192,13 @@ export default function BrowserPianoRoll({
   }
 
   return (
-    <section className={styles.browserPianoRoll} aria-label="Uploaded MIDI piano roll">
+    <section
+      className={`${styles.browserPianoRoll} ${size === "compact" ? styles.browserPianoRollCompact : ""}`}
+      aria-label="MIDI piano roll visualization"
+    >
       <div className={styles.pianoRollToolbar}>
         <span>{pianoRoll.status === "ready" ? pianoRoll.data.fileName : pianoRoll.message}</span>
-        <label>
+        <label className={size === "compact" ? styles.compactZoomControl : undefined}>
           Zoom
           <input
             aria-label="Piano roll zoom"

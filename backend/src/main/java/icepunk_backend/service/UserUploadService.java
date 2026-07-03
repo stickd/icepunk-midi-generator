@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -76,6 +77,19 @@ public class UserUploadService {
                 projects.getTotalPages(),
                 projects.hasNext()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PublicMidiFile> getPublicMidiFile(Long projectId) {
+        return projectRepository.findByIdAndVisibility(projectId, UploadVisibility.PUBLIC)
+                .map(project -> {
+                    byte[] bytes = storageService.readObjectBytes(project.getMidiObjectKey());
+                    return new PublicMidiFile(
+                            bytes,
+                            metadataString(project.getMetadata(), "midiContentType", "audio/midi"),
+                            metadataString(project.getMetadata(), "midiOriginalFilename", "project.mid")
+                    );
+                });
     }
 
     @Transactional
@@ -213,6 +227,15 @@ public class UserUploadService {
         return metadata;
     }
 
+    private String metadataString(Map<String, Object> metadata, String key, String fallback) {
+        Object value = metadata.get(key);
+        if (value instanceof String stringValue && !stringValue.isBlank()) {
+            return stringValue;
+        }
+
+        return fallback;
+    }
+
     private UserUploadResponse toResponse(
             UserUploadedProject project,
             String midiUrl,
@@ -246,5 +269,8 @@ public class UserUploadService {
                 project.getVisibility(),
                 project.getMetadata()
         );
+    }
+
+    public record PublicMidiFile(byte[] bytes, String contentType, String filename) {
     }
 }

@@ -173,6 +173,10 @@ export async function getPublicUploadFeed(
   return response.json();
 }
 
+export function getPublicUploadMidiPreviewUrl(projectId: number) {
+  return `${API_URL}/uploads/projects/${projectId}/midi`;
+}
+
 export function uploadMidiProject({
   title,
   visibility,

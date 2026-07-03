@@ -10,7 +10,10 @@ import software.amazon.awssdk.core.exception.ApiCallAttemptTimeoutException;
 import software.amazon.awssdk.core.exception.ApiCallTimeoutException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -71,6 +74,24 @@ public class UserUploadStorageService {
         }
 
         return publicUrl + "/" + objectKey;
+    }
+
+    public byte[] readObjectBytes(String objectKey) {
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(objectKey)
+                .build();
+
+        try {
+            ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(request);
+            return response.asByteArray();
+        } catch (ApiCallTimeoutException | ApiCallAttemptTimeoutException exception) {
+            log.warn("S3 user object read timed out for bucket={} key={}: {}", bucket, objectKey, exception.getMessage());
+            throw new StorageTimeoutException("File download timed out. Please try again.");
+        } catch (SdkException exception) {
+            log.error("S3 user object read failed for bucket={} key={}: {}", bucket, objectKey, exception.getMessage());
+            throw new StorageException("File download failed. Please try again.");
+        }
     }
 
     private String extensionFrom(String filename) {

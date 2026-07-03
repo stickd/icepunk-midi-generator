@@ -1,15 +1,15 @@
 "use client";
 
 import CreditButton from "./CreditButton";
-import PianoRollPreview from "./PianoRollPreview";
 import SketchButton from "./SketchButton";
+import { GenerateMidiResponse } from "@/lib/api";
 import { CreatePackDraft } from "./CreatePackModal";
-import { mockGeneratedMidis } from "./mockData";
 import styles from "./sketchTheme.module.css";
 
 type GeneratedMidisModalProps = {
   draft: CreatePackDraft;
   isGenerating: boolean;
+  lastGeneration: GenerateMidiResponse | null;
   onClose: () => void;
   onGenerateRealPack: () => void;
   onStubStatus: (message: string) => void;
@@ -18,12 +18,11 @@ type GeneratedMidisModalProps = {
 export default function GeneratedMidisModal({
   draft,
   isGenerating,
+  lastGeneration,
   onClose,
   onGenerateRealPack,
   onStubStatus,
 }: GeneratedMidisModalProps) {
-  const currentMidi = mockGeneratedMidis[0];
-
   return (
     <div className={styles.modalBackdrop}>
       <section
@@ -47,32 +46,40 @@ export default function GeneratedMidisModal({
               <button
                 className={styles.playButton}
                 type="button"
-                onClick={() => onStubStatus("MIDI preview playback is a stub.")}
+                disabled
+                title="Generated MIDI preview playback is coming soon."
+                onClick={() => onStubStatus("Generated MIDI preview playback is coming soon.")}
                 aria-label="Play generated MIDI preview"
               >
                 ▶
               </button>
               <label className={styles.controlLabel}>
                 BPM
-                <input className={styles.tinyControl} type="number" defaultValue={currentMidi.bpm} />
+                <input className={styles.tinyControl} type="number" defaultValue={140} disabled />
               </label>
               <label className={styles.controlLabel}>
                 Pitch
-                <input className={styles.tinyControl} type="number" defaultValue={currentMidi.pitch} />
+                <input className={styles.tinyControl} type="number" defaultValue={0} disabled />
               </label>
               <label className={styles.controlLabel}>
                 Octaves
-                <input className={styles.tinyControl} type="number" defaultValue={currentMidi.octaves} />
+                <input className={styles.tinyControl} type="number" defaultValue={1} disabled />
               </label>
             </div>
 
             <div>
-              <PianoRollPreview large label="Generated MIDI piano roll preview" />
+              <div className={`${styles.pianoRollEmpty} ${styles.generatedPreviewState}`}>
+                {lastGeneration
+                  ? "ZIP generated. Individual MIDI piano-roll preview needs backend MIDI file URLs."
+                  : "Generate a real pack to receive a ZIP download. Individual MIDI preview is coming soon."}
+              </div>
               <div className={styles.ratingRow}>
                 <button
                   className={styles.smallIconButton}
                   type="button"
-                  onClick={() => onStubStatus("Rating generated MIDI is a frontend stub.")}
+                  disabled
+                  title="Generated MIDI rating is coming soon."
+                  onClick={() => onStubStatus("Generated MIDI rating is coming soon.")}
                   aria-label="Thumbs up"
                 >
                   ♡
@@ -80,24 +87,26 @@ export default function GeneratedMidisModal({
                 <button
                   className={styles.smallIconButton}
                   type="button"
-                  onClick={() => onStubStatus("Rating generated MIDI is a frontend stub.")}
+                  disabled
+                  title="Generated MIDI rating is coming soon."
+                  onClick={() => onStubStatus("Generated MIDI rating is coming soon.")}
                   aria-label="Thumbs down"
                 >
                   ♧
                 </button>
               </div>
               <div className={styles.carousel}>
-                <button className={styles.carouselArrow} type="button" aria-label="Previous MIDI">
+                <button className={styles.carouselArrow} type="button" disabled aria-label="Previous MIDI">
                   ‹
                 </button>
-                {mockGeneratedMidis.map((midi) => (
-                  <span className={styles.thumbnail} key={midi.id} aria-label={midi.label} />
+                {Array.from({ length: Math.min(3, draft.amount) }, (_, index) => (
+                  <span className={styles.thumbnail} key={index} aria-label={`MIDI ${index + 1} preview coming soon`} />
                 ))}
-                <button className={styles.carouselArrow} type="button" aria-label="Next MIDI">
+                <button className={styles.carouselArrow} type="button" disabled aria-label="Next MIDI">
                   ›
                 </button>
               </div>
-              <div className={styles.carouselCount}>{currentMidi.label}</div>
+              <div className={styles.carouselCount}>Preview coming soon</div>
             </div>
 
             <div className={styles.generatedActions}>
@@ -113,6 +122,16 @@ export default function GeneratedMidisModal({
                 {isGenerating ? "Generating..." : "Download and publish ↓"}
               </SketchButton>
               <small>Learn more</small>
+              {lastGeneration ? (
+                <a
+                  className={styles.downloadLink}
+                  href={lastGeneration.downloadUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Latest ZIP ready
+                </a>
+              ) : null}
             </div>
           </div>
 
@@ -147,6 +166,16 @@ export default function GeneratedMidisModal({
               >
                 {isGenerating ? "Generating..." : `${draft.packName}-Midis.zip ↓`}
               </SketchButton>
+              {lastGeneration ? (
+                <a
+                  className={styles.downloadLink}
+                  href={lastGeneration.downloadUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Open download URL
+                </a>
+              ) : null}
             </div>
           </div>
         </div>

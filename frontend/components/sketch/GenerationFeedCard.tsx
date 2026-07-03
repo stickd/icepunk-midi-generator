@@ -1,9 +1,9 @@
-import PianoRollPreview from "./PianoRollPreview";
-import { MockGeneration } from "./mockData";
+import BrowserPianoRoll from "./BrowserPianoRoll";
+import { FeedGeneration } from "./feedTypes";
 import styles from "./sketchTheme.module.css";
 
 type GenerationFeedCardProps = {
-  generation: MockGeneration;
+  generation: FeedGeneration;
   onStubStatus: (message: string) => void;
 };
 
@@ -19,13 +19,22 @@ export default function GenerationFeedCard({
           <span>{generation.username}</span>
           <span className={styles.timeText}>{generation.timeAgo}</span>
         </div>
+        <h3 className={styles.feedCardTitle}>{generation.title}</h3>
 
         <div className={styles.previewRow}>
-          <PianoRollPreview label={`${generation.title} MIDI preview`} />
+          <BrowserPianoRoll
+            isPlaying={false}
+            midiFile={null}
+            midiUrl={generation.midiPreviewUrl ?? generation.midiUrl ?? null}
+            playbackPositionSeconds={0}
+            size="compact"
+          />
           <button
             className={styles.playButton}
             type="button"
-            onClick={() => onStubStatus("Preview playback is a frontend stub.")}
+            disabled
+            title="Feed playback is coming soon."
+            onClick={() => onStubStatus("Feed playback is coming soon.")}
             aria-label={`Play ${generation.title}`}
           >
             ▶
@@ -34,7 +43,9 @@ export default function GenerationFeedCard({
             <button
               className={styles.smallIconButton}
               type="button"
-              onClick={() => onStubStatus("Favorites will connect to user profiles later.")}
+              disabled
+              title="Favorites are coming soon."
+              onClick={() => onStubStatus("Favorites are coming soon.")}
               aria-label={`Favorite ${generation.title}`}
             >
               ♡
@@ -42,7 +53,13 @@ export default function GenerationFeedCard({
             <button
               className={styles.smallIconButton}
               type="button"
-              onClick={() => onStubStatus("Feed item downloads are placeholders for now.")}
+              disabled={!generation.midiUrl}
+              onClick={() => {
+                if (generation.midiUrl) {
+                  window.open(generation.midiUrl, "_blank", "noreferrer");
+                  onStubStatus(`Opening ${generation.title} MIDI download.`);
+                }
+              }}
               aria-label={`Download ${generation.title}`}
             >
               ↓
@@ -62,20 +79,18 @@ export default function GenerationFeedCard({
           About this pack: {generation.midiCount} midis · {generation.downloads} downloads
         </strong>
         <span>Preview sound: {generation.sound}</span>
-        <a href="#exclusive" onClick={(event) => event.preventDefault()}>
-          Exclusive pack
-        </a>
+        <span>Visibility: public</span>
+        <span>Uploaded: {generation.uploadedAt ? new Date(generation.uploadedAt).toLocaleString() : "new"}</span>
+        <span className={styles.comingSoonText}>Exclusive pack: coming soon</span>
         <a
           href={generation.midiUrl ?? "#download"}
           onClick={(event) => {
             if (!generation.midiUrl) event.preventDefault();
           }}
         >
-          Download this pack
+          Download MIDI
         </a>
-        <a href="#dataset" onClick={(event) => event.preventDefault()}>
-          Request dataset
-        </a>
+        <span className={styles.comingSoonText}>Request dataset: coming soon</span>
       </div>
     </article>
   );

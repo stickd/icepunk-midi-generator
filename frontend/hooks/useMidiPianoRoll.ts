@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type MidiClass = typeof import("@tonejs/midi").Midi;
+export type MidiPianoRollSource = File | string | null;
 
 export type PianoRollNote = {
   duration: number;
@@ -37,14 +38,45 @@ function noteRange(notes: PianoRollNote[]) {
   return { max, min };
 }
 
-export function useMidiPianoRoll(midiFile: File | null) {
+function sourceLabel(source: Exclude<MidiPianoRollSource, null>) {
+  if (source instanceof File) {
+    return source.name;
+  }
+
+  try {
+    const url = new URL(source);
+    const segment = url.pathname.split("/").filter(Boolean).pop();
+    return segment ? decodeURIComponent(segment) : "remote MIDI";
+  } catch {
+    return "remote MIDI";
+  }
+}
+
+async function readMidiSource(
+  source: Exclude<MidiPianoRollSource, null>,
+  signal: AbortSignal,
+) {
+  if (source instanceof File) {
+    return source.arrayBuffer();
+  }
+
+  const response = await fetch(source, { signal });
+  if (!response.ok) {
+    throw new Error(`HTTP_${response.status}`);
+  }
+
+  return response.arrayBuffer();
+}
+
+export function useMidiPianoRoll(midiSource: MidiPianoRollSource) {
   const [state, setState] = useState<ParseState>(createEmptyState);
 
   useEffect(() => {
     let isCancelled = false;
+    const controller = new AbortController();
 
     async function parseMidi() {
-      if (!midiFile) {
+      if (!midiSource) {
         setState(createEmptyState());
         return;
       }
@@ -53,7 +85,7 @@ export function useMidiPianoRoll(midiFile: File | null) {
 
       try {
         const { Midi } = (await import("@tonejs/midi")) as { Midi: MidiClass };
-        const midi = new Midi(await midiFile.arrayBuffer());
+        const midi = new Midi(await readMidiSource(midiSource, controller.signal));
         const notes = midi.tracks
           .flatMap((track) => track.notes)
           .map((note) => ({
@@ -82,7 +114,7 @@ export function useMidiPianoRoll(midiFile: File | null) {
         setState({
           data: {
             duration,
-            fileName: midiFile.name,
+            fileName: sourceLabel(midiSource),
             maxMidi: max,
             minMidi: min,
             notes,
@@ -90,8 +122,9 @@ export function useMidiPianoRoll(midiFile: File | null) {
           message: `${notes.length.toLocaleString()} notes visualized.`,
           status: "ready",
         });
-      } catch {
+      } catch (error) {
         if (isCancelled) return;
+        if (error instanceof DOMException && error.name === "AbortError") return;
 
         setState({
           data: null,
@@ -105,8 +138,9 @@ export function useMidiPianoRoll(midiFile: File | null) {
 
     return () => {
       isCancelled = true;
+      controller.abort();
     };
-  }, [midiFile]);
+  }, [midiSource]);
 
   return state;
 }

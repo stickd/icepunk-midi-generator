@@ -85,4 +85,30 @@ class UserUploadControllerTest {
         assertEquals(feedResponse, response);
         verify(userUploadService).getPublicFeed(1, 5);
     }
+
+    @Test
+    void publicProjectMidiReturnsStreamedMidiFile() {
+        UserUploadService.PublicMidiFile midiFile = new UserUploadService.PublicMidiFile(
+                new byte[]{77, 84, 104, 100},
+                "audio/midi",
+                "lead.mid"
+        );
+        when(userUploadService.getPublicMidiFile(7L)).thenReturn(Optional.of(midiFile));
+
+        ResponseEntity<byte[]> response = controller.publicProjectMidi(7L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("audio/midi", response.getHeaders().getContentType().toString());
+        assertEquals("inline; filename=\"lead.mid\"", response.getHeaders().getFirst("Content-Disposition"));
+        assertEquals(4, response.getBody().length);
+    }
+
+    @Test
+    void publicProjectMidiReturnsNotFoundForMissingOrPrivateProject() {
+        when(userUploadService.getPublicMidiFile(7L)).thenReturn(Optional.empty());
+
+        ResponseEntity<byte[]> response = controller.publicProjectMidi(7L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
 }
