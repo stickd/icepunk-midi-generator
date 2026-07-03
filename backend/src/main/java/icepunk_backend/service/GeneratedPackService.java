@@ -133,6 +133,26 @@ public class GeneratedPackService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<DownloadObject> getPackDownload(UUID packId) {
+        return packRepository.findById(packId)
+                .map(pack -> new DownloadObject(
+                        storageService.readObject(pack.getZipObjectKey()),
+                        safeFileName(pack.getName(), "icepunk-midi-pack") + ".zip",
+                        "application/zip"
+                ));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<DownloadObject> getItemDownload(UUID packId, UUID itemId) {
+        return itemRepository.findByIdAndPackId(itemId, packId)
+                .map(item -> new DownloadObject(
+                        storageService.readObject(item.getMidiObjectKey()),
+                        safeFileName(item.getFileName(), "icepunk-midi") + ".mid",
+                        "audio/midi"
+                ));
+    }
+
+    @Transactional(readOnly = true)
     public List<GeneratedPackResponse> listPacksByOwner(User owner) {
         return packRepository.findWithItemsByOwnerId(owner.getId()).stream()
                 .map(pack -> toPackResponse(pack, sortedItems(pack.getItems())))
@@ -266,6 +286,13 @@ public class GeneratedPackService {
         return "/generated-packs/" + packId + "/items/" + itemId + "/download";
     }
 
+    private String safeFileName(String value, String fallback) {
+        String name = value == null || value.isBlank() ? fallback : value.trim();
+        name = name.replaceAll("[^A-Za-z0-9._-]+", "-").replaceAll("^-+|-+$", "");
+        name = name.isBlank() ? fallback : name;
+        return name.replaceAll("(?i)\\.(mid|midi|zip)$", "");
+    }
+
     private Map<String, Object> previewToMetadata(MidiPreviewResponse preview) {
         List<Map<String, Object>> notes = preview.notes().stream()
                 .map(note -> {
@@ -330,5 +357,8 @@ public class GeneratedPackService {
             GeneratedPackStorageService.StoredObject upload,
             MidiMetadataExtractor.MidiMetadata metadata
     ) {
+    }
+
+    public record DownloadObject(byte[] bytes, String fileName, String contentType) {
     }
 }

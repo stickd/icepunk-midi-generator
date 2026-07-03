@@ -3,11 +3,14 @@ package icepunk_backend.controller;
 import icepunk_backend.dto.GeneratedPackResponse;
 import icepunk_backend.dto.RenameGeneratedPackRequest;
 import icepunk_backend.dto.UpdateGeneratedPackVisibilityRequest;
+import icepunk_backend.service.GeneratedPackService.DownloadObject;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.GeneratedPackService;
 import jakarta.validation.Valid;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,20 +42,16 @@ public class GeneratedPackController {
     }
 
     @GetMapping("/generated-packs/{packId}/download")
-    public ResponseEntity<Void> downloadPack(@PathVariable UUID packId) {
-        return generatedPackService.getPackDownloadUrl(packId)
-                .map(url -> ResponseEntity.status(302)
-                        .header(HttpHeaders.LOCATION, URI.create(url).toString())
-                        .<Void>build())
+    public ResponseEntity<ByteArrayResource> downloadPack(@PathVariable UUID packId) {
+        return generatedPackService.getPackDownload(packId)
+                .map(this::downloadResponse)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/generated-packs/{packId}/items/{itemId}/download")
-    public ResponseEntity<Void> downloadItem(@PathVariable UUID packId, @PathVariable UUID itemId) {
-        return generatedPackService.getItemDownloadUrl(packId, itemId)
-                .map(url -> ResponseEntity.status(302)
-                        .header(HttpHeaders.LOCATION, URI.create(url).toString())
-                        .<Void>build())
+    public ResponseEntity<ByteArrayResource> downloadItem(@PathVariable UUID packId, @PathVariable UUID itemId) {
+        return generatedPackService.getItemDownload(packId, itemId)
+                .map(this::downloadResponse)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -88,5 +86,13 @@ public class GeneratedPackController {
 
     private User currentUser(Authentication authentication) {
         return userRepository.findByEmail(authentication.getName()).orElseThrow();
+    }
+
+    private ResponseEntity<ByteArrayResource> downloadResponse(DownloadObject download) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(download.contentType()))
+                .contentLength(download.bytes().length)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + download.fileName() + "\"")
+                .body(new ByteArrayResource(download.bytes()));
     }
 }

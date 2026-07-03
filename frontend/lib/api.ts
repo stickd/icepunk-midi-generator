@@ -3,6 +3,23 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 export const TOKEN_KEY = "icepunk_token";
 
+function apiUrl(pathOrUrl: string) {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${API_URL}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
+}
+
+function normalizeGeneratedMidiResponse(response: GenerateMidiResponse): GenerateMidiResponse {
+  return {
+    ...response,
+    downloadUrl: apiUrl(response.downloadUrl),
+    packDownloadUrl: apiUrl(response.packDownloadUrl),
+    items: response.items.map((item) => ({
+      ...item,
+      downloadUrl: apiUrl(item.downloadUrl),
+    })),
+  };
+}
+
 function withTimeout(signal?: AbortSignal): AbortSignal {
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
 
@@ -211,7 +228,7 @@ export async function generateMidiPack(
     throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
   }
 
-  return response.json();
+  return normalizeGeneratedMidiResponse((await response.json()) as GenerateMidiResponse);
 }
 
 export async function analyzeTempMidiFiles(

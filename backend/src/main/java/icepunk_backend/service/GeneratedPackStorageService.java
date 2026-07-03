@@ -6,12 +6,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.exception.ApiCallAttemptTimeoutException;
 import software.amazon.awssdk.core.exception.ApiCallTimeoutException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.nio.file.Path;
@@ -48,6 +51,22 @@ public class GeneratedPackStorageService {
 
     public String publicUrlForObjectKey(String objectKey) {
         return publicUrl + "/" + objectKey;
+    }
+
+    public byte[] readObject(String objectKey) {
+        try {
+            ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .build());
+            return response.asByteArray();
+        } catch (ApiCallTimeoutException | ApiCallAttemptTimeoutException exception) {
+            log.warn("Generated object download timed out for bucket={} key={}: {}", bucket, objectKey, exception.getMessage());
+            throw new StorageTimeoutException("Generated MIDI download timed out. Please try again.");
+        } catch (SdkException exception) {
+            log.error("Generated object download failed for bucket={} key={}: {}", bucket, objectKey, exception.getMessage());
+            throw new StorageException("Generated MIDI download failed. Please try again.");
+        }
     }
 
     public void deleteObjectQuietly(String objectKey) {
