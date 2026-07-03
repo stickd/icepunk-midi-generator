@@ -3,8 +3,10 @@ package icepunk_backend.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.exception.ServerBusyException;
+import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.MidiGenerationService;
-import icepunk_backend.service.ZipStorageService;
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,12 +14,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * End-to-end HTTP flows through the full Spring MVC stack (security filters,
  * controllers, services, JPA on the H2 {@code test} profile). Only the two
  * external side-effects are stubbed: the Python subprocess
- * ({@link MidiGenerationService}) and the S3 upload ({@link ZipStorageService}).
+ * ({@link MidiGenerationService}) and generated object storage.
  *
  * <p>Each test isolates itself two ways: {@code @Transactional} rolls back all
  * database writes, and a unique {@code X-Forwarded-For} IP gives each test its
@@ -49,11 +57,17 @@ class ApiFlowsE2ETest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @MockitoBean
     private MidiGenerationService midiGenerationService;
 
     @MockitoBean
-    private ZipStorageService zipStorageService;
+    private GeneratedPackStorageService generatedPackStorageService;
+
+    @TempDir
+    Path tempDir;
 
     // --- Auth flows -------------------------------------------------------
 
@@ -94,10 +108,55 @@ class ApiFlowsE2ETest {
     void guestGenerateReturnsDownloadUrlAndIncrementsCounter() throws Exception {
         stubSuccessfulGeneration("https://cdn.example/guest-pack.zip");
 
-        mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.10"))
+        MvcResult result = mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.downloadUrl").value("https://cdn.example/guest-pack.zip"))
-                .andExpect(jsonPath("$.totalGenerations").value(1));
+                .andExpect(jsonPath("$.packId").exists())
+                .andExpect(jsonPath("$.items[0].fileName").value("track.mid"))
+                .andExpect(jsonPath("$.totalGenerations").value(1))
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        JsonNode response = objectMapper.readTree(responseBody);
+        String packId = response.get("packId").asText();
+        String itemId = response.get("items").get(0).get("id").asText();
+        String packDownloadUrl = "/generated-packs/" + packId + "/download";
+        String itemDownloadUrl = "/generated-packs/" + packId + "/items/" + itemId + "/download";
+
+        assertFalse(responseBody.contains("generated_midi/"));
+        assertFalse(responseBody.contains("generated_midi_items/"));
+        assertFalse(responseBody.contains("/home/"));
+        assertFalse(responseBody.contains("\\\\"));
+        assertEquals(packDownloadUrl, response.get("downloadUrl").asText());
+        assertEquals(packDownloadUrl, response.get("packDownloadUrl").asText());
+        assertEquals(itemDownloadUrl, response.get("items").get(0).get("downloadUrl").asText());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/generated-packs/" + packId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.packDownloadUrl").value(packDownloadUrl))
+                .andExpect(jsonPath("$.items[0].downloadUrl").value(itemDownloadUrl));
+
+        mockMvc.perform(get(packDownloadUrl))
+                .andExpect(status().isFound())
+                .andExpect(resultMatcher -> assertEquals(
+                        "https://cdn.example/guest-pack.zip",
+                        resultMatcher.getResponse().getHeader("Location")
+                ));
+
+        mockMvc.perform(get(itemDownloadUrl))
+                .andExpect(status().isFound())
+                .andExpect(resultMatcher -> assertEquals(
+                        "https://cdn.example/item.mid",
+                        resultMatcher.getResponse().getHeader("Location")
+                ));
+
+        mockMvc.perform(get("/generated-packs/" + UUID.randomUUID() + "/download"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/generated-packs/" + UUID.randomUUID() + "/items/" + itemId + "/download"))
+                .andExpect(status().isNotFound());
 
         mockMvc.perform(get("/generation-stats"))
                 .andExpect(status().isOk())
@@ -113,7 +172,8 @@ class ApiFlowsE2ETest {
                         .header("Authorization", "Bearer " + token)
                         .header("X-Forwarded-For", "198.51.100.11"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.downloadUrl").value("https://cdn.example/user-pack.zip"))
+                .andExpect(jsonPath("$.downloadUrl", matchesPattern("/generated-packs/.+/download")))
+                .andExpect(jsonPath("$.items[0].fileName").value("track.mid"))
                 .andExpect(jsonPath("$.totalGenerations").value(1));
 
         mockMvc.perform(get("/generation-stats"))
@@ -125,7 +185,7 @@ class ApiFlowsE2ETest {
 
     @Test
     void semaphoreBusyReturns429AndDoesNotIncrementCounter() throws Exception {
-        when(midiGenerationService.generateZip(any(), any()))
+        when(midiGenerationService.generateFiles(any(), any()))
                 .thenThrow(new ServerBusyException("Server is busy. Try again later."));
 
         mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.20"))
@@ -136,7 +196,7 @@ class ApiFlowsE2ETest {
 
     @Test
     void pythonTimeoutReturns500AndDoesNotIncrementCounter() throws Exception {
-        when(midiGenerationService.generateZip(any(), any()))
+        when(midiGenerationService.generateFiles(any(), any()))
                 .thenThrow(new RuntimeException("Python generator timeout"));
 
         mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.21"))
@@ -146,10 +206,12 @@ class ApiFlowsE2ETest {
     }
 
     @Test
-    void s3UploadFailureReturns500AndDoesNotIncrementCounter() throws Exception {
-        when(midiGenerationService.generateZip(any(), any()))
-                .thenAnswer(invocation -> Files.createTempFile("pack", ".zip"));
-        when(zipStorageService.uploadZip(any()))
+    void generatedPackPersistenceFailureReturns500AndDoesNotIncrementCounter() throws Exception {
+        when(midiGenerationService.generateFiles(any(), any()))
+                .thenAnswer(invocation -> createGeneratedFiles());
+        when(generatedPackStorageService.uploadMidi(any()))
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn.example/item.mid"));
+        when(generatedPackStorageService.uploadZip(any()))
                 .thenThrow(new RuntimeException("S3 upload failed"));
 
         mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.22"))
@@ -161,9 +223,23 @@ class ApiFlowsE2ETest {
     // --- Helpers ----------------------------------------------------------
 
     private void stubSuccessfulGeneration(String downloadUrl) throws Exception {
-        when(midiGenerationService.generateZip(any(), any()))
-                .thenAnswer(invocation -> Files.createTempFile("pack", ".zip"));
-        when(zipStorageService.uploadZip(any())).thenReturn(downloadUrl);
+        when(midiGenerationService.generateFiles(any(), any()))
+                .thenAnswer(invocation -> createGeneratedFiles());
+        when(generatedPackStorageService.uploadMidi(any()))
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn.example/item.mid"));
+        when(generatedPackStorageService.uploadZip(any()))
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip", downloadUrl));
+        when(generatedPackStorageService.publicUrlForObjectKey("generated_midi_items/item.mid"))
+                .thenReturn("https://cdn.example/item.mid");
+        when(generatedPackStorageService.publicUrlForObjectKey("generated_midi/pack.zip"))
+                .thenReturn(downloadUrl);
+    }
+
+    private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
+        Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + java.util.UUID.randomUUID()));
+        Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
+        Path zipPath = Files.writeString(tempDir.resolve("pack-" + java.util.UUID.randomUUID() + ".zip"), "zip");
+        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
     }
 
     private void assertCounterUnchanged() throws Exception {

@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 
 import { useMidiGeneration } from "./useMidiGeneration";
-import { generateMidiPack, TOKEN_KEY } from "@/lib/api";
+import { GenerateMidiResponse, generateMidiPack, TOKEN_KEY } from "@/lib/api";
 
 jest.mock("@/lib/api", () => {
   const actual = jest.requireActual("@/lib/api");
@@ -24,30 +24,34 @@ const factoryRequest = {
   type: "MELODY" as const,
 };
 
-describe("useMidiGeneration", () => {
-  let clickSpy: jest.SpyInstance;
-  let clickedAnchor: { href: string; target: string; rel: string } | null;
+function generatedResponse(overrides: Partial<GenerateMidiResponse> = {}): GenerateMidiResponse {
+  return {
+    amount: 10,
+    bpm: 146,
+    createdAt: "2026-07-03T12:00:00Z",
+    downloadUrl: "/generated-packs/pack-1/download",
+    items: [],
+    name: "Test Pack",
+    octaves: 1,
+    packDownloadUrl: "/generated-packs/pack-1/download",
+    packId: "pack-1",
+    pitch: 0,
+    source: "FACTORY",
+    totalGenerations: 5,
+    type: "MELODY",
+    ...overrides,
+  };
+}
 
+describe("useMidiGeneration", () => {
   beforeEach(() => {
     mockGenerateMidiPack.mockReset();
     window.localStorage.clear();
-    clickedAnchor = null;
-    clickSpy = jest
-      .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(function (this: HTMLAnchorElement) {
-        clickedAnchor = { href: this.href, target: this.target, rel: this.rel };
-      });
   });
 
-  afterEach(() => {
-    clickSpy.mockRestore();
-  });
-
-  it("performs a successful generation, triggers the download, and reports the total", async () => {
-    mockGenerateMidiPack.mockResolvedValue({
-      downloadUrl: "https://cdn.example.com/zips/pack.zip",
-      totalGenerations: 5,
-    });
+  it("performs a successful generation, stores the pack response, and reports the total", async () => {
+    const response = generatedResponse();
+    mockGenerateMidiPack.mockResolvedValue(response);
     const onGenerated = jest.fn();
 
     const { result } = renderHook(() => useMidiGeneration(undefined, onGenerated));
@@ -57,26 +61,15 @@ describe("useMidiGeneration", () => {
     });
 
     expect(mockGenerateMidiPack).toHaveBeenCalledWith(factoryRequest, null);
-    expect(clickedAnchor).toEqual({
-      href: "https://cdn.example.com/zips/pack.zip",
-      target: "_blank",
-      rel: "noreferrer",
-    });
     expect(onGenerated).toHaveBeenCalledWith(5);
-    expect(result.current.status).toBe("MIDI pack downloaded.");
-    expect(result.current.lastGeneration).toEqual({
-      downloadUrl: "https://cdn.example.com/zips/pack.zip",
-      totalGenerations: 5,
-    });
+    expect(result.current.status).toBe("MIDI pack generated. Download links are ready.");
+    expect(result.current.lastGeneration).toEqual(response);
     expect(result.current.isGenerating).toBe(false);
   });
 
   it("passes the stored token to generateMidiPack for authenticated users", async () => {
     window.localStorage.setItem(TOKEN_KEY, "jwt-abc");
-    mockGenerateMidiPack.mockResolvedValue({
-      downloadUrl: "https://cdn.example.com/zips/pack.zip",
-      totalGenerations: 1,
-    });
+    mockGenerateMidiPack.mockResolvedValue(generatedResponse({ totalGenerations: 1 }));
 
     const { result } = renderHook(() => useMidiGeneration());
 
@@ -149,10 +142,7 @@ describe("useMidiGeneration", () => {
   });
 
   it("sets isGenerating true while in flight and false once resolved", async () => {
-    let resolveGeneration!: (value: {
-      downloadUrl: string;
-      totalGenerations: number;
-    }) => void;
+    let resolveGeneration!: (value: GenerateMidiResponse) => void;
     mockGenerateMidiPack.mockReturnValue(
       new Promise((resolve) => {
         resolveGeneration = resolve;
@@ -170,7 +160,7 @@ describe("useMidiGeneration", () => {
     expect(result.current.status).toBe("Generating frozen MIDI patterns...");
 
     await act(async () => {
-      resolveGeneration({ downloadUrl: "https://cdn.example.com/zips/pack.zip", totalGenerations: 1 });
+      resolveGeneration(generatedResponse({ totalGenerations: 1 }));
       await generatePromise;
     });
 
@@ -189,16 +179,19 @@ describe("useMidiGeneration", () => {
     expect(result.current.isGenerating).toBe(false);
     expect(result.current.status).toBe("Generation failed. Please try again.");
 
-    mockGenerateMidiPack.mockResolvedValueOnce({
-      downloadUrl: "https://cdn.example.com/zips/retry.zip",
-      totalGenerations: 9,
-    });
+    mockGenerateMidiPack.mockResolvedValueOnce(
+      generatedResponse({
+        downloadUrl: "/generated-packs/pack-1/download",
+        packDownloadUrl: "/generated-packs/pack-1/download",
+        totalGenerations: 9,
+      }),
+    );
 
     await act(async () => {
       await result.current.handleGenerateMidi(factoryRequest);
     });
 
-    expect(result.current.status).toBe("MIDI pack downloaded.");
+    expect(result.current.status).toBe("MIDI pack generated. Download links are ready.");
     expect(result.current.isGenerating).toBe(false);
     expect(mockGenerateMidiPack).toHaveBeenCalledTimes(2);
   });

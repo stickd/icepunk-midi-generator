@@ -80,8 +80,10 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 
 ## API
 
-- `POST /generate` creates a MIDI ZIP and returns `{ "downloadUrl": "...", "totalGenerations": 123 }`. It accepts a JSON body with `source: "FACTORY" | "CUSTOM_UPLOAD"`, pack settings, and an optional `tempAnalysisId`.
+- `POST /generate` creates a generated pack, uploads the whole ZIP plus each generated `.mid` item, persists pack/item metadata, and returns a structured generated pack response. The response keeps `downloadUrl` as a temporary backward-compatible alias for `packDownloadUrl`.
 - `POST /datasets/analyze-temp` accepts 1-8 `.mid/.midi` files, creates a temporary compatible analysis dataset, and returns `{ "tempAnalysisId": "...", "fileCount": 1, "metadata": {...} }`.
+- `GET /generated-packs/{packId}` returns generated pack metadata and generated MIDI items.
+- `GET /generated-packs/{packId}/items/{itemId}/download` validates that the item belongs to the pack and redirects to the storage download URL.
 - `GET /generation-stats` returns `{ "totalGenerations": 123 }`.
 - `POST /auth/register` creates a user account and returns a JWT token.
 - `POST /auth/login` returns a JWT token.
@@ -89,7 +91,7 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 - `GET /uploads/feed?page=0&size=10` returns newest public uploaded projects for the discovery feed.
 - `GET /uploads/projects/{id}/midi` streams a public uploaded MIDI file through the backend for browser piano-roll visualization.
 
-Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation and successful ZIP upload.
+Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation, storage upload, and generated pack persistence.
 
 The sketch feed uses real public uploaded projects only. Empty feeds show an empty state instead of demo cards, and feed MIDI previews are rendered by parsing the backend MIDI preview endpoint in the browser.
 
@@ -120,6 +122,70 @@ GENERATED_ZIP_RETENTION_DAYS=2
 ```
 
 The cleanup task only deletes objects inside `generated_midi/` and never deletes files newer than the configured number of days.
+
+## Generated Packs
+
+Generation output is stored separately from user-uploaded projects:
+
+- `generated_packs`: one row per generation request, including owner if logged in, source type, generation type, controls, ZIP object key, visibility, timestamps, and metadata.
+- `generated_pack_items`: one row per generated `.mid`, linked to its pack with `ON DELETE CASCADE`, including object key, file name, duration, note count, track count, pitch range, BPM, and capped preview-note metadata.
+
+Current `/generate` response shape:
+
+```json
+{
+  "packId": "uuid",
+  "name": "Ice Pack",
+  "source": "FACTORY",
+  "type": "MELODY",
+  "bpm": 146,
+  "pitch": 0,
+  "octaves": 1,
+  "amount": 10,
+  "createdAt": "2026-07-03T12:00:00Z",
+  "packDownloadUrl": "https://files.example/generated_midi/pack.zip",
+  "downloadUrl": "https://files.example/generated_midi/pack.zip",
+  "totalGenerations": 123,
+  "items": [
+    {
+      "id": "uuid",
+      "index": 0,
+      "fileName": "icepunk_001.mid",
+      "downloadUrl": "https://files.example/generated_midi_items/item.mid",
+      "durationSeconds": 8.5,
+      "noteCount": 42,
+      "trackCount": 1,
+      "minPitch": 36,
+      "maxPitch": 84,
+      "avgPitch": 55.2,
+      "bpm": 146,
+      "preview": {
+        "notes": [
+          { "pitch": 60, "start": 0.0, "duration": 0.5, "velocity": 90 }
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}
+```
+
+Architecture:
+
+```text
+POST /generate
+-> selected analysis source (FACTORY or CUSTOM_UPLOAD)
+-> Python generator
+-> local generated MIDI files
+-> MIDI metadata extractor
+-> individual MIDI uploads under generated_midi_items/
+-> ZIP upload under generated_midi/
+-> generated_packs row
+-> generated_pack_items rows
+-> structured response for the frontend modal
+```
+
+Current limitations: generated packs are public download artifacts; credits, private paid downloads, favorites, ratings, social feed ranking, and permanent custom dataset saving are intentionally left for later phases.
 
 ## Production Backend Docker
 

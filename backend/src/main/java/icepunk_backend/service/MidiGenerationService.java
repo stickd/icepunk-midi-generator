@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -70,7 +71,21 @@ public class MidiGenerationService {
         return generateZip(analysisFile, count, bpm);
     }
 
+    public GeneratedFiles generateFiles(Path analysisFile, GenerationRequest request) throws Exception {
+        Integer count = request == null ? null : request.getAmount();
+        Integer bpm = request == null ? null : request.getBpm();
+        return generateFilesInternal(analysisFile, count, bpm);
+    }
+
     private Path generateZip(Path analysisFile, Integer count, Integer bpm) throws Exception {
+        try (GeneratedFiles generatedFiles = generateFilesInternal(analysisFile, count, bpm)) {
+            Path persistentZip = projectDir.resolve("icepunk-midi-pack-" + UUID.randomUUID() + ".zip");
+            Files.move(generatedFiles.zipPath(), persistentZip);
+            return persistentZip;
+        }
+    }
+
+    private GeneratedFiles generateFilesInternal(Path analysisFile, Integer count, Integer bpm) throws Exception {
         if (!semaphore.tryAcquire()) {
             throw new ServerBusyException("Server is busy. Try again later.");
         }
@@ -107,11 +122,22 @@ public class MidiGenerationService {
             Path zipPath = projectDir.resolve("icepunk-midi-pack-" + generationId + ".zip");
             createZipFromDirectory(outputDir, zipPath);
 
-            return zipPath;
-        } finally {
+            List<Path> midiFiles;
+            try (Stream<Path> paths = Files.list(outputDir)) {
+                midiFiles = paths
+                        .filter(path -> Files.isRegularFile(path)
+                                && path.getFileName().toString().toLowerCase().endsWith(".mid"))
+                        .sorted()
+                        .toList();
+            }
+
+            return new GeneratedFiles(outputDir, zipPath, midiFiles);
+        } catch (Exception exception) {
             if (outputDir != null) {
                 deleteDirectoryIfExists(outputDir);
             }
+            throw exception;
+        } finally {
             semaphore.release();
         }
     }
@@ -237,6 +263,22 @@ public class MidiGenerationService {
             paths.sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
+        }
+    }
+
+    public record GeneratedFiles(Path outputDir, Path zipPath, List<Path> midiFiles) implements AutoCloseable {
+        @Override
+        public void close() throws IOException {
+            Files.deleteIfExists(zipPath);
+            if (!Files.exists(outputDir)) {
+                return;
+            }
+
+            try (Stream<Path> paths = Files.walk(outputDir)) {
+                paths.sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            }
         }
     }
 }

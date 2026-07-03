@@ -51,7 +51,15 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                     "id", "owner_id", "title", "midi_object_key", "sample_object_key",
                     "uploaded_at", "visibility", "metadata", "download_count"),
             "project_likes", Set.of(
-                    "user_id", "project_id", "created_at")
+                    "user_id", "project_id", "created_at"),
+            "generated_packs", Set.of(
+                    "id", "owner_id", "guest_session_id", "name", "source_type", "generation_type",
+                    "bpm", "pitch", "octaves", "amount", "visibility", "zip_object_key",
+                    "created_at", "updated_at", "metadata"),
+            "generated_pack_items", Set.of(
+                    "id", "pack_id", "item_index", "file_name", "midi_object_key",
+                    "duration_seconds", "note_count", "track_count", "min_pitch", "max_pitch",
+                    "avg_pitch", "bpm", "metadata", "created_at")
     );
 
     @Autowired
@@ -62,7 +70,7 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
     @Test
     void initialMigrationIsAppliedSuccessfully() {
-        // Exactly the V1 migration ran, and Flyway recorded it as a success.
+        // Exactly the current versioned migrations ran, and Flyway recorded them as successful.
         List<Map<String, Object>> history = jdbcTemplate.queryForList(
                 "SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
 
@@ -100,6 +108,18 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
         assertNotNullable("user_uploaded_projects", "uploaded_at");
         assertNotNullable("user_uploaded_projects", "visibility");
         assertNotNullable("user_uploaded_projects", "metadata");
+        assertNotNullable("generated_packs", "name");
+        assertNotNullable("generated_packs", "source_type");
+        assertNotNullable("generated_packs", "generation_type");
+        assertNotNullable("generated_packs", "amount");
+        assertNotNullable("generated_packs", "visibility");
+        assertNotNullable("generated_packs", "zip_object_key");
+        assertNotNullable("generated_packs", "created_at");
+        assertNotNullable("generated_pack_items", "pack_id");
+        assertNotNullable("generated_pack_items", "item_index");
+        assertNotNullable("generated_pack_items", "file_name");
+        assertNotNullable("generated_pack_items", "midi_object_key");
+        assertNotNullable("generated_pack_items", "created_at");
 
         // Unique constraints that back the entity's @UniqueConstraint / unique = true.
         assertTrue(uniqueColumnExists("users", "email"), "users.email must be unique");
@@ -107,15 +127,31 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
         assertTrue(uniqueColumnExists("guest_usage", "ip_address"), "guest_usage.ip_address must be unique");
         assertTrue(uniqueColumnExists("user_uploaded_projects", "midi_object_key"),
                 "user_uploaded_projects.midi_object_key must be unique");
+        assertTrue(uniqueColumnExists("generated_packs", "zip_object_key"),
+                "generated_packs.zip_object_key must be unique");
+        assertTrue(uniqueColumnExists("generated_pack_items", "midi_object_key"),
+                "generated_pack_items.midi_object_key must be unique");
 
         assertTrue(foreignKeyExists("user_uploaded_projects", "owner_id", "users", "id"),
                 "uploaded projects must reference their owner user");
+        assertTrue(foreignKeyExists("generated_packs", "owner_id", "users", "id"),
+                "generated packs may reference their owner user");
+        assertTrue(foreignKeyExists("generated_pack_items", "pack_id", "generated_packs", "id"),
+                "generated MIDI items must reference their generated pack");
         assertTrue(checkConstraintExists("user_uploaded_projects", "ck_user_uploaded_projects_visibility"),
                 "visibility must be constrained to supported states");
         assertTrue(checkConstraintExists("user_uploaded_projects", "ck_user_uploaded_projects_title_not_blank"),
                 "blank upload titles must be rejected");
         assertTrue(checkConstraintExists("user_uploaded_projects", "ck_user_uploaded_projects_metadata_object"),
                 "metadata must be constrained to a JSON object");
+        assertTrue(checkConstraintExists("generated_packs", "ck_generated_packs_source_type"),
+                "generated pack source type must be constrained to supported states");
+        assertTrue(checkConstraintExists("generated_packs", "ck_generated_packs_generation_type"),
+                "generated pack type must be constrained to supported states");
+        assertTrue(checkConstraintExists("generated_packs", "ck_generated_packs_visibility"),
+                "generated pack visibility must be constrained to supported states");
+        assertTrue(checkConstraintExists("generated_pack_items", "ck_generated_pack_items_index_non_negative"),
+                "generated pack item indexes must be non-negative");
         assertTrue(indexExists("idx_user_uploaded_projects_owner_id"),
                 "owner lookup index must exist");
         assertTrue(indexExists("idx_user_uploaded_projects_owner_uploaded_at"),
@@ -141,6 +177,16 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                 "per-project like count index must exist");
         assertTrue(indexExists("idx_project_likes_user_created_at"),
                 "per-user favorites sort index must exist");
+        assertTrue(indexExists("idx_generated_packs_owner_id"),
+                "generated pack owner lookup index must exist");
+        assertTrue(indexExists("idx_generated_packs_created_at"),
+                "generated pack created-at sort index must exist");
+        assertTrue(indexExists("idx_generated_packs_visibility"),
+                "generated pack visibility index must exist");
+        assertTrue(indexExists("idx_generated_pack_items_pack_id"),
+                "generated item pack lookup index must exist");
+        assertTrue(indexExists("idx_generated_pack_items_pack_index"),
+                "generated item pack/index lookup index must exist");
     }
 
     @Test

@@ -59,9 +59,47 @@ export type GenerationStatsResponse = {
   totalGenerations: number;
 };
 
+export type MidiPreviewNote = {
+  pitch: number;
+  start: number;
+  duration: number;
+  velocity: number;
+};
+
+export type MidiPreview = {
+  notes: MidiPreviewNote[];
+  truncated: boolean;
+};
+
+export type GeneratedMidiItem = {
+  id: string;
+  index: number;
+  fileName: string;
+  downloadUrl: string;
+  durationSeconds: number | null;
+  noteCount: number | null;
+  trackCount: number | null;
+  minPitch: number | null;
+  maxPitch: number | null;
+  avgPitch: number | null;
+  bpm: number | null;
+  preview: MidiPreview;
+};
+
 export type GenerateMidiResponse = {
+  packId: string;
+  name: string;
+  source: GenerationSource;
+  type: GenerationType;
+  bpm: number | null;
+  pitch: number | null;
+  octaves: number | null;
+  amount: number;
+  createdAt: string;
+  packDownloadUrl: string;
   downloadUrl: string;
   totalGenerations: number;
+  items: GeneratedMidiItem[];
 };
 
 export type GenerationSource = "FACTORY" | "CUSTOM_UPLOAD";

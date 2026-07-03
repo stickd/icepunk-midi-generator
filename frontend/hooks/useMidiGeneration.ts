@@ -36,14 +36,8 @@ export function useMidiGeneration(
       const data = await generateMidiPack(request, token);
       setLastGeneration(data);
 
-      const downloadLink = document.createElement("a");
-      downloadLink.href = data.downloadUrl;
-      downloadLink.target = "_blank";
-      downloadLink.rel = "noreferrer";
-      downloadLink.click();
-
       onGenerated?.(data.totalGenerations);
-      setStatus("MIDI pack downloaded.");
+      setStatus("MIDI pack generated. Download links are ready.");
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes("Guest daily generation limit reached")) {
