@@ -8,19 +8,34 @@ const KEYBOARD_WIDTH = 58;
 const TIMELINE_HEIGHT = 24;
 const NOTE_HEIGHT = 12;
 const MIN_CANVAS_WIDTH = 520;
-const MAX_CANVAS_WIDTH = 16000;
+const MAX_CANVAS_WIDTH = 32000;
 
 type BrowserPianoRollProps = {
+  isPlaying: boolean;
   midiFile: File | null;
+  playbackPositionSeconds: number;
 };
 
 function isBlackKey(midi: number) {
   return [1, 3, 6, 8, 10].includes(midi % 12);
 }
 
+function getCanvasMetrics(data: PianoRollData, zoom: number) {
+  const rollWidth = Math.min(
+    MAX_CANVAS_WIDTH - KEYBOARD_WIDTH - 80,
+    Math.max(MIN_CANVAS_WIDTH - KEYBOARD_WIDTH - 80, data.duration * zoom),
+  );
+
+  return {
+    pixelsPerSecond: rollWidth / Math.max(0.1, data.duration),
+    width: KEYBOARD_WIDTH + rollWidth + 80,
+  };
+}
+
 function drawPianoRoll(
   canvas: HTMLCanvasElement,
   data: PianoRollData,
+  playbackPositionSeconds: number,
   zoom: number,
 ) {
   const context = canvas.getContext("2d");
@@ -28,10 +43,7 @@ function drawPianoRoll(
 
   const dpr = window.devicePixelRatio || 1;
   const noteCount = data.maxMidi - data.minMidi + 1;
-  const width = Math.min(
-    MAX_CANVAS_WIDTH,
-    Math.max(MIN_CANVAS_WIDTH, KEYBOARD_WIDTH + data.duration * zoom + 80),
-  );
+  const { pixelsPerSecond, width } = getCanvasMetrics(data, zoom);
   const height = TIMELINE_HEIGHT + noteCount * NOTE_HEIGHT;
 
   canvas.width = Math.floor(width * dpr);
@@ -85,7 +97,7 @@ function drawPianoRoll(
   context.strokeStyle = "rgba(7, 4, 12, 0.32)";
 
   for (let second = 0; second <= Math.ceil(data.duration); second += secondsStep) {
-    const x = KEYBOARD_WIDTH + second * zoom;
+    const x = KEYBOARD_WIDTH + second * pixelsPerSecond;
     context.beginPath();
     context.moveTo(x, TIMELINE_HEIGHT);
     context.lineTo(x, height);
@@ -94,23 +106,50 @@ function drawPianoRoll(
   }
 
   for (const note of data.notes) {
-    const x = KEYBOARD_WIDTH + note.time * zoom;
+    const x = KEYBOARD_WIDTH + note.time * pixelsPerSecond;
     const row = data.maxMidi - note.midi;
     const y = TIMELINE_HEIGHT + row * NOTE_HEIGHT + 2;
-    const noteWidth = Math.max(3, note.duration * zoom);
+    const noteWidth = Math.max(3, note.duration * pixelsPerSecond);
+    const isCurrentNote =
+      playbackPositionSeconds >= note.time &&
+      playbackPositionSeconds <= note.time + note.duration;
 
-    context.fillStyle = `rgba(57, 32, 100, ${0.52 + note.velocity * 0.42})`;
+    context.fillStyle = isCurrentNote
+      ? "#0ed346"
+      : `rgba(57, 32, 100, ${0.52 + note.velocity * 0.42})`;
     context.strokeStyle = "#07040c";
-    context.lineWidth = 1;
+    context.lineWidth = isCurrentNote ? 2 : 1;
     context.beginPath();
     context.roundRect(x, y, noteWidth, NOTE_HEIGHT - 4, 4);
     context.fill();
     context.stroke();
   }
+
+  const playheadX =
+    KEYBOARD_WIDTH + Math.min(data.duration, playbackPositionSeconds) * pixelsPerSecond;
+  context.strokeStyle = "#ffe600";
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(playheadX, 0);
+  context.lineTo(playheadX, height);
+  context.stroke();
+
+  context.fillStyle = "#ffe600";
+  context.beginPath();
+  context.moveTo(playheadX, TIMELINE_HEIGHT);
+  context.lineTo(playheadX - 6, 4);
+  context.lineTo(playheadX + 6, 4);
+  context.closePath();
+  context.fill();
 }
 
-export default function BrowserPianoRoll({ midiFile }: BrowserPianoRollProps) {
+export default function BrowserPianoRoll({
+  isPlaying,
+  midiFile,
+  playbackPositionSeconds,
+}: BrowserPianoRollProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(54);
   const pianoRoll = useMidiPianoRoll(midiFile);
 
@@ -119,8 +158,26 @@ export default function BrowserPianoRoll({ midiFile }: BrowserPianoRollProps) {
 
     if (!canvas || !pianoRoll.data) return;
 
-    drawPianoRoll(canvas, pianoRoll.data, zoom);
-  }, [pianoRoll.data, zoom]);
+    drawPianoRoll(canvas, pianoRoll.data, playbackPositionSeconds, zoom);
+  }, [pianoRoll.data, playbackPositionSeconds, zoom]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (!scroller || !isPlaying || !pianoRoll.data) return;
+
+    const { pixelsPerSecond } = getCanvasMetrics(pianoRoll.data, zoom);
+    const playheadX = KEYBOARD_WIDTH + playbackPositionSeconds * pixelsPerSecond;
+    const leftComfortZone = scroller.scrollLeft + scroller.clientWidth * 0.28;
+    const rightComfortZone = scroller.scrollLeft + scroller.clientWidth * 0.72;
+
+    if (playheadX > rightComfortZone || playheadX < leftComfortZone) {
+      scroller.scrollTo({
+        behavior: "smooth",
+        left: Math.max(0, playheadX - scroller.clientWidth * 0.4),
+      });
+    }
+  }, [isPlaying, pianoRoll.data, playbackPositionSeconds, zoom]);
 
   if (!midiFile) {
     return (
@@ -147,7 +204,7 @@ export default function BrowserPianoRoll({ midiFile }: BrowserPianoRollProps) {
         </label>
       </div>
 
-      <div className={styles.pianoRollScroller}>
+      <div className={styles.pianoRollScroller} ref={scrollerRef}>
         {pianoRoll.status === "ready" ? (
           <canvas
             className={styles.pianoRollCanvas}

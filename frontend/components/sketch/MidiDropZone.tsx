@@ -132,7 +132,11 @@ export default function MidiDropZone({ onStubStatus }: MidiDropZoneProps) {
         {playback.message}
       </p>
 
-      <BrowserPianoRoll midiFile={midiFile} />
+      <BrowserPianoRoll
+        isPlaying={playback.isPlaying}
+        midiFile={midiFile}
+        playbackPositionSeconds={playback.positionSeconds}
+      />
     </div>
   );
 }

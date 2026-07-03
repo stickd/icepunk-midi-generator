@@ -8,6 +8,7 @@ type ToneSampler = InstanceType<ToneModule["Sampler"]>;
 type PlaybackStatus = "idle" | "loading" | "playing" | "paused" | "stopped" | "error";
 
 const SAMPLE_ROOT_NOTE = "C4";
+const POSITION_FRAME_MS = 33;
 
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
@@ -16,11 +17,38 @@ function isAbortError(error: unknown) {
 export function useBrowserMidiPlayback() {
   const [status, setStatus] = useState<PlaybackStatus>("idle");
   const [message, setMessage] = useState("");
+  const [positionSeconds, setPositionSeconds] = useState(0);
   const samplerRef = useRef<ToneSampler | null>(null);
   const sampleUrlRef = useRef<string | null>(null);
   const activeToneRef = useRef<ToneModule | null>(null);
+  const positionFrameRef = useRef<number | null>(null);
+  const lastPositionUpdateRef = useRef(0);
+
+  const stopPositionLoop = useCallback(() => {
+    if (positionFrameRef.current !== null) {
+      cancelAnimationFrame(positionFrameRef.current);
+      positionFrameRef.current = null;
+    }
+  }, []);
+
+  const startPositionLoop = useCallback((Tone: ToneModule) => {
+    stopPositionLoop();
+    lastPositionUpdateRef.current = 0;
+
+    function tick(timestamp: number) {
+      if (timestamp - lastPositionUpdateRef.current >= POSITION_FRAME_MS) {
+        setPositionSeconds(Tone.Transport.seconds);
+        lastPositionUpdateRef.current = timestamp;
+      }
+
+      positionFrameRef.current = requestAnimationFrame(tick);
+    }
+
+    positionFrameRef.current = requestAnimationFrame(tick);
+  }, [stopPositionLoop]);
 
   const cleanup = useCallback(() => {
+    stopPositionLoop();
     const Tone = activeToneRef.current;
 
     if (Tone) {
@@ -36,12 +64,13 @@ export function useBrowserMidiPlayback() {
       URL.revokeObjectURL(sampleUrlRef.current);
       sampleUrlRef.current = null;
     }
-  }, []);
+  }, [stopPositionLoop]);
 
   useEffect(() => cleanup, [cleanup]);
 
   const stop = useCallback(() => {
     cleanup();
+    setPositionSeconds(0);
     setStatus("stopped");
     setMessage("Playback stopped.");
   }, [cleanup]);
@@ -51,17 +80,20 @@ export function useBrowserMidiPlayback() {
 
     if (!Tone || status !== "playing") return;
 
+    stopPositionLoop();
+    setPositionSeconds(Tone.Transport.seconds);
     Tone.Transport.pause();
     samplerRef.current?.releaseAll();
     setStatus("paused");
     setMessage("Playback paused.");
-  }, [status]);
+  }, [status, stopPositionLoop]);
 
   const play = useCallback(
     async (midiFile: File | null, sampleFile: File | null) => {
       if (status === "paused" && activeToneRef.current && samplerRef.current) {
         await activeToneRef.current.start();
         activeToneRef.current.Transport.start();
+        startPositionLoop(activeToneRef.current);
         setStatus("playing");
         setMessage("Playback resumed.");
         return;
@@ -83,6 +115,7 @@ export function useBrowserMidiPlayback() {
         setStatus("loading");
         setMessage("Preparing browser playback...");
         cleanup();
+        setPositionSeconds(0);
 
         const [{ Midi }, Tone] = await Promise.all([
           import("@tonejs/midi") as Promise<{ Midi: MidiClass }>,
@@ -112,6 +145,7 @@ export function useBrowserMidiPlayback() {
             Tone.Transport.stop();
             Tone.Transport.cancel(0);
             Tone.Transport.seconds = 0;
+            setPositionSeconds(0);
 
             for (const note of notes) {
               Tone.Transport.schedule((time) => {
@@ -126,12 +160,14 @@ export function useBrowserMidiPlayback() {
 
             const endTime = Math.max(...notes.map((note) => note.time + note.duration));
             Tone.Transport.scheduleOnce(() => {
+              setPositionSeconds(endTime);
               cleanup();
               setStatus("stopped");
               setMessage("Playback finished.");
             }, endTime + 0.1);
 
             Tone.Transport.start();
+            startPositionLoop(Tone);
             setStatus("playing");
             setMessage(`Playing ${midiFile.name} with ${sampleFile.name}.`);
           },
@@ -149,7 +185,7 @@ export function useBrowserMidiPlayback() {
         setMessage("Browser MIDI playback failed.");
       }
     },
-    [cleanup, status],
+    [cleanup, startPositionLoop, status],
   );
 
   return {
@@ -159,6 +195,7 @@ export function useBrowserMidiPlayback() {
     message,
     pause,
     play,
+    positionSeconds,
     status,
     stop,
   };
