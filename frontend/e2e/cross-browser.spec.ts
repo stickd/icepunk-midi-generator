@@ -9,11 +9,11 @@ test('the landing page renders and the auth modal opens/closes across browsers',
 }) => {
   await page.goto('/')
 
-  await expect(page.getByText('iCEPUNK', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Midis Generator' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Generate MIDI Pack' })).toBeVisible()
-  await expect(page.getByText('MIDI packs generated')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Generate random' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'User Generations Feed' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign up' }).click()
   const modal = authModal(page)

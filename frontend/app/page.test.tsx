@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import Home from "./page";
 import { getGenerationStats } from "@/lib/api";
@@ -20,20 +20,24 @@ describe("Home page", () => {
     mockGetGenerationStats.mockResolvedValue({ totalGenerations: 42 });
   });
 
-  it("renders the workspace shell, generation controls, upload, and feedback sections together", async () => {
+  it("renders the sketch workspace and modal generation flow", async () => {
     const { container } = render(<Home />);
 
     expect(
       await screen.findByRole("heading", {
-        name: "Generate MIDI packs with studio-grade control",
+        name: "Midis Generator",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Generate MIDI Pack" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Upload MIDI Projects" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Help Shape IcePunk" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate random" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "User Generations Feed" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Choose preview sound")).toBeInTheDocument();
 
-    expect(container.querySelector("#generate")).toBeInTheDocument();
-    expect(container.querySelector("#upload")).toBeInTheDocument();
-    expect(container.querySelector("#feedback")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Generate random" }));
+    expect(screen.getByRole("dialog", { name: "Create pack" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next →" }));
+    expect(screen.getByRole("dialog", { name: "Generated Midis" })).toBeInTheDocument();
+
+    expect(container.querySelector("main")).toBeInTheDocument();
   });
 });

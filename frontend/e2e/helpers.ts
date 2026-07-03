@@ -62,3 +62,10 @@ export async function loginViaUi(page: Page, email: string, password: string) {
 
   await page.getByText('You are logged in.').waitFor()
 }
+
+export async function openGeneratedMidiSketchModal(page: Page) {
+  await page.getByRole('button', { name: 'Generate random' }).click()
+  await page.getByRole('dialog', { name: 'Create pack' }).waitFor()
+  await page.getByRole('button', { name: 'Next →' }).click()
+  await page.getByRole('dialog', { name: 'Generated Midis' }).waitFor()
+}

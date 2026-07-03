@@ -10,13 +10,13 @@ test('key controls are visible and usable at a mobile viewport', async ({ page }
 
   const viewportWidth = page.viewportSize()!.width
 
-  const navbar = page.getByText('iCEPUNK', { exact: true })
-  const generateButton = page.getByRole('button', { name: 'Generate MIDI Pack' })
+  const title = page.getByRole('heading', { name: 'Midis Generator' })
+  const generateButton = page.getByRole('button', { name: 'Generate random' })
 
-  await expect(navbar).toBeVisible()
+  await expect(title).toBeVisible()
   await expect(generateButton).toBeVisible()
 
-  for (const locator of [navbar, generateButton]) {
+  for (const locator of [title, generateButton]) {
     const box = await locator.boundingBox()
     expect(box).toBeTruthy()
     expect(box!.x).toBeGreaterThanOrEqual(0)

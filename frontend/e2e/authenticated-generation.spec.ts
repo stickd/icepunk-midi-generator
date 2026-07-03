@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import fs from 'node:fs'
 import type { Browser, Page } from '@playwright/test'
 
-import { loginViaUi, readSeedUser } from './helpers'
+import { loginViaUi, openGeneratedMidiSketchModal, readSeedUser } from './helpers'
 
 // Runs serially and shares a single logged-in page across both tests below,
 // so the suite only needs one /auth/login call (the backend rate-limits
@@ -23,13 +23,14 @@ test.describe.serial('authenticated MIDI generation', () => {
   test('an authenticated user can generate and download a MIDI pack', async () => {
     const startedAt = Date.now()
     const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'Generate MIDI Pack' }).click()
+    await openGeneratedMidiSketchModal(page)
+    await page.getByRole('button', { name: /Download and publish/ }).click()
     const download = await downloadPromise
     const elapsedMs = Date.now() - startedAt
 
     expect(download.suggestedFilename()).toMatch(/\.zip$/)
     await expect(page.getByText('MIDI pack downloaded.')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Generate MIDI Pack' })).toBeEnabled()
+    await expect(page.getByRole('button', { name: /Download and publish/ })).toBeEnabled()
 
     // Client-side fetch aborts generation requests after 15s (lib/api.ts), so
     // a healthy generation should complete well inside that budget.
@@ -38,7 +39,8 @@ test.describe.serial('authenticated MIDI generation', () => {
 
   test('the downloaded ZIP file is a valid, non-empty archive', async () => {
     const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'Generate MIDI Pack' }).click()
+    await openGeneratedMidiSketchModal(page)
+    await page.getByRole('button', { name: /Download and publish/ }).click()
     const download = await downloadPromise
 
     const filePath = await download.path()
