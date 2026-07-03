@@ -13,6 +13,16 @@ jest.mock("@/lib/api", () => {
 });
 
 const mockGenerateMidiPack = generateMidiPack as jest.Mock;
+const factoryRequest = {
+  amount: 10,
+  bpm: 146,
+  octaves: 1,
+  packName: "Test Pack",
+  pitch: 0,
+  publishMode: "PUBLIC" as const,
+  source: "FACTORY" as const,
+  type: "MELODY" as const,
+};
 
 describe("useMidiGeneration", () => {
   let clickSpy: jest.SpyInstance;
@@ -43,10 +53,10 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration(undefined, onGenerated));
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
-    expect(mockGenerateMidiPack).toHaveBeenCalledWith(null);
+    expect(mockGenerateMidiPack).toHaveBeenCalledWith(factoryRequest, null);
     expect(clickedAnchor).toEqual({
       href: "https://cdn.example.com/zips/pack.zip",
       target: "_blank",
@@ -71,10 +81,10 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration());
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
-    expect(mockGenerateMidiPack).toHaveBeenCalledWith("jwt-abc");
+    expect(mockGenerateMidiPack).toHaveBeenCalledWith(factoryRequest, "jwt-abc");
   });
 
   it("shows a friendly message and does not log out on a guest daily-limit error", async () => {
@@ -84,7 +94,7 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration(onUnauthorized));
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(result.current.status).toBe(
@@ -100,7 +110,7 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration());
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(result.current.status).toBe(
@@ -116,7 +126,7 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration(onUnauthorized));
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(window.localStorage.getItem(TOKEN_KEY)).toBeNull();
@@ -130,7 +140,7 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration());
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(result.current.status).toBe(
@@ -153,7 +163,7 @@ describe("useMidiGeneration", () => {
 
     let generatePromise!: Promise<void>;
     act(() => {
-      generatePromise = result.current.handleGenerateMidi();
+      generatePromise = result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(result.current.isGenerating).toBe(true);
@@ -173,7 +183,7 @@ describe("useMidiGeneration", () => {
     const { result } = renderHook(() => useMidiGeneration());
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(result.current.isGenerating).toBe(false);
@@ -185,7 +195,7 @@ describe("useMidiGeneration", () => {
     });
 
     await act(async () => {
-      await result.current.handleGenerateMidi();
+      await result.current.handleGenerateMidi(factoryRequest);
     });
 
     expect(result.current.status).toBe("MIDI pack downloaded.");

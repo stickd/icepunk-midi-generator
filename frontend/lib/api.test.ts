@@ -11,6 +11,17 @@ function mockResponse(overrides: Partial<Response> = {}): Response {
   } as unknown as Response;
 }
 
+const factoryRequest = {
+  amount: 10,
+  bpm: 146,
+  octaves: 1,
+  packName: "Test Pack",
+  pitch: 0,
+  publishMode: "PUBLIC" as const,
+  source: "FACTORY" as const,
+  type: "MELODY" as const,
+};
+
 describe("lib/api", () => {
   let fetchMock: jest.Mock;
 
@@ -69,10 +80,14 @@ describe("lib/api", () => {
         }),
       );
 
-      await generateMidiPack("abc123");
+      await generateMidiPack(factoryRequest, "abc123");
 
       const [, init] = fetchMock.mock.calls[0];
-      expect(init.headers).toEqual({ Authorization: "Bearer abc123" });
+      expect(init.headers).toEqual({
+        "Content-Type": "application/json",
+        Authorization: "Bearer abc123",
+      });
+      expect(init.body).toBe(JSON.stringify(factoryRequest));
     });
 
     it("omits the authorization header when no token is provided", async () => {
@@ -83,10 +98,10 @@ describe("lib/api", () => {
         }),
       );
 
-      await generateMidiPack(null);
+      await generateMidiPack(factoryRequest, null);
 
       const [, init] = fetchMock.mock.calls[0];
-      expect(init.headers).toEqual({});
+      expect(init.headers).toEqual({ "Content-Type": "application/json" });
     });
 
     it("sends JSON content-type and body for loginUser", async () => {
@@ -180,7 +195,7 @@ describe("lib/api", () => {
         }),
       );
 
-      await expect(generateMidiPack("tok")).rejects.toThrow("HTTP_429: Server is busy");
+      await expect(generateMidiPack(factoryRequest, "tok")).rejects.toThrow("HTTP_429: Server is busy");
     });
 
     it("resolves parsed JSON when generateMidiPack succeeds", async () => {
@@ -191,10 +206,35 @@ describe("lib/api", () => {
         }),
       );
 
-      await expect(generateMidiPack("tok")).resolves.toEqual({
+      await expect(generateMidiPack(factoryRequest, "tok")).resolves.toEqual({
         downloadUrl: "d",
         totalGenerations: 3,
       });
+    });
+
+    it("uploads custom MIDI files to the temporary analyzer endpoint", async () => {
+      const { analyzeTempMidiFiles } = await import("./api");
+      const midiFile = new File(["midi"], "loop.mid", { type: "audio/midi" });
+      fetchMock.mockResolvedValue(
+        mockResponse({
+          json: jest.fn().mockResolvedValue({
+            fileCount: 1,
+            metadata: {},
+            tempAnalysisId: "temp-1",
+          }),
+        }),
+      );
+
+      await expect(analyzeTempMidiFiles([midiFile])).resolves.toEqual({
+        fileCount: 1,
+        metadata: {},
+        tempAnalysisId: "temp-1",
+      });
+
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("http://localhost:8081/datasets/analyze-temp");
+      expect(init.method).toBe("POST");
+      expect(init.body).toBeInstanceOf(FormData);
     });
 
     it("loginUser resolves the raw Response without throwing on a non-2xx status", async () => {
@@ -264,7 +304,7 @@ describe("lib/api", () => {
       const { generateMidiPack } = await import("./api");
       fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
 
-      await expect(generateMidiPack("tok")).rejects.toThrow("Failed to fetch");
+      await expect(generateMidiPack(factoryRequest, "tok")).rejects.toThrow("Failed to fetch");
     });
   });
 });

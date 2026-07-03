@@ -9,7 +9,7 @@ import { authUser, getGenerationStats, TOKEN_KEY } from "@/lib/api";
 import CreatePackModal, { CreatePackDraft } from "./CreatePackModal";
 import CreditButton from "./CreditButton";
 import GeneratedMidisModal from "./GeneratedMidisModal";
-import RandomGeneratePanel from "./RandomGeneratePanel";
+import RandomGeneratePanel, { GenerationSourceState } from "./RandomGeneratePanel";
 import RightControlPanel from "./RightControlPanel";
 import SketchButton from "./SketchButton";
 import UserGenerationsFeed from "./UserGenerationsFeed";
@@ -70,6 +70,7 @@ export default function SketchThemeLayout() {
   const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
   const [activeModal, setActiveModal] = useState<"create" | "generated" | null>(null);
   const [packDraft, setPackDraft] = useState<CreatePackDraft>(DEFAULT_DRAFT);
+  const [sourceState, setSourceState] = useState<GenerationSourceState>({ source: "FACTORY" });
   const { isGenerating, lastGeneration, status: generationStatus, handleGenerateMidi } =
     useMidiGeneration(clearToken, setTotalGenerations);
 
@@ -156,7 +157,21 @@ export default function SketchThemeLayout() {
   function openGeneratedMidis(draft: CreatePackDraft) {
     setPackDraft(draft);
     setActiveModal("generated");
-    setStatus(`${draft.amount} ${draft.type} ideas prepared as sketch placeholders.`);
+    setStatus(`${draft.amount} ${draft.type} ideas ready for real ZIP generation.`);
+  }
+
+  function generateCurrentPack() {
+    return handleGenerateMidi({
+      amount: packDraft.amount,
+      bpm: 146,
+      octaves: 1,
+      packName: packDraft.packName,
+      pitch: 0,
+      publishMode: "PUBLIC",
+      source: sourceState.source,
+      tempAnalysisId: sourceState.tempAnalysisId,
+      type: packDraft.type === "drums" ? "DRUMS" : "MELODY",
+    });
   }
 
   return (
@@ -203,6 +218,8 @@ export default function SketchThemeLayout() {
           </div>
 
           <RandomGeneratePanel
+            sourceState={sourceState}
+            onSourceStateChange={setSourceState}
             onOpenCreatePack={() => setActiveModal("create")}
             onStubStatus={setStatus}
             status={generationStatus || status}
@@ -225,7 +242,7 @@ export default function SketchThemeLayout() {
       </div>
 
       <div className={styles.preservedSection}>
-        <UploadProjectSection />
+          <UploadProjectSection />
         <FeedbackSection />
       </div>
 
@@ -239,7 +256,7 @@ export default function SketchThemeLayout() {
           isGenerating={isGenerating}
           lastGeneration={lastGeneration}
           onClose={() => setActiveModal(null)}
-          onGenerateRealPack={handleGenerateMidi}
+          onGenerateRealPack={generateCurrentPack}
           onStubStatus={setStatus}
         />
       ) : null}

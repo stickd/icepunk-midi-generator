@@ -125,7 +125,7 @@ class ApiFlowsE2ETest {
 
     @Test
     void semaphoreBusyReturns429AndDoesNotIncrementCounter() throws Exception {
-        when(midiGenerationService.generateZip())
+        when(midiGenerationService.generateZip(any(), any()))
                 .thenThrow(new ServerBusyException("Server is busy. Try again later."));
 
         mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.20"))
@@ -136,7 +136,7 @@ class ApiFlowsE2ETest {
 
     @Test
     void pythonTimeoutReturns500AndDoesNotIncrementCounter() throws Exception {
-        when(midiGenerationService.generateZip())
+        when(midiGenerationService.generateZip(any(), any()))
                 .thenThrow(new RuntimeException("Python generator timeout"));
 
         mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.21"))
@@ -147,7 +147,7 @@ class ApiFlowsE2ETest {
 
     @Test
     void s3UploadFailureReturns500AndDoesNotIncrementCounter() throws Exception {
-        when(midiGenerationService.generateZip())
+        when(midiGenerationService.generateZip(any(), any()))
                 .thenAnswer(invocation -> Files.createTempFile("pack", ".zip"));
         when(zipStorageService.uploadZip(any()))
                 .thenThrow(new RuntimeException("S3 upload failed"));
@@ -161,7 +161,7 @@ class ApiFlowsE2ETest {
     // --- Helpers ----------------------------------------------------------
 
     private void stubSuccessfulGeneration(String downloadUrl) throws Exception {
-        when(midiGenerationService.generateZip())
+        when(midiGenerationService.generateZip(any(), any()))
                 .thenAnswer(invocation -> Files.createTempFile("pack", ".zip"));
         when(zipStorageService.uploadZip(any())).thenReturn(downloadUrl);
     }

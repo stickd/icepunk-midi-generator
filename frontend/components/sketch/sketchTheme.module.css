@@ -120,6 +120,24 @@
   white-space: nowrap;
 }
 
+.customMidiList {
+  display: grid;
+  gap: 4px;
+  width: min(360px, 100%);
+  margin: 0 auto;
+  padding: 8px 12px;
+  border: var(--sketch-border-thickness) solid var(--sketch-border);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  list-style: none;
+}
+
+.customMidiList li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .playbackControls {
   display: flex;
   flex-wrap: wrap;

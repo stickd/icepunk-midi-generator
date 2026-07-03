@@ -1,6 +1,7 @@
 package icepunk_backend.service;
 
 import icepunk_backend.exception.ServerBusyException;
+import icepunk_backend.dto.GenerationRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -60,6 +61,16 @@ public class MidiGenerationService {
     }
 
     public Path generateZip() throws Exception {
+        return generateZip(null, null, null);
+    }
+
+    public Path generateZip(Path analysisFile, GenerationRequest request) throws Exception {
+        Integer count = request == null ? null : request.getAmount();
+        Integer bpm = request == null ? null : request.getBpm();
+        return generateZip(analysisFile, count, bpm);
+    }
+
+    private Path generateZip(Path analysisFile, Integer count, Integer bpm) throws Exception {
         if (!semaphore.tryAcquire()) {
             throw new ServerBusyException("Server is busy. Try again later.");
         }
@@ -72,7 +83,9 @@ public class MidiGenerationService {
             outputDir = projectDir.resolve("generated_midi").resolve(generationId);
             Files.createDirectories(outputDir);
 
-            Process process = startGeneratorProcess(outputDir);
+            Process process = analysisFile == null && count == null && bpm == null
+                    ? startGeneratorProcess(outputDir)
+                    : startGeneratorProcess(outputDir, analysisFile, count, bpm);
             CompletableFuture<String> processOutput = CompletableFuture.supplyAsync(() -> readProcessOutput(process));
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
 
@@ -110,10 +123,37 @@ public class MidiGenerationService {
      * forking a real OS process.
      */
     Process startGeneratorProcess(Path outputDir) throws IOException {
+        return startGeneratorProcess(outputDir, null, null, null);
+    }
+
+    Process startGeneratorProcess(
+            Path outputDir,
+            Path analysisFile,
+            Integer count,
+            Integer bpm
+    ) throws IOException {
+        java.util.List<String> command = new java.util.ArrayList<>();
+        command.add(pythonPath);
+        command.add(scriptName);
+        command.add(outputDir.toString());
+
+        if (analysisFile != null) {
+            command.add("--analysis-file");
+            command.add(analysisFile.toString());
+        }
+
+        if (count != null) {
+            command.add("--count");
+            command.add(String.valueOf(count));
+        }
+
+        if (bpm != null) {
+            command.add("--bpm");
+            command.add(String.valueOf(bpm));
+        }
+
         ProcessBuilder processBuilder = new ProcessBuilder(
-                pythonPath,
-                scriptName,
-                outputDir.toString()
+                command
         );
 
         processBuilder.directory(projectDir.toFile());

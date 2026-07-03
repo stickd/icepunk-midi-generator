@@ -64,6 +64,28 @@ export type GenerateMidiResponse = {
   totalGenerations: number;
 };
 
+export type GenerationSource = "FACTORY" | "CUSTOM_UPLOAD";
+export type GenerationType = "MELODY" | "DRUMS";
+export type PublishMode = "PUBLIC" | "PRIVATE";
+
+export type GenerateMidiRequest = {
+  source: GenerationSource;
+  amount: number;
+  packName: string;
+  type: GenerationType;
+  bpm: number;
+  pitch: number;
+  octaves: number;
+  tempAnalysisId?: string;
+  publishMode?: PublishMode;
+};
+
+export type TempAnalysisResponse = {
+  tempAnalysisId: string;
+  fileCount: number;
+  metadata: Record<string, unknown>;
+};
+
 export type UploadVisibility = "PRIVATE" | "UNLISTED" | "PUBLIC";
 
 export type UploadProjectInput = {
@@ -127,6 +149,7 @@ export async function getGenerationStats(
 }
 
 export async function generateMidiPack(
+  request: GenerateMidiRequest,
   token?: string | null,
   signal?: AbortSignal,
 ): Promise<GenerateMidiResponse> {
@@ -134,9 +157,35 @@ export async function generateMidiPack(
     method: "POST",
     headers: token
       ? {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         }
-      : {},
+      : {
+          "Content-Type": "application/json",
+        },
+    body: JSON.stringify(request),
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function analyzeTempMidiFiles(
+  files: File[],
+  signal?: AbortSignal,
+): Promise<TempAnalysisResponse> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  const response = await fetch(`${API_URL}/datasets/analyze-temp`, {
+    method: "POST",
+    body: formData,
     signal: withTimeout(signal),
   });
 

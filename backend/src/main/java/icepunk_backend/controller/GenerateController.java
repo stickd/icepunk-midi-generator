@@ -1,14 +1,18 @@
 package icepunk_backend.controller;
 
+import icepunk_backend.dto.GenerationRequest;
+import icepunk_backend.exception.GenerationRequestException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.MidiGenerationService;
+import icepunk_backend.service.TempAnalysisService;
 import icepunk_backend.service.ZipStorageService;
 import icepunk_backend.service.ClientIpService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 
@@ -16,6 +20,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,6 +36,7 @@ public class GenerateController {
     private final UserRepository userRepository;
     private final ZipStorageService zipStorageService;
     private final ClientIpService clientIpService;
+    private final TempAnalysisService tempAnalysisService;
 
     public GenerateController(
             MidiGenerationService midiGenerationService,
@@ -38,7 +44,8 @@ public class GenerateController {
             GenerationStatsService generationStatsService,
             UserRepository userRepository,
             ZipStorageService zipStorageService,
-            ClientIpService clientIpService
+            ClientIpService clientIpService,
+            TempAnalysisService tempAnalysisService
     ) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
@@ -46,10 +53,19 @@ public class GenerateController {
         this.userRepository = userRepository;
         this.zipStorageService = zipStorageService;
         this.clientIpService = clientIpService;
+        this.tempAnalysisService = tempAnalysisService;
+    }
+
+    public ResponseEntity<GenerateResponse> generate(HttpServletRequest request) throws Exception {
+        return generate(request, null);
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<GenerateResponse> generate(HttpServletRequest request) throws Exception {
+    public ResponseEntity<GenerateResponse> generate(
+            HttpServletRequest request,
+            @Valid @RequestBody(required = false) GenerationRequest generationRequest
+    ) throws Exception {
+        GenerationRequest resolvedRequest = normalizeRequest(generationRequest);
 
         Authentication authentication = SecurityContextHolder
                 .getContext()
@@ -78,7 +94,7 @@ public class GenerateController {
         Path zipPath = null;
 
         try {
-            zipPath = midiGenerationService.generateZip();
+            zipPath = midiGenerationService.generateZip(resolveAnalysisFile(resolvedRequest), resolvedRequest);
 
             String downloadUrl = zipStorageService.uploadZip(zipPath);
 
@@ -98,6 +114,38 @@ public class GenerateController {
                 Files.deleteIfExists(zipPath);
             }
         }
+    }
+
+    private GenerationRequest normalizeRequest(GenerationRequest request) {
+        if (request == null) {
+            return new GenerationRequest();
+        }
+
+        if (request.getSource() == null) {
+            request.setSource(GenerationRequest.GenerationSource.FACTORY);
+        }
+
+        if (request.getType() == null) {
+            request.setType(GenerationRequest.GenerationType.MELODY);
+        }
+
+        if (request.getPublishMode() == null) {
+            request.setPublishMode(GenerationRequest.PublishMode.PUBLIC);
+        }
+
+        return request;
+    }
+
+    private Path resolveAnalysisFile(GenerationRequest request) {
+        if (request.getSource() == GenerationRequest.GenerationSource.FACTORY) {
+            return null;
+        }
+
+        if (request.getSource() == GenerationRequest.GenerationSource.CUSTOM_UPLOAD) {
+            return tempAnalysisService.resolveAnalysisFile(request.getTempAnalysisId());
+        }
+
+        throw new GenerationRequestException("Unsupported generation source.");
     }
 
     public static class GenerateResponse {

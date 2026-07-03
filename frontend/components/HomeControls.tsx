@@ -96,6 +96,19 @@ export default function HomeControls() {
   const { isGenerating, status, lastGeneration, setStatus, handleGenerateMidi } =
     useMidiGeneration(clearToken, setTotalGenerations);
 
+  function handleFactoryGenerate() {
+    return handleGenerateMidi({
+      amount: 17,
+      bpm: 140,
+      octaves: 1,
+      packName: "IcePunk Factory Pack",
+      pitch: 0,
+      publishMode: "PUBLIC",
+      source: "FACTORY",
+      type: generationMode === "drums" ? "DRUMS" : "MELODY",
+    });
+  }
+
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
@@ -321,7 +334,7 @@ export default function HomeControls() {
             <div className="flex justify-center">
               <GenerateButton
                 isGenerating={isGenerating}
-                onGenerate={handleGenerateMidi}
+                onGenerate={handleFactoryGenerate}
               />
             </div>
           </div>

@@ -80,7 +80,8 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 
 ## API
 
-- `POST /generate` creates a MIDI ZIP and returns `{ "downloadUrl": "...", "totalGenerations": 123 }`.
+- `POST /generate` creates a MIDI ZIP and returns `{ "downloadUrl": "...", "totalGenerations": 123 }`. It accepts a JSON body with `source: "FACTORY" | "CUSTOM_UPLOAD"`, pack settings, and an optional `tempAnalysisId`.
+- `POST /datasets/analyze-temp` accepts 1-8 `.mid/.midi` files, creates a temporary compatible analysis dataset, and returns `{ "tempAnalysisId": "...", "fileCount": 1, "metadata": {...} }`.
 - `GET /generation-stats` returns `{ "totalGenerations": 123 }`.
 - `POST /auth/register` creates a user account and returns a JWT token.
 - `POST /auth/login` returns a JWT token.
@@ -91,6 +92,22 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation and successful ZIP upload.
 
 The sketch feed uses real public uploaded projects only. Empty feeds show an empty state instead of demo cards, and feed MIDI previews are rendered by parsing the backend MIDI preview endpoint in the browser.
+
+## Generation Sources
+
+The sketch generator supports two real generation sources:
+
+- `FACTORY`: uses the bundled `analysis_output/midi_analysis.json`.
+- `CUSTOM_UPLOAD`: uploads 1-8 MIDI files to `/datasets/analyze-temp`, then sends the returned `tempAnalysisId` to `/generate`.
+
+Temporary custom analysis files are stored under `DATASETS_TEMP_DIR`, defaulting to `temp_analysis` inside the generator project directory.
+
+```env
+ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=icepunk_midi_temp_analyzer.py
+DATASETS_TEMP_DIR=/app/temp_analysis
+DATASETS_TEMP_MIDI_MAX_SIZE_BYTES=2097152
+DATASETS_TEMP_RETENTION_HOURS=24
+```
 
 ## Generated ZIP Retention
 

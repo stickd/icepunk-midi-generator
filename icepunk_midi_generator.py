@@ -170,13 +170,13 @@ def detect_register(pitch: int) -> str:
 # LOAD STYLE DNA
 # =========================
 
-def load_analysis() -> dict[str, Any]:
-    if not ANALYSIS_FILE.exists():
+def load_analysis(analysis_file: Path = ANALYSIS_FILE) -> dict[str, Any]:
+    if not analysis_file.exists():
         raise FileNotFoundError(
-            f"Analysis file not found: {ANALYSIS_FILE}. Run analyzer first."
+            f"Analysis file not found: {analysis_file}. Run analyzer first."
         )
 
-    with ANALYSIS_FILE.open("r", encoding="utf-8") as file:
+    with analysis_file.open("r", encoding="utf-8") as file:
         return cast(dict[str, Any], json.load(file))
 
 
@@ -661,15 +661,22 @@ def clear_output_folder(output_dir: Path) -> None:
 # MAIN
 # =========================
 
-def generate_midi_files(output_dir: Path = DEFAULT_OUTPUT_DIR) -> None:
+def generate_midi_files(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    analysis_file: Path = ANALYSIS_FILE,
+    count: int = GENERATE_COUNT,
+    bpm: float | None = None,
+) -> None:
     clear_output_folder(output_dir)
 
-    analysis = load_analysis()
+    analysis = load_analysis(analysis_file)
     patterns, style = load_patterns(analysis)
+    if bpm is not None:
+        style["bpm"] = bpm
 
     print("MIDI GENERATOR FROM STYLE ANALYSIS")
     print("==================================")
-    print(f"Analysis file:  {ANALYSIS_FILE.resolve()}")
+    print(f"Analysis file:  {analysis_file.resolve()}")
     print(f"Output folder:  {output_dir.resolve()}")
     print()
     print("STYLE DNA")
@@ -681,7 +688,7 @@ def generate_midi_files(output_dir: Path = DEFAULT_OUTPUT_DIR) -> None:
     print(f"BPM: {style['bpm']}")
     print()
 
-    for index in range(1, GENERATE_COUNT + 1):
+    for index in range(1, count + 1):
         notes, key, score = generate_best_notes(patterns, style, attempts=50)
 
         safe_key = key.replace(" ", "_").replace("#", "sharp")
@@ -707,8 +714,32 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUT_DIR,
         help="Directory to write generated .mid files into (default: generated_midi)",
     )
+    parser.add_argument(
+        "--analysis-file",
+        type=Path,
+        default=ANALYSIS_FILE,
+        help="Analysis JSON to use as generation source",
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=GENERATE_COUNT,
+        help="Number of MIDI files to generate",
+    )
+    parser.add_argument(
+        "--bpm",
+        type=float,
+        default=None,
+        help="Override output BPM",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    generate_midi_files(parse_args().output_dir)
+    args = parse_args()
+    generate_midi_files(
+        output_dir=args.output_dir,
+        analysis_file=args.analysis_file,
+        count=max(1, min(args.count, 34)),
+        bpm=args.bpm,
+    )
