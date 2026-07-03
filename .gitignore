@@ -50,3 +50,12 @@ frontend/e2e/.seed-user.json
 
 # Jest coverage
 coverage/
+
+# AI tool scaffolding (local skill/hook caches, not project source)
+.agents/
+.claude/skills/
+.claude/settings.local.json
+.codex/
+.github/hooks/
+.github/skills/
+.impeccable/
