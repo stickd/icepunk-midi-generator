@@ -9,14 +9,16 @@ import {
 } from "react";
 import { cn } from "@/lib/ui";
 
-type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
+type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "featured";
 
 const toneClasses: Record<Tone, string> = {
-  neutral: "border-white/10 bg-white/[0.055] text-ice-primary",
-  accent: "border-[color:var(--ice-border-accent)] bg-[color:var(--ice-accent-soft)] text-ice-primary",
-  success: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
-  warning: "border-amber-300/20 bg-amber-300/10 text-amber-100",
-  danger: "border-rose-300/20 bg-rose-300/10 text-rose-100",
+  neutral: "border-white/[0.08] bg-white/[0.05] text-white/[0.55]",
+  accent:
+    "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)]",
+  success: "border-emerald-300/25 bg-emerald-400/10 text-emerald-200/90",
+  warning: "border-amber-300/25 bg-amber-400/10 text-amber-200/90",
+  danger: "border-rose-300/25 bg-rose-400/10 text-rose-200/90",
+  featured: "border-amber-300/30 bg-amber-400/[0.08] text-amber-200/95",
 };
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -24,17 +26,17 @@ type ButtonSize = "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "border-white/75 bg-gradient-to-b from-white via-cyan-50 to-sky-200 text-slate-950 shadow-[0_14px_44px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,1),inset_0_-8px_18px_rgba(14,165,233,0.14)] hover:shadow-[0_18px_58px_rgba(125,211,252,0.28),inset_0_1px_0_rgba(255,255,255,1),inset_0_-10px_22px_rgba(14,165,233,0.18)]",
+    "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)] hover:bg-[rgba(100,120,255,0.25)]",
   secondary:
-    "border-white/10 bg-white/[0.055] text-ice-primary shadow-[0_12px_36px_rgba(0,0,0,0.18)] hover:border-cyan-200/35 hover:bg-white/[0.08]",
+    "border-white/[0.09] bg-white/[0.04] text-white/[0.55] hover:bg-white/[0.08] hover:text-white/[0.8]",
   ghost:
-    "border-transparent bg-transparent text-ice-secondary hover:bg-white/[0.055] hover:text-ice-primary",
+    "border-transparent bg-transparent text-ice-secondary hover:bg-white/[0.05] hover:text-ice-primary",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-11 px-4 text-sm",
-  lg: "h-14 px-6 text-base",
+  sm: "h-8 px-4 text-xs",
+  md: "h-10 px-5 text-sm",
+  lg: "h-12 px-7 text-sm",
 };
 
 export function Button({
@@ -49,10 +51,12 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full border font-bold outline-none transition duration-200",
-        "focus-visible:ring-2 focus-visible:ring-cyan-200/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090B]",
-        "disabled:pointer-events-none disabled:opacity-55",
-        "hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
+        "relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border font-medium tracking-[0.02em] outline-none",
+        "transition-[background-color,color,border-color,transform] duration-150 ease-out",
+        "focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080f]",
+        "disabled:pointer-events-none disabled:opacity-50",
+        "active:scale-[0.97]",
+        "after:pointer-events-none after:absolute after:inset-x-[10%] after:top-0 after:h-[40%] after:rounded-full after:bg-gradient-to-b after:from-white/[0.09] after:to-transparent",
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -68,7 +72,7 @@ export function IconButton({
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <Button
-      className={cn("h-10 w-10 rounded-full px-0", className)}
+      className={cn("h-9 w-9 rounded-full px-0", className)}
       variant="secondary"
       {...props}
     />
@@ -85,8 +89,8 @@ export function Panel({
   return (
     <div
       className={cn(
-        "rounded-[var(--ice-radius-panel)] border border-white/10 bg-[color:var(--ice-surface-glass)] text-ice-primary backdrop-blur-2xl",
-        elevated && "shadow-[var(--ice-shadow-panel)]",
+        "rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary backdrop-blur-xl",
+        elevated && "shadow-[var(--ice-shadow-card)]",
         className,
       )}
       {...props}
@@ -98,7 +102,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-[var(--ice-radius-card)] border border-white/10 bg-[color:var(--ice-surface-elevated)] text-ice-primary shadow-[var(--ice-shadow-card)]",
+        "rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary shadow-[var(--ice-shadow-card)] backdrop-blur-xl",
         className,
       )}
       {...props}
@@ -112,14 +116,14 @@ export function FieldLabel({
 }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("grid gap-2 text-sm font-semibold text-ice-primary/90", className)}
+      className={cn("grid gap-2 text-sm font-medium text-ice-primary/90", className)}
       {...props}
     />
   );
 }
 
 const controlClasses =
-  "h-11 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-sm font-medium text-ice-primary outline-none transition placeholder:text-ice-muted focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm text-ice-primary outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-white/[0.35] focus:border-[color:var(--ice-accent-border)] focus:ring-2 focus:ring-[rgba(100,120,255,0.15)] disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(controlClasses, className)} {...props} />;
@@ -158,7 +162,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em]",
         toneClasses[tone],
         className,
       )}
@@ -175,11 +179,8 @@ export function CreditBadge({
   className?: string;
 }) {
   return (
-    <Badge
-      className={cn("gap-2 border-emerald-300/25 bg-emerald-400/12 text-emerald-100", className)}
-      tone="success"
-    >
-      <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.8)]" />
+    <Badge className={cn("gap-2 normal-case tracking-normal text-xs", className)} tone="success">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
       {credits} credits
     </Badge>
   );
@@ -199,7 +200,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-full border border-white/10 bg-white/[0.045] p-1",
+        "inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] p-1",
         className,
       )}
       role="tablist"
@@ -212,11 +213,12 @@ export function SegmentedControl<T extends string>({
           aria-selected={option.value === value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "rounded-full px-4 py-2 text-sm font-bold text-ice-muted outline-none transition",
-            "focus-visible:ring-2 focus-visible:ring-cyan-200/45",
+            "rounded-full px-4 py-1.5 text-sm font-medium text-ice-muted outline-none",
+            "transition-[background-color,color] duration-150 ease-out",
+            "focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]",
             option.value === value
-              ? "bg-white text-slate-950 shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
-              : "hover:bg-white/[0.055] hover:text-ice-primary",
+              ? "bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)]"
+              : "hover:bg-white/[0.05] hover:text-ice-primary",
           )}
         >
           {option.label}
@@ -251,7 +253,7 @@ export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>
   return (
     <div
       className={cn(
-        "animate-pulse rounded-2xl bg-[linear-gradient(90deg,rgba(255,255,255,0.055),rgba(255,255,255,0.11),rgba(255,255,255,0.055))]",
+        "animate-pulse rounded-xl bg-[linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.09),rgba(255,255,255,0.04))]",
         className,
       )}
       {...props}
@@ -273,8 +275,8 @@ export function EmptyState({
   return (
     <Panel className={cn("grid place-items-center px-6 py-10 text-center", className)}>
       <div className="max-w-sm">
-        <div className="mx-auto mb-5 h-10 w-10 rounded-2xl border border-cyan-100/20 bg-cyan-100/10" />
-        <h3 className="text-lg font-black text-ice-primary">{title}</h3>
+        <div className="mx-auto mb-5 h-10 w-10 rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)]" />
+        <h3 className="text-lg font-semibold text-ice-primary">{title}</h3>
         {description && (
           <p className="mt-2 text-sm leading-6 text-ice-secondary">{description}</p>
         )}

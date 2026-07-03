@@ -1,19 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import FeedbackSection from "@/components/FeedbackSection";
 import UploadProjectSection from "@/components/UploadProjectSection";
+import { Badge, Button } from "@/components/ui";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
-import { authUser, getGenerationStats, TOKEN_KEY } from "@/lib/api";
+import { authUser, getGenerationStats, getMe, MeResponse, TOKEN_KEY } from "@/lib/api";
 import CreatePackModal, { CreatePackDraft } from "./CreatePackModal";
-import CreditButton from "./CreditButton";
+import CreatePackPanel from "./CreatePackPanel";
 import GeneratedMidisModal from "./GeneratedMidisModal";
-import RandomGeneratePanel from "./RandomGeneratePanel";
-import RightControlPanel from "./RightControlPanel";
-import SketchButton from "./SketchButton";
 import UserGenerationsFeed from "./UserGenerationsFeed";
-import styles from "./sketchTheme.module.css";
 
 const DEFAULT_DRAFT: CreatePackDraft = {
   amount: 17,
@@ -68,6 +66,7 @@ export default function SketchThemeLayout() {
     getServerTokenSnapshot,
   );
   const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
+  const [meFetch, setMeFetch] = useState<{ token: string; me: MeResponse } | null>(null);
   const [activeModal, setActiveModal] = useState<"create" | "generated" | null>(null);
   const [packDraft, setPackDraft] = useState<CreatePackDraft>(DEFAULT_DRAFT);
   const { isGenerating, lastGeneration, status: generationStatus, handleGenerateMidi } =
@@ -82,6 +81,20 @@ export default function SketchThemeLayout() {
 
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const controller = new AbortController();
+
+    getMe(token, controller.signal)
+      .then((data) => setMeFetch({ token, me: data }))
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [token]);
+
+  const me = token && meFetch?.token === token ? meFetch.me : null;
 
   function saveToken(value: string) {
     localStorage.setItem(TOKEN_KEY, value);
@@ -160,71 +173,91 @@ export default function SketchThemeLayout() {
   }
 
   return (
-    <main className={styles.shell}>
-      <div className={styles.pageFrame}>
-        <section className={styles.topPanel} aria-label="Generator landing">
-          <h1 className={styles.title}>Midis Generator</h1>
-          <div className={styles.userArea}>
-            <CreditButton ariaLabel={token ? "7 daily generations" : "3 daily generations"}>
-              {token ? "7/day" : "3/day"}
-            </CreditButton>
-            <span>{token ? "user1" : "guest"}</span>
-            <span className={styles.userIcon} aria-label="User profile placeholder" role="img" />
-            <div className={styles.authButtons}>
+    <main className="min-h-screen bg-[color:var(--background)]">
+      <div className="mx-auto w-full max-w-6xl px-6 py-6">
+        <nav className="flex flex-wrap items-center justify-between gap-4">
+          <Link
+            className="text-sm font-semibold tracking-[0.02em] text-ice-primary outline-none transition-colors duration-150 ease-out hover:text-white focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
+            href="/"
+          >
+            iCEPUNK
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge tone="accent">{token ? "7/day" : "3/day"}</Badge>
+
+            {me ? (
+              <Link
+                className="flex items-center gap-2 text-sm font-medium text-ice-primary outline-none transition-colors duration-150 ease-out hover:text-white focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
+                href={`/u/${encodeURIComponent(me.username)}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="grid h-7 w-7 place-items-center rounded-full bg-[color:var(--ice-accent-soft)] text-xs font-semibold text-[color:var(--ice-accent-text)] ring-1 ring-[color:var(--ice-accent-border)]"
+                >
+                  {me.username.slice(0, 1).toUpperCase()}
+                </span>
+                {me.username}
+              </Link>
+            ) : (
+              <span className="text-sm text-ice-muted">guest</span>
+            )}
+
+            <div className="flex flex-wrap gap-2">
               {token ? (
-                <SketchButton size="small" type="button" onClick={handleLogout}>
+                <Button onClick={handleLogout} size="sm" type="button">
                   Logout
-                </SketchButton>
+                </Button>
               ) : (
                 <>
-                  <SketchButton
-                    size="small"
-                    type="button"
+                  <Button
                     onClick={() => {
                       setAuthStatus("");
                       setAuthMode("login");
                     }}
+                    size="sm"
+                    type="button"
                   >
                     Login
-                  </SketchButton>
-                  <SketchButton
-                    size="small"
-                    type="button"
+                  </Button>
+                  <Button
                     onClick={() => {
                       setAuthStatus("");
                       setAuthMode("register");
                     }}
+                    size="sm"
+                    type="button"
+                    variant="primary"
                   >
                     Sign up
-                  </SketchButton>
+                  </Button>
                 </>
               )}
             </div>
           </div>
+        </nav>
 
-          <RandomGeneratePanel
+        <h1 className="mt-8 text-2xl font-medium tracking-[-0.01em] text-ice-primary">
+          Midis Generator
+        </h1>
+
+        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <UserGenerationsFeed onStubStatus={setStatus} />
+          <CreatePackPanel
             onOpenCreatePack={() => setActiveModal("create")}
             onStubStatus={setStatus}
             status={generationStatus || status}
           />
-
-          <p className={styles.tips}>
-            Tips: use the pack modal to preview this rough product direction. Real downloads still
-            use the existing generator.
-          </p>
-        </section>
-
-        <div className={styles.mainGrid}>
-          <UserGenerationsFeed onStubStatus={setStatus} />
-          <RightControlPanel onStubStatus={setStatus} />
         </div>
 
         {totalGenerations !== null ? (
-          <p className={styles.statusLine}>Generated {totalGenerations.toLocaleString()} MIDI packs</p>
+          <p className="mt-8 text-center text-sm text-ice-muted">
+            Generated {totalGenerations.toLocaleString()} MIDI packs
+          </p>
         ) : null}
       </div>
 
-      <div className={styles.preservedSection}>
+      <div className="mt-4">
         <UploadProjectSection />
         <FeedbackSection />
       </div>

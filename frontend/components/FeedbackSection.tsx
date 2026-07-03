@@ -87,37 +87,33 @@ export default function FeedbackSection() {
   }
 
   return (
-    <section id="feedback" className="relative z-10 px-6 pb-24 pt-4 md:pt-8">
+    <section className="relative z-10 px-6 pb-24 pt-4 md:pt-8" id="feedback">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
-        <div
-          className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-white/[0.035] p-8 shadow-[0_24px_90px_rgba(8,47,73,0.28)] backdrop-blur-xl md:p-10"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(56,189,248,0.035),rgba(255,255,255,0.02))]" />
-
+        <div className="relative overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] p-8 shadow-[var(--ice-shadow-card)] backdrop-blur-xl md:p-10">
           <div className="relative">
-            <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-100/10 text-cyan-100 shadow-[0_0_42px_rgba(125,211,252,0.18)]">
-              <span className="h-2.5 w-2.5 rounded-full bg-cyan-100 shadow-[0_0_24px_rgba(125,211,252,0.95)]" />
+            <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)]">
+              <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--ice-accent)]" />
             </div>
 
             <Badge className="mb-4" tone="accent">Community signal</Badge>
 
-            <h2 className="max-w-xl bg-gradient-to-b from-white via-cyan-50 to-cyan-300 bg-clip-text text-4xl font-extrabold leading-tight text-transparent md:text-5xl">
+            <h2 className="max-w-xl text-4xl font-medium leading-tight tracking-[-0.01em] text-ice-primary md:text-5xl">
               Help Shape IcePunk
             </h2>
 
-            <p className="mt-6 max-w-lg text-base leading-7 text-slate-300/80">
+            <p className="mt-6 max-w-lg text-base leading-7 text-ice-secondary">
               Have an idea, found a bug, or want a new feature? Send your
               feedback and help improve the generator.
             </p>
 
-            <div className="mt-10 grid gap-3 text-sm text-slate-300/75 sm:grid-cols-2 lg:grid-cols-1">
-              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 backdrop-blur">
+            <div className="mt-10 grid gap-3 text-sm text-ice-secondary sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-xl border border-white/[0.08] bg-black/10 px-4 py-3">
                 Product ideas
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 backdrop-blur">
+              <div className="rounded-xl border border-white/[0.08] bg-black/10 px-4 py-3">
                 Generator bugs
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 backdrop-blur">
+              <div className="rounded-xl border border-white/[0.08] bg-black/10 px-4 py-3">
                 Sound requests
               </div>
             </div>
@@ -125,53 +121,47 @@ export default function FeedbackSection() {
         </div>
 
         <form
-          onSubmit={handleSubmit}
-          className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-slate-950/45 p-5 shadow-[0_24px_90px_rgba(8,47,73,0.26)] backdrop-blur-2xl md:p-7"
           aria-live="polite"
+          className="relative overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] p-5 shadow-[var(--ice-shadow-card)] backdrop-blur-2xl md:p-7"
+          onSubmit={handleSubmit}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(125,211,252,0.12),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(2,6,23,0.06))]" />
-
           <div className="relative grid gap-4">
             <input
-              type="text"
-              name="company"
-              tabIndex={-1}
               autoComplete="off"
               className="hidden"
+              name="company"
+              tabIndex={-1}
+              type="text"
             />
 
             <div className="grid gap-4 md:grid-cols-2">
               <FieldLabel>
-                Name <span className="font-normal text-slate-400">(optional)</span>
+                Name <span className="font-normal text-ice-muted">(optional)</span>
                 <Input
-                  name="name"
                   autoComplete="name"
-                  placeholder="Your name"
                   className="h-14 text-base"
+                  name="name"
+                  placeholder="Your name"
                 />
               </FieldLabel>
 
               <FieldLabel>
-                Email <span className="font-normal text-slate-400">(optional)</span>
+                Email <span className="font-normal text-ice-muted">(optional)</span>
                 <Input
-                  name="email"
-                  type="email"
                   autoComplete="email"
-                  placeholder="you@example.com"
                   className="h-14 text-base"
+                  name="email"
+                  placeholder="you@example.com"
+                  type="email"
                 />
               </FieldLabel>
             </div>
 
             <FieldLabel>
               Feedback Type
-              <Select
-                name="feedbackType"
-                defaultValue="Idea"
-                className="h-14 text-base"
-              >
+              <Select className="h-14 text-base" defaultValue="Idea" name="feedbackType">
                 {feedbackTypes.map((type) => (
-                  <option key={type} value={type} className="bg-slate-950">
+                  <option key={type} value={type}>
                     {type}
                   </option>
                 ))}
@@ -181,36 +171,36 @@ export default function FeedbackSection() {
             <FieldLabel>
               Message
               <Textarea
-                name="message"
-                required
-                minLength={10}
-                rows={6}
-                placeholder="Tell us what should be colder, sharper, or easier to use."
                 className="min-h-40 text-base leading-7"
+                minLength={10}
+                name="message"
+                placeholder="Tell us what should be colder, sharper, or easier to use."
+                required
+                rows={6}
               />
             </FieldLabel>
 
             <Button
-              type="submit"
+              className="mt-2 w-full"
               disabled={loading}
-              variant="primary"
               size="lg"
-              className="mt-2 w-full overflow-hidden font-black"
+              type="submit"
+              variant="primary"
             >
               {loading && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/25 border-t-slate-950" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
               )}
               {loading ? "Sending..." : "Send Feedback"}
             </Button>
 
             {status === "success" && (
-              <p className="rounded-2xl border border-cyan-200/20 bg-cyan-200/10 px-4 py-3 text-center text-sm font-semibold text-cyan-50">
+              <p className="rounded-xl border border-[color:var(--ice-success)]/25 bg-[color:var(--ice-success)]/10 px-4 py-3 text-center text-sm font-medium text-[color:var(--ice-success)]">
                 Thanks for helping improve IcePunk.
               </p>
             )}
 
             {status === "error" && (
-              <p className="rounded-2xl border border-rose-200/20 bg-rose-300/10 px-4 py-3 text-center text-sm font-semibold text-rose-100">
+              <p className="rounded-xl border border-[color:var(--ice-error)]/25 bg-[color:var(--ice-error)]/10 px-4 py-3 text-center text-sm font-medium text-[color:var(--ice-error)]">
                 {errorMessage || "Feedback could not be sent right now."}
               </p>
             )}

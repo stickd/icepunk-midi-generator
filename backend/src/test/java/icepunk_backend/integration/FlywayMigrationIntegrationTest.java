@@ -34,18 +34,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
+    /** Every versioned migration currently in db/migration. */
+    private static final int EXPECTED_MIGRATION_COUNT = 3;
+
     /** Expected table → column set, mirroring the JPA entities. */
     private static final Map<String, Set<String>> EXPECTED_COLUMNS = Map.of(
             "users", Set.of(
                     "id", "username", "email", "password_hash",
-                    "generations_today", "generation_date"),
+                    "generations_today", "generation_date",
+                    "bio", "credits", "verified", "created_at"),
             "generation_stats", Set.of(
                     "id", "total_generations"),
             "guest_usage", Set.of(
                     "id", "ip_address", "generations_today", "generation_date"),
             "user_uploaded_projects", Set.of(
                     "id", "owner_id", "title", "midi_object_key", "sample_object_key",
-                    "uploaded_at", "visibility", "metadata")
+                    "uploaded_at", "visibility", "metadata", "download_count"),
+            "project_likes", Set.of(
+                    "user_id", "project_id", "created_at")
     );
 
     @Autowired
@@ -60,11 +66,12 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
         List<Map<String, Object>> history = jdbcTemplate.queryForList(
                 "SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
 
-        assertEquals(2, history.size(), "exactly two versioned migrations are expected");
-        assertEquals("1", history.get(0).get("version"));
-        assertEquals("2", history.get(1).get("version"));
-        assertEquals(Boolean.TRUE, history.get(0).get("success"), "the migration must be marked successful");
-        assertEquals(Boolean.TRUE, history.get(1).get("success"), "the migration must be marked successful");
+        assertEquals(EXPECTED_MIGRATION_COUNT, history.size(),
+                "exactly " + EXPECTED_MIGRATION_COUNT + " versioned migrations are expected");
+        for (int i = 0; i < EXPECTED_MIGRATION_COUNT; i++) {
+            assertEquals(String.valueOf(i + 1), history.get(i).get("version"));
+            assertEquals(Boolean.TRUE, history.get(i).get("success"), "the migration must be marked successful");
+        }
 
         // The tables the migration creates are all present.
         for (String table : EXPECTED_COLUMNS.keySet()) {
@@ -117,6 +124,23 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                 "visibility discovery index must exist");
         assertTrue(indexExists("idx_user_uploaded_projects_metadata"),
                 "metadata GIN index must exist");
+
+        // V3 — profiles & engagement.
+        assertNotNullable("users", "credits");
+        assertNotNullable("users", "verified");
+        assertNotNullable("users", "created_at");
+        assertNotNullable("user_uploaded_projects", "download_count");
+        assertNotNullable("project_likes", "user_id");
+        assertNotNullable("project_likes", "project_id");
+        assertNotNullable("project_likes", "created_at");
+        assertTrue(foreignKeyExists("project_likes", "user_id", "users", "id"),
+                "likes must reference the liking user");
+        assertTrue(foreignKeyExists("project_likes", "project_id", "user_uploaded_projects", "id"),
+                "likes must reference the liked project");
+        assertTrue(indexExists("idx_project_likes_project_id"),
+                "per-project like count index must exist");
+        assertTrue(indexExists("idx_project_likes_user_created_at"),
+                "per-user favorites sort index must exist");
     }
 
     @Test
@@ -135,7 +159,7 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             flyway.clean();
 
             MigrateResult first = flyway.migrate();
-            assertEquals(2, first.migrationsExecuted, "both migrations should apply once");
+            assertEquals(EXPECTED_MIGRATION_COUNT, first.migrationsExecuted, "all migrations should apply once");
 
             // "rollback": clean tears the schema back down to empty.
             flyway.clean();
@@ -147,7 +171,8 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             // Re-migrating from empty rebuilds the identical schema — forward-only,
             // deterministic, no manual intervention.
             MigrateResult second = flyway.migrate();
-            assertEquals(2, second.migrationsExecuted, "the migrations must replay cleanly from scratch");
+            assertEquals(EXPECTED_MIGRATION_COUNT, second.migrationsExecuted,
+                    "the migrations must replay cleanly from scratch");
         } finally {
             flyway.clean();
         }

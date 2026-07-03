@@ -79,11 +79,12 @@ public class UserUploadService {
         );
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Optional<PublicMidiFile> getPublicMidiFile(Long projectId) {
         return projectRepository.findByIdAndVisibility(projectId, UploadVisibility.PUBLIC)
                 .map(project -> {
                     byte[] bytes = storageService.readObjectBytes(project.getMidiObjectKey());
+                    projectRepository.incrementDownloadCount(project.getId());
                     return new PublicMidiFile(
                             bytes,
                             metadataString(project.getMetadata(), "midiContentType", "audio/midi"),

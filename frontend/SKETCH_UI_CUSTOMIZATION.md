@@ -1,25 +1,27 @@
-# Sketch UI Customization Guide
+# Home Page Customization Guide
 
-This document explains how to safely customize the experimental sketch-style IcePunk MIDI Generator UI without breaking real authentication, generation, download, feedback, or test flows.
+This document explains how to safely customize the IcePunk MIDI Generator home page (still
+living under `components/sketch/*` for historical reasons) without breaking real authentication,
+generation, download, feedback, or test flows.
 
 ## Purpose
 
-The sketch UI is an experimental frontend direction based on a rough hand-drawn product concept:
+The home page used to be a rough Comic Sans/purple wireframe (the "sketch" direction) built to
+prove out real functionality before the visual design was finalized. That wireframe look has
+been fully retired — the live page now renders through the dark-glass periwinkle design system
+described in `DESIGN.md` (see `protocol.md` §16 for the full migration writeup). The `sketch/`
+folder name is a legacy label for "the home page's component tree," not a description of its
+current look.
 
-- purple background
-- thick black rough borders
-- playful handwritten/blocky layout
-- green credit buttons
-- modal-based generation flow
-- backend-connected public upload feed
-
-It is currently a visual/product experiment layered on top of existing production logic. The core auth, generation, upload, public feed, feedback, download, and MIDI visualization paths are real. Controls without backend support must be shown as disabled or clearly marked as coming soon.
+The core auth, generation, upload, public feed, feedback, download, and MIDI visualization paths
+are real. Controls without backend support must be shown as disabled or clearly marked as coming
+soon.
 
 ## Main Files
 
 ### `app/page.tsx`
 
-The landing page now renders the sketch UI through:
+The landing page renders the home page through:
 
 ```tsx
 <SketchThemeLayout />
@@ -29,71 +31,65 @@ Keep this file small. Put layout and interaction changes inside `components/sket
 
 ### `components/sketch/*`
 
-Main sketch UI components:
+Main home page components:
 
-- `SketchThemeLayout.tsx`  
-  Top-level sketch page composition. Owns modal state, auth state, generation stats, and connects real generation/download.
+- `SketchThemeLayout.tsx`
+  Top-level page composition: nav, page heading, the feed + create-pack grid, the preserved
+  upload/feedback sections, and modal/auth state. Owns modal state, auth state, generation
+  stats, and connects real generation/download.
 
-- `sketchTheme.module.css`  
-  Central style/theme file for the sketch UI. Change colors, fonts, borders, spacing, modal sizing, and responsive rules here first.
+- `CreatePackPanel.tsx`
+  Compact sidebar card (glass `aside`, sticky on desktop) combining the dropzone/"Generate
+  random" flow with the preview-sound/BPM/pitch/octave controls, so the feed is visible
+  immediately below the nav instead of behind a full-width hero.
 
-- `RandomGeneratePanel.tsx`  
-  Dropzone, OR text, Generate random button, source selector, status line.
+- `MidiDropZone.tsx`
+  Local MIDI + one-shot staging area for browser playback and piano-roll visualization. This
+  does not upload to the backend; backend upload lives in `UploadProjectSection`.
 
-- `MidiDropZone.tsx`  
-  Local MIDI + one-shot staging area for browser playback and piano-roll visualization. This does not upload to the backend; backend upload lives in `UploadProjectSection`.
+- `UserGenerationsFeed.tsx` and `GenerationFeedCard.tsx`
+  Backend-connected public upload feed. Loads real `PUBLIC` uploaded projects from
+  `/uploads/feed`, renders title/user/date/metadata, and uses backend MIDI preview URLs for
+  piano-roll visualization.
 
-- `UserGenerationsFeed.tsx` and `GenerationFeedCard.tsx`  
-  Backend-connected public upload feed. Loads real `PUBLIC` uploaded projects from `/uploads/feed`, renders title/user/date/metadata, and uses backend MIDI preview URLs for piano-roll visualization.
-
-- `RightControlPanel.tsx`  
-  Preview sound selector, one-shot upload placeholder, BPM/pitch/octave controls, mini ad placeholder.
-
-- `CreatePackModal.tsx`  
+- `CreatePackModal.tsx`
   First modal in the flow. Lets user pick MIDI amount, pack name, and Melody/Drums type.
 
-- `GeneratedMidisModal.tsx`  
-  Second modal in the flow. Connects real download buttons to existing generation logic. Generated preview/rating controls are disabled because the backend currently returns a ZIP URL, not individual MIDI preview URLs.
+- `GeneratedMidisModal.tsx`
+  Second modal in the flow. Connects real download buttons to existing generation logic.
+  Generated preview/rating controls are disabled because the backend currently returns a ZIP
+  URL, not individual MIDI preview URLs.
 
-- `BrowserPianoRoll.tsx`  
-  Real canvas MIDI piano-roll renderer for local `File` sources and backend MIDI preview URLs.
+- `BrowserPianoRoll.tsx`
+  The one canvas MIDI piano-roll renderer used everywhere in the app (drop zone with live
+  playhead, feed thumbnails, profile pack cards): fit-to-width/height rendering, zebra pitch
+  rows, register-colored notes (bass teal / melody periwinkle / high violet), and a hover
+  tooltip — no keyboard sidebar or zoom controls, matching the `DESIGN.md` piano-roll spec.
 
-- `CreditButton.tsx`  
-  Green credit pill with yellow coin.
-
-- `SketchButton.tsx`  
-  Shared rough button component.
-
-- `feedTypes.ts`  
+- `feedTypes.ts`
   Shared frontend type for mapped public feed entries.
 
 ### Tests
 
 Connected tests include:
 
-- `app/page.test.tsx`  
-  Verifies the sketch landing page and modal flow.
+- `app/page.test.tsx`
+  Verifies the home page and modal flow by role/text, not CSS classes.
 
-- `e2e/helpers.ts`  
-  Contains `openGeneratedMidiSketchModal(page)` for the new modal generation flow.
+- `e2e/helpers.ts`
+  Contains `openGeneratedMidiSketchModal(page)` for the modal generation flow.
 
-- `e2e/guest-generation.spec.ts`  
-  Uses the sketch modal flow before triggering real download.
+- `e2e/guest-generation.spec.ts`
+  Uses the modal flow before triggering real download.
 
-- `e2e/authenticated-generation.spec.ts`  
-  Uses the sketch modal flow before triggering real download.
+- `e2e/authenticated-generation.spec.ts`
+  Uses the modal flow before triggering real download.
 
-- `e2e/mobile.spec.ts`  
-  Checks mobile visibility and basic layout bounds for the new sketch page.
+- `e2e/mobile.spec.ts`
+  Checks mobile visibility and basic layout bounds for the home page.
 
-- `e2e/cross-browser.spec.ts`  
-  Checks the sketch landing page renders across browsers.
-
-### Jest CSS Mock
-
-`__mocks__/styleMock.ts` is mapped in `jest.config.ts` so Jest can import CSS modules.
-
-Do not remove this unless the Jest config is changed to support CSS modules another way.
+- `e2e/cross-browser.spec.ts`
+  Checks the home page renders across browsers.
 
 ## Real Functionality
 
@@ -109,7 +105,8 @@ These parts are connected to existing production behavior:
 - Backend MIDI preview URL construction through `getPublicUploadMidiPreviewUrl`
 - Authenticated MIDI project upload through `UploadProjectSection` and `uploadMidiProject`
 - Browser MIDI playback for locally selected MIDI + one-shot sample through `useBrowserMidiPlayback`
-- Uploaded MIDI piano roll visualization and playback sync through `BrowserPianoRoll`, `useMidiPianoRoll`, and `useBrowserMidiPlayback`
+- Uploaded MIDI piano roll visualization and playback sync through `BrowserPianoRoll`,
+  `useMidiPianoRoll`, and `useBrowserMidiPlayback`
 - Feedback form through the existing `FeedbackSection`
 
 When customizing visuals, preserve these connections.
@@ -118,110 +115,52 @@ When customizing visuals, preserve these connections.
 
 These are frontend-only placeholders and should not call fake backend APIs:
 
-- Backend-connected MIDI conditioning from the sketch dropzone
+- Backend-connected MIDI conditioning from the drop zone
 - Feed playback
-- Feed favorite/save/comment actions
+- Feed favorite/save/comment actions (the real like/unlike API is only wired up on `/u/[username]`
+  pack cards so far — the home feed's heart icon is still a stub)
 - Source selector: site / database / favorites
 - Right panel one-shot upload
 - MIDI rating thumbs up/down
 - Carousel behavior
 - Credit purchase/private-pack logic
 
-If adding new placeholder behavior, keep it isolated inside sketch components and add a short `TODO` comment explaining what backend/API feature is missing.
+If adding new placeholder behavior, keep it isolated inside these components and add a short
+`TODO` comment explaining what backend/API feature is missing.
 
-The public feed should not use hardcoded demo cards. If the backend returns no public uploads, show the empty state. If the backend request fails, show the error/retry state.
+The public feed should not use hardcoded demo cards. If the backend returns no public uploads,
+show the empty state. If the backend request fails, show the error/retry state.
 
-The generated modal should not pretend to show individual generated MIDI notes until the backend returns individual MIDI preview URLs or a frontend ZIP MIDI extraction flow is implemented.
+The generated modal should not pretend to show individual generated MIDI notes until the backend
+returns individual MIDI preview URLs or a frontend ZIP MIDI extraction flow is implemented.
 
 ## How To Customize Styles Safely
 
-### Colors
+Styling now flows through Tailwind + the shared `components/ui/primitives.tsx` design system and
+the CSS custom properties in `app/globals.css` (`--ice-*` tokens) — there is no more
+`sketchTheme.module.css`. Prefer changing an `--ice-*` token in `globals.css` (or a variant in
+`primitives.tsx`) over hardcoding a new color/radius/shadow inline, so every screen stays in sync
+with `DESIGN.md`.
 
-Change sketch colors in `components/sketch/sketchTheme.module.css` under `.shell`:
+### Colors, radii, shadows
 
-```css
---sketch-bg
---sketch-panel
---sketch-panel-soft
---sketch-border
---sketch-accent-green
---sketch-accent-yellow
---sketch-note
---sketch-text
---sketch-muted
-```
+Change tokens in `app/globals.css`: `--ice-bg`, `--ice-surface`, `--ice-accent` (+ `-soft`/`-border`/
+`-text`), `--ice-text-*`, `--ice-radius-card`, `--ice-radius-control`, `--ice-shadow-card`.
 
-Prefer changing these variables instead of hardcoding colors inside individual components.
+### Piano-roll track colors
 
-### Fonts
+`BASS_CEILING`/`MELODY_CEILING` and the `noteColor()` function at the top of
+`BrowserPianoRoll.tsx` control the bass/melody/pad register colors. Keep these in sync with the
+matching constants documented in `DESIGN.md`.
 
-Change the sketch font through:
+### Layout
 
-```css
---sketch-font
-```
+Important layout points: `SketchThemeLayout.tsx`'s `lg:grid-cols-[minmax(0,1fr)_320px]` grid
+(feed column + sticky `CreatePackPanel` sidebar), and the modal wrappers in `CreatePackModal.tsx`
+/ `GeneratedMidisModal.tsx` (`max-w-lg` / `max-w-3xl` glass dialogs).
 
-Keep fallback fonts in the stack. If adding a web font, make sure it does not slow down first render or cause layout shifts.
-
-### Borders
-
-Change rough border thickness through:
-
-```css
---sketch-border-thickness
-```
-
-Shared border styling lives in classes such as:
-
-- `.pageFrame`
-- `.topPanel`
-- `.dropZone`
-- `.button`
-- `.modal`
-- `.pianoRollLarge`
-
-Avoid editing every component one by one unless the change is intentionally local.
-
-### Spacing And Layout
-
-Global sketch spacing is controlled by:
-
-```css
---sketch-space
-```
-
-Important layout classes:
-
-- `.topPanel`
-- `.heroCenter`
-- `.mainGrid`
-- `.feedSection`
-- `.feedCard`
-- `.rightPanel`
-- `.generatedGrid`
-- `.packSection`
-
-After changing layout, check desktop and mobile widths.
-
-### Modal Styles
-
-Modal sizing is controlled by:
-
-```css
---sketch-modal-width
---sketch-large-modal-width
-```
-
-Important modal classes:
-
-- `.modalBackdrop`
-- `.modal`
-- `.largeModal`
-- `.modalHeader`
-- `.modalBody`
-- `.packSection`
-
-Keep modals usable on mobile. The current CSS switches modal layout to one column under `900px`.
+After changing layout, check desktop and mobile widths — the grid collapses to one column below
+Tailwind's `lg` breakpoint.
 
 ### Selectors And Tests
 
@@ -232,27 +171,20 @@ Prefer stable accessible selectors:
 - heading names
 - labels
 
-If adding `data-testid`, keep names stable and descriptive. Do not rename existing selectors unless tests are updated in the same change.
+If adding `data-testid`, keep names stable and descriptive. Do not rename existing selectors
+unless tests are updated in the same change.
 
 ## Do Not Break
 
 - Do not remove existing auth/generation hooks.
 - Do not replace real generation/download with fake logic.
-- Do not remove `AuthModal`, `authUser`, `useMidiGeneration`, or `getGenerationStats` wiring unless replacing them with equivalent real behavior.
+- Do not remove `AuthModal`, `authUser`, `useMidiGeneration`, or `getGenerationStats` wiring
+  unless replacing them with equivalent real behavior.
 - Do not rename test IDs or accessible labels unless tests are updated.
 - Do not break mobile responsiveness.
 - Do not hardcode secrets.
 - Do not hardcode production backend URLs. Use existing env-based API configuration.
 - Do not make placeholder actions look like confirmed backend functionality.
-
-## Recommended Next Refactor
-
-- Centralize design tokens further if the sketch direction becomes permanent.
-- Consider a typed theme object or shared CSS variables if multiple pages adopt this style.
-- Split any page section that grows too large into smaller sketch components.
-- Keep placeholder actions isolated so they can be replaced by real API calls later.
-- Add focused component tests if placeholder sections become interactive.
-- Consider a dedicated visual smoke test for the sketch modal flow.
 
 ## Verification Checklist
 
@@ -273,7 +205,7 @@ npm run dev
 
 Then check:
 
-- `/` renders the purple sketch UI
+- `/` renders the dark periwinkle-glass home page with the feed visible immediately under the nav
 - Generate random opens Create pack modal
 - Next opens Generated Midis modal
 - Login / Sign up modal still opens
@@ -283,7 +215,7 @@ Then check:
 
 ## Notes For Claude
 
-When modifying this UI:
+When modifying this page:
 
 - Prefer small style-only changes first.
 - Preserve real business logic and existing hooks.
@@ -291,4 +223,5 @@ When modifying this UI:
 - Update tests only when selectors or behavior intentionally change.
 - Do not invent backend calls for stubbed features.
 - Keep changes buildable after every phase.
-- If changing visual mood, start in `sketchTheme.module.css` variables before editing component markup.
+- If changing visual mood, start with the `--ice-*` tokens in `app/globals.css` before editing
+  component markup.
