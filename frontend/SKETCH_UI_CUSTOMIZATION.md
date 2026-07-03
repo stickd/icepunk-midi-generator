@@ -105,6 +105,7 @@ These parts are connected to existing production behavior:
 - Logout by clearing `icepunk_token`
 - Generation stats through `getGenerationStats`
 - Real MIDI generation/download through `useMidiGeneration`
+- Browser MIDI playback for locally selected MIDI + one-shot sample through `useBrowserMidiPlayback`
 - Feedback form through the existing `FeedbackSection`
 
 When customizing visuals, preserve these connections.
@@ -113,7 +114,7 @@ When customizing visuals, preserve these connections.
 
 These are frontend-only placeholders and should not call fake backend APIs:
 
-- MIDI upload/dropzone reference input
+- Backend-connected MIDI conditioning from the sketch dropzone
 - Feed playback
 - Feed favorite/download actions
 - Source selector: site / database / favorites
@@ -123,6 +124,8 @@ These are frontend-only placeholders and should not call fake backend APIs:
 - Credit purchase/private-pack logic
 
 If adding new placeholder behavior, keep it isolated inside sketch components and add a short `TODO` comment explaining what backend/API feature is missing.
+
+The sketch dropzone now has real local browser playback for user-selected files, but it still does not upload those files to the backend or use them to condition generated packs.
 
 ## How To Customize Styles Safely
 
@@ -283,4 +286,3 @@ When modifying this UI:
 - Do not invent backend calls for stubbed features.
 - Keep changes buildable after every phase.
 - If changing visual mood, start in `sketchTheme.module.css` variables before editing component markup.
-
