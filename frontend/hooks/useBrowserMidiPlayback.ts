@@ -5,6 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type ToneModule = typeof import("tone");
 type MidiClass = typeof import("@tonejs/midi").Midi;
 type PlaybackStatus = "idle" | "loading" | "playing" | "paused" | "stopped" | "error";
+export type SoundEnginePreset = "Soft Piano" | "Bell" | "Pluck" | "Pad" | "808";
+export type SoundEngineSettings = {
+  preset: SoundEnginePreset;
+  sampleFile: File | null;
+  volume: number;
+};
 
 type Instrument = {
   triggerAttackRelease: (note: string, duration: number, time: number, velocity: number) => void;
@@ -44,6 +50,37 @@ function midiSourceLabel(source: Exclude<BrowserMidiSource, null>) {
     return segment ? decodeURIComponent(segment) : "this MIDI";
   } catch {
     return "this MIDI";
+  }
+}
+
+function synthSettingsForPreset(preset: SoundEnginePreset) {
+  switch (preset) {
+    case "Bell":
+      return {
+        envelope: { attack: 0.003, decay: 0.9, release: 1.2, sustain: 0.05 },
+        oscillator: { type: "sine" },
+      };
+    case "Pluck":
+      return {
+        envelope: { attack: 0.002, decay: 0.18, release: 0.35, sustain: 0.02 },
+        oscillator: { type: "triangle" },
+      };
+    case "Pad":
+      return {
+        envelope: { attack: 0.35, decay: 0.8, release: 1.8, sustain: 0.55 },
+        oscillator: { type: "sawtooth" },
+      };
+    case "808":
+      return {
+        envelope: { attack: 0.01, decay: 0.5, release: 0.9, sustain: 0.25 },
+        oscillator: { type: "sine" },
+      };
+    case "Soft Piano":
+    default:
+      return {
+        envelope: { attack: 0.005, decay: 0.3, release: 1, sustain: 0.2 },
+        oscillator: { type: "triangle" },
+      };
   }
 }
 
@@ -122,7 +159,7 @@ export function useBrowserMidiPlayback() {
   }, [status, stopPositionLoop]);
 
   const play = useCallback(
-    async (midiSource: BrowserMidiSource, sampleFile: File | null = null) => {
+    async (midiSource: BrowserMidiSource, soundEngine: SoundEngineSettings | null = null) => {
       if (status === "paused" && activeToneRef.current && instrumentRef.current) {
         await activeToneRef.current.start();
         activeToneRef.current.Transport.start();
@@ -162,6 +199,7 @@ export function useBrowserMidiPlayback() {
           return;
         }
 
+        const volume = Math.min(1, Math.max(0, soundEngine?.volume ?? 1));
         const startPlayback = (instrument: Instrument, sourceLabel: string) => {
           instrumentRef.current = instrument;
           Tone.Transport.stop();
@@ -171,7 +209,7 @@ export function useBrowserMidiPlayback() {
 
           for (const note of notes) {
             Tone.Transport.schedule((time) => {
-              instrument.triggerAttackRelease(note.name, note.duration, time, note.velocity);
+              instrument.triggerAttackRelease(note.name, note.duration, time, note.velocity * volume);
             }, note.time);
           }
 
@@ -188,6 +226,8 @@ export function useBrowserMidiPlayback() {
           setStatus("playing");
           setMessage(`Playing ${sourceName}${sourceLabel}.`);
         };
+
+        const sampleFile = soundEngine?.sampleFile ?? null;
 
         if (sampleFile) {
           const sampleUrl = URL.createObjectURL(sampleFile);
@@ -207,12 +247,10 @@ export function useBrowserMidiPlayback() {
             },
           }).toDestination();
         } else {
-          const synth = new Tone.PolySynth(Tone.Synth, {
-            envelope: { attack: 0.005, decay: 0.3, release: 1, sustain: 0.2 },
-            oscillator: { type: "triangle" },
-          }).toDestination();
+          const preset = soundEngine?.preset ?? "Soft Piano";
+          const synth = new Tone.PolySynth(Tone.Synth, synthSettingsForPreset(preset)).toDestination();
 
-          startPlayback(synth, " with the stock preview sound");
+          startPlayback(synth, ` with ${preset}`);
         }
       } catch {
         cleanup();

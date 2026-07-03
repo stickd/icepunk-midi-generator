@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react";
 import { Badge, Button } from "@/components/ui";
 import { GeneratedMidiItem, GenerateMidiResponse } from "@/lib/api";
-import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 
 type GeneratedPackVisualizerProps = {
   generation: GenerateMidiResponse;
   onNewGeneration: () => void;
+  soundEngine: SoundEngineSettings;
 };
 
 function formatDuration(value: number | null) {
@@ -19,6 +20,7 @@ function formatDuration(value: number | null) {
 export default function GeneratedPackVisualizer({
   generation,
   onNewGeneration,
+  soundEngine,
 }: GeneratedPackVisualizerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const playback = useBrowserMidiPlayback();
@@ -44,7 +46,7 @@ export default function GeneratedPackVisualizer({
       return;
     }
 
-    playback.play(activeItem.downloadUrl, null);
+    playback.play(activeItem.downloadUrl, soundEngine);
   }
 
   return (

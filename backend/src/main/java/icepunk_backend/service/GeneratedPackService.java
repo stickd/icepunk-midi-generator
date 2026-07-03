@@ -5,6 +5,8 @@ import icepunk_backend.dto.GeneratedPackResponse;
 import icepunk_backend.dto.GenerationRequest;
 import icepunk_backend.dto.MidiPreviewNoteResponse;
 import icepunk_backend.dto.MidiPreviewResponse;
+import icepunk_backend.dto.PublicGeneratedPackFeedItem;
+import icepunk_backend.dto.PublicGeneratedPackFeedResponse;
 import icepunk_backend.exception.ForbiddenActionException;
 import icepunk_backend.exception.ResourceNotFoundException;
 import icepunk_backend.model.GeneratedPack;
@@ -15,6 +17,8 @@ import icepunk_backend.model.GenerationSourceType;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.GeneratedPackItemRepository;
 import icepunk_backend.repository.GeneratedPackRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,6 +38,7 @@ import java.util.UUID;
 public class GeneratedPackService {
 
     private static final Logger log = LoggerFactory.getLogger(GeneratedPackService.class);
+    private static final int MAX_FEED_PAGE_SIZE = 50;
 
     private final GeneratedPackRepository packRepository;
     private final GeneratedPackItemRepository itemRepository;
@@ -118,6 +123,25 @@ public class GeneratedPackService {
     public Optional<GeneratedPackResponse> getPack(UUID packId) {
         return packRepository.findWithItemsById(packId)
                 .map(pack -> toPackResponse(pack, sortedItems(pack.getItems())));
+    }
+
+    @Transactional(readOnly = true)
+    public PublicGeneratedPackFeedResponse getPublicFeed(int page, int size) {
+        int normalizedPage = Math.max(0, page);
+        int normalizedSize = Math.max(1, Math.min(size, MAX_FEED_PAGE_SIZE));
+        Page<GeneratedPack> packs = packRepository.findByVisibilityOrderByCreatedAtDesc(
+                GeneratedPackVisibility.PUBLIC,
+                PageRequest.of(normalizedPage, normalizedSize)
+        );
+
+        return new PublicGeneratedPackFeedResponse(
+                packs.getContent().stream().map(this::toPublicFeedItem).toList(),
+                packs.getNumber(),
+                packs.getSize(),
+                packs.getTotalElements(),
+                packs.getTotalPages(),
+                packs.hasNext()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -258,6 +282,27 @@ public class GeneratedPackService {
                 pack.getCreatedAt(),
                 packDownloadPath(pack.getId()),
                 items.stream().map(this::toItemResponse).toList()
+        );
+    }
+
+    private PublicGeneratedPackFeedItem toPublicFeedItem(GeneratedPack pack) {
+        User owner = pack.getOwner();
+
+        return new PublicGeneratedPackFeedItem(
+                pack.getId(),
+                pack.getName(),
+                owner == null ? null : owner.getId(),
+                owner == null ? "guest" : owner.getUsername(),
+                pack.getSourceType().name(),
+                pack.getGenerationType().name(),
+                pack.getBpm(),
+                pack.getPitch(),
+                pack.getOctaves(),
+                pack.getAmount(),
+                pack.getCreatedAt(),
+                pack.getVisibility(),
+                packDownloadPath(pack.getId()),
+                sortedItems(pack.getItems()).stream().map(this::toItemResponse).toList()
         );
     }
 

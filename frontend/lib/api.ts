@@ -119,6 +119,34 @@ export type GenerateMidiResponse = {
   items: GeneratedMidiItem[];
 };
 
+export type GeneratedPackVisibility = "PUBLIC" | "PRIVATE";
+
+export type PublicGeneratedPackFeedItem = {
+  packId: string;
+  name: string;
+  ownerId: number | null;
+  ownerUsername: string;
+  source: GenerationSource;
+  type: GenerationType;
+  bpm: number | null;
+  pitch: number | null;
+  octaves: number | null;
+  amount: number;
+  createdAt: string;
+  visibility: GeneratedPackVisibility;
+  packDownloadUrl: string;
+  items: GeneratedMidiItem[];
+};
+
+export type PublicGeneratedPackFeedResponse = {
+  items: PublicGeneratedPackFeedItem[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+};
+
 export type GenerationSource = "FACTORY" | "CUSTOM_UPLOAD";
 export type GenerationType = "MELODY" | "DRUMS";
 export type PublishMode = "PUBLIC" | "PRIVATE";
@@ -275,6 +303,42 @@ export async function getPublicUploadFeed(
   }
 
   return response.json();
+}
+
+export async function getPublicGeneratedPackFeed(
+  page = 0,
+  size = 10,
+  signal?: AbortSignal,
+): Promise<PublicGeneratedPackFeedResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  const response = await fetch(`${API_URL}/generated-packs/feed?${params.toString()}`, {
+    method: "GET",
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  const feed = (await response.json()) as PublicGeneratedPackFeedResponse;
+
+  return {
+    ...feed,
+    items: feed.items.map((item) => ({
+      ...item,
+      packDownloadUrl: apiUrl(item.packDownloadUrl),
+      items: item.items.map((midiItem) => ({
+        ...midiItem,
+        downloadUrl: apiUrl(midiItem.downloadUrl),
+      })),
+    })),
+  };
 }
 
 export function getPublicUploadMidiPreviewUrl(projectId: number) {

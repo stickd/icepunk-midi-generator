@@ -1,6 +1,9 @@
 package icepunk_backend.repository;
 
 import icepunk_backend.model.GeneratedPack;
+import icepunk_backend.model.GeneratedPackVisibility;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,4 +21,10 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
     @EntityGraph(attributePaths = {"items", "owner"})
     @Query("select pack from GeneratedPack pack where pack.owner.id = :ownerId order by pack.createdAt desc")
     List<GeneratedPack> findWithItemsByOwnerId(Long ownerId);
+
+    @EntityGraph(attributePaths = "owner")
+    Page<GeneratedPack> findByVisibilityOrderByCreatedAtDesc(
+            GeneratedPackVisibility visibility,
+            Pageable pageable
+    );
 }

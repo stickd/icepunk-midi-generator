@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  getPublicUploadFeed,
-  getPublicUploadMidiPreviewUrl,
-  PublicUploadFeedItem,
-} from "@/lib/api";
+import { getPublicGeneratedPackFeed } from "@/lib/api";
+import type { PublicGeneratedPackFeedItem } from "@/lib/api";
 import { FEED_REFRESH_EVENT } from "@/lib/events";
 import { Button, EmptyState } from "@/components/ui";
 import GenerationFeedCard from "./GenerationFeedCard";
@@ -36,31 +33,26 @@ function formatRelativeTime(uploadedAt: string) {
   return `${Math.round(diffHours / 24)} d`;
 }
 
-function metadataString(metadata: Record<string, unknown>, key: string, fallback: string) {
-  const value = metadata[key];
-
-  return typeof value === "string" && value.trim() ? value : fallback;
-}
-
-function toGeneration(item: PublicUploadFeedItem): FeedGeneration {
+function toGeneration(item: PublicGeneratedPackFeedItem): FeedGeneration {
   return {
     downloads: 0,
-    id: String(item.id),
-    midiCount: 1,
-    midiPreviewUrl: getPublicUploadMidiPreviewUrl(item.id),
-    midiUrl: item.midiUrl,
-    sampleUrl: item.sampleUrl,
-    sound: metadataString(item.metadata, "sampleOriginalFilename", "Uploaded one-shot"),
-    timeAgo: formatRelativeTime(item.uploadedAt),
-    title: item.title,
-    uploadedAt: item.uploadedAt,
+    id: item.packId,
+    items: item.items,
+    midiCount: item.items.length,
+    packDownloadUrl: item.packDownloadUrl,
+    sound: item.type === "DRUMS" ? "Generated drums" : "Generated melody",
+    timeAgo: formatRelativeTime(item.createdAt),
+    title: item.name,
+    type: item.type,
+    bpm: item.bpm,
+    uploadedAt: item.createdAt,
     username: item.ownerUsername,
   };
 }
 
 export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFeedProps) {
   const [page, setPage] = useState(0);
-  const [feedItems, setFeedItems] = useState<PublicUploadFeedItem[]>([]);
+  const [feedItems, setFeedItems] = useState<PublicGeneratedPackFeedItem[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [feedMessage, setFeedMessage] = useState("");
@@ -70,23 +62,30 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
   useEffect(() => {
     const controller = new AbortController();
 
-    getPublicUploadFeed(page, FEED_PAGE_SIZE, controller.signal)
+    getPublicGeneratedPackFeed(page, FEED_PAGE_SIZE, controller.signal)
       .then((feed) => {
+        setHasError(false);
         setFeedItems(feed.items);
         setHasNext(feed.hasNext);
         setFeedMessage(
           feed.totalItems > 0
-            ? `${feed.totalItems.toLocaleString()} public uploads discovered.`
-            : "No public uploads yet. Upload a public MIDI project to start the feed.",
+            ? `${feed.totalItems.toLocaleString()} public generated packs discovered.`
+            : "No public generated packs yet. Generate a public MIDI pack to start the feed.",
         );
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error?.name === "AbortError") return;
+
         setFeedItems([]);
         setHasNext(false);
         setHasError(true);
         setFeedMessage("Public feed is unavailable. Try again in a moment.");
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
 
     return () => controller.abort();
   }, [page, refreshKey]);
@@ -121,7 +120,7 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
             setHasError(false);
             setPage(0);
             setRefreshKey((currentKey) => currentKey + 1);
-            onStubStatus("Public feed refreshed and sorted by newest uploads.");
+            onStubStatus("Public generated feed refreshed and sorted by newest packs.");
           }}
           type="button"
         >
@@ -130,7 +129,7 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
       </div>
 
       <p className="text-sm text-ice-secondary" role="status">
-        {isLoading ? "Loading public MIDI feed..." : feedMessage}
+        {isLoading ? "Loading public generated MIDI feed..." : feedMessage}
       </p>
 
       {hasError ? (
@@ -155,8 +154,8 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
 
       {!hasError && !isLoading && generations.length === 0 ? (
         <EmptyState
-          description="Upload a project with PUBLIC visibility and it will appear here."
-          title="No public MIDI uploads yet."
+          description="Generate a public MIDI pack and it will appear here."
+          title="No public generated MIDI packs yet."
         />
       ) : null}
 

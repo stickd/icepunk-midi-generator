@@ -9,16 +9,27 @@ import {
 } from "react";
 import { cn } from "@/lib/ui";
 
-type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "featured";
+type Tone =
+  | "neutral"
+  | "accent"
+  | "success"
+  | "warning"
+  | "danger"
+  | "featured";
 
 const toneClasses: Record<Tone, string> = {
-  neutral: "border-white/[0.08] bg-white/[0.05] text-white/[0.55]",
+  neutral:
+    "border-[color:var(--ice-border)] bg-[rgba(255,255,255,0.045)] text-[color:var(--ice-text-secondary)]",
   accent:
-    "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)]",
-  success: "border-emerald-300/25 bg-emerald-400/10 text-emerald-200/90",
-  warning: "border-amber-300/25 bg-amber-400/10 text-amber-200/90",
-  danger: "border-rose-300/25 bg-rose-400/10 text-rose-200/90",
-  featured: "border-amber-300/30 bg-amber-400/[0.08] text-amber-200/95",
+    "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)] shadow-[var(--ice-shadow-accent)]",
+  success:
+    "border-[rgba(98,240,191,0.3)] bg-[rgba(98,240,191,0.1)] text-[rgba(198,255,235,0.94)]",
+  warning:
+    "border-[rgba(255,211,110,0.3)] bg-[rgba(255,211,110,0.1)] text-[rgba(255,235,184,0.94)]",
+  danger:
+    "border-[rgba(255,120,149,0.3)] bg-[rgba(255,120,149,0.1)] text-[rgba(255,204,215,0.94)]",
+  featured:
+    "border-[rgba(191,140,255,0.35)] bg-[rgba(191,140,255,0.11)] text-[rgba(234,220,255,0.96)] shadow-[0_0_36px_rgba(191,140,255,0.11)]",
 };
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -26,11 +37,11 @@ type ButtonSize = "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)] hover:bg-[rgba(100,120,255,0.25)]",
+    "border-[rgba(188,200,255,0.5)] bg-[linear-gradient(180deg,rgba(160,174,255,0.42),rgba(92,108,255,0.24))] text-white shadow-[0_18px_54px_rgba(92,108,255,0.28),inset_0_1px_0_rgba(255,255,255,0.22)] hover:border-[rgba(220,228,255,0.65)] hover:bg-[linear-gradient(180deg,rgba(178,190,255,0.5),rgba(106,122,255,0.3))] hover:shadow-[0_22px_70px_rgba(92,108,255,0.36),0_0_34px_rgba(110,231,255,0.09),inset_0_1px_0_rgba(255,255,255,0.26)]",
   secondary:
-    "border-white/[0.09] bg-white/[0.04] text-white/[0.55] hover:bg-white/[0.08] hover:text-white/[0.8]",
+    "border-[color:var(--ice-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.038))] text-[color:var(--ice-text-secondary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] hover:border-[color:var(--ice-border-strong)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.052))] hover:text-[color:var(--ice-text-primary)]",
   ghost:
-    "border-transparent bg-transparent text-ice-secondary hover:bg-white/[0.05] hover:text-ice-primary",
+    "border-transparent bg-transparent text-[color:var(--ice-text-secondary)] hover:bg-[rgba(255,255,255,0.06)] hover:text-[color:var(--ice-text-primary)]",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -51,12 +62,13 @@ export function Button({
   return (
     <button
       className={cn(
-        "relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border font-medium tracking-[0.02em] outline-none",
-        "transition-[background-color,color,border-color,transform] duration-150 ease-out",
-        "focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080f]",
-        "disabled:pointer-events-none disabled:opacity-50",
-        "active:scale-[0.97]",
-        "after:pointer-events-none after:absolute after:inset-x-[10%] after:top-0 after:h-[40%] after:rounded-full after:bg-gradient-to-b after:from-white/[0.09] after:to-transparent",
+        "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border font-semibold tracking-[0.02em] outline-none",
+        "transition-[background,border-color,color,box-shadow,transform,opacity] duration-200 ease-out",
+        "focus-visible:ring-2 focus-visible:ring-[rgba(160,174,255,0.5)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ice-bg)]",
+        "disabled:pointer-events-none disabled:opacity-45",
+        "active:scale-[0.975]",
+        "before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_44%)] before:opacity-70",
+        "after:pointer-events-none after:absolute after:inset-x-[16%] after:top-0 after:h-px after:bg-white/30",
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -89,7 +101,11 @@ export function Panel({
   return (
     <div
       className={cn(
-        "rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary backdrop-blur-xl",
+        "relative overflow-hidden rounded-[var(--ice-radius-card)] border border-[color:var(--ice-border)]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.032))]",
+        "text-[color:var(--ice-text-primary)] backdrop-blur-2xl",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+        "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_0%,rgba(132,146,255,0.11),transparent_34%),radial-gradient(circle_at_92%_6%,rgba(110,231,255,0.06),transparent_28%)]",
         elevated && "shadow-[var(--ice-shadow-card)]",
         className,
       )}
@@ -102,7 +118,12 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary shadow-[var(--ice-shadow-card)] backdrop-blur-xl",
+        "relative overflow-hidden rounded-[var(--ice-radius-card)] border border-[color:var(--ice-border)]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.038))]",
+        "text-[color:var(--ice-text-primary)] backdrop-blur-2xl",
+        "shadow-[var(--ice-shadow-card)]",
+        "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_16%_0%,rgba(132,146,255,0.13),transparent_36%),radial-gradient(circle_at_88%_8%,rgba(110,231,255,0.07),transparent_30%)]",
+        "after:pointer-events-none after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-white/[0.12]",
         className,
       )}
       {...props}
@@ -116,16 +137,22 @@ export function FieldLabel({
 }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("grid gap-2 text-sm font-medium text-ice-primary/90", className)}
+      className={cn(
+        "grid gap-2 text-sm font-medium text-[color:var(--ice-text-primary)]/90",
+        className,
+      )}
       {...props}
     />
   );
 }
 
 const controlClasses =
-  "h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm text-ice-primary outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-white/[0.35] focus:border-[color:var(--ice-accent-border)] focus:ring-2 focus:ring-[rgba(100,120,255,0.15)] disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 rounded-2xl border border-[color:var(--ice-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.065),rgba(255,255,255,0.035))] px-4 text-sm text-[color:var(--ice-text-primary)] outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[border-color,box-shadow,background] duration-200 ease-out placeholder:text-[color:var(--ice-text-muted)] focus:border-[rgba(170,184,255,0.5)] focus:shadow-[0_0_0_3px_rgba(132,146,255,0.13),0_0_28px_rgba(110,231,255,0.045),inset_0_1px_0_rgba(255,255,255,0.08)] disabled:cursor-not-allowed disabled:opacity-55";
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(controlClasses, className)} {...props} />;
 }
 
@@ -162,7 +189,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em]",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.085em] backdrop-blur-xl",
         toneClasses[tone],
         className,
       )}
@@ -179,8 +206,11 @@ export function CreditBadge({
   className?: string;
 }) {
   return (
-    <Badge className={cn("gap-2 normal-case tracking-normal text-xs", className)} tone="success">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+    <Badge
+      className={cn("gap-2 normal-case tracking-normal text-xs", className)}
+      tone="success"
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ice-success)] shadow-[0_0_16px_rgba(98,240,191,0.65)]" />
       {credits} credits
     </Badge>
   );
@@ -200,7 +230,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-full border border-white/[0.08] bg-white/[0.03] p-1",
+        "inline-flex rounded-full border border-[color:var(--ice-border)] bg-[rgba(255,255,255,0.04)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl",
         className,
       )}
       role="tablist"
@@ -213,12 +243,12 @@ export function SegmentedControl<T extends string>({
           aria-selected={option.value === value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "rounded-full px-4 py-1.5 text-sm font-medium text-ice-muted outline-none",
-            "transition-[background-color,color] duration-150 ease-out",
-            "focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]",
+            "rounded-full px-4 py-1.5 text-sm font-medium text-[color:var(--ice-text-muted)] outline-none",
+            "transition-[background,color,box-shadow] duration-200 ease-out",
+            "focus-visible:ring-2 focus-visible:ring-[rgba(160,174,255,0.5)]",
             option.value === value
-              ? "bg-[color:var(--ice-accent-soft)] text-[color:var(--ice-accent-text)]"
-              : "hover:bg-white/[0.05] hover:text-ice-primary",
+              ? "bg-[linear-gradient(180deg,rgba(160,174,255,0.28),rgba(100,116,255,0.15))] text-[color:var(--ice-accent-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.13),0_10px_24px_rgba(92,108,255,0.16)]"
+              : "hover:bg-[rgba(255,255,255,0.06)] hover:text-[color:var(--ice-text-primary)]",
           )}
         >
           {option.label}
@@ -240,7 +270,7 @@ export function LoadingBar({
   return (
     <progress
       className={cn(
-        "h-2 w-full overflow-hidden rounded-full bg-white/10 accent-[color:var(--ice-accent)]",
+        "h-2 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] accent-[color:var(--ice-accent)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]",
         className,
       )}
       max={100}
@@ -249,11 +279,14 @@ export function LoadingBar({
   );
 }
 
-export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+export function Skeleton({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "animate-pulse rounded-xl bg-[linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.09),rgba(255,255,255,0.04))]",
+        "animate-pulse rounded-xl bg-[linear-gradient(90deg,rgba(255,255,255,0.035),rgba(160,174,255,0.11),rgba(255,255,255,0.035))]",
         className,
       )}
       {...props}
@@ -273,12 +306,21 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <Panel className={cn("grid place-items-center px-6 py-10 text-center", className)}>
-      <div className="max-w-sm">
-        <div className="mx-auto mb-5 h-10 w-10 rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)]" />
-        <h3 className="text-lg font-semibold text-ice-primary">{title}</h3>
+    <Panel
+      className={cn(
+        "grid place-items-center px-6 py-10 text-center",
+        className,
+      )}
+    >
+      <div className="relative max-w-sm">
+        <div className="mx-auto mb-5 h-10 w-10 rounded-2xl border border-[color:var(--ice-accent-border)] bg-[linear-gradient(180deg,rgba(160,174,255,0.26),rgba(100,116,255,0.12))] shadow-[0_16px_38px_rgba(92,108,255,0.18),inset_0_1px_0_rgba(255,255,255,0.16)]" />
+        <h3 className="text-lg font-semibold text-[color:var(--ice-text-primary)]">
+          {title}
+        </h3>
         {description && (
-          <p className="mt-2 text-sm leading-6 text-ice-secondary">{description}</p>
+          <p className="mt-2 text-sm leading-6 text-[color:var(--ice-text-secondary)]">
+            {description}
+          </p>
         )}
         {action && <div className="mt-6">{action}</div>}
       </div>

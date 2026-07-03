@@ -1,6 +1,7 @@
 package icepunk_backend.controller;
 
 import icepunk_backend.dto.GeneratedPackResponse;
+import icepunk_backend.dto.PublicGeneratedPackFeedResponse;
 import icepunk_backend.dto.RenameGeneratedPackRequest;
 import icepunk_backend.dto.UpdateGeneratedPackVisibilityRequest;
 import icepunk_backend.service.GeneratedPackService.DownloadObject;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -39,6 +41,14 @@ public class GeneratedPackController {
         return generatedPackService.getPack(packId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/generated-packs/feed")
+    public PublicGeneratedPackFeedResponse publicFeed(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ) {
+        return generatedPackService.getPublicFeed(page, size);
     }
 
     @GetMapping("/generated-packs/{packId}/download")
