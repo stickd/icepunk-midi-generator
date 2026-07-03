@@ -2,6 +2,7 @@
 
 import { DragEvent, useRef, useState } from "react";
 import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import BrowserPianoRoll from "./BrowserPianoRoll";
 import SketchButton from "./SketchButton";
 import styles from "./sketchTheme.module.css";
 
@@ -130,6 +131,8 @@ export default function MidiDropZone({ onStubStatus }: MidiDropZoneProps) {
       <p className={styles.statusLine} role="status">
         {playback.message}
       </p>
+
+      <BrowserPianoRoll midiFile={midiFile} />
     </div>
   );
 }

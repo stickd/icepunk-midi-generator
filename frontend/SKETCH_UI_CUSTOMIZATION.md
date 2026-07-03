@@ -106,6 +106,7 @@ These parts are connected to existing production behavior:
 - Generation stats through `getGenerationStats`
 - Real MIDI generation/download through `useMidiGeneration`
 - Browser MIDI playback for locally selected MIDI + one-shot sample through `useBrowserMidiPlayback`
+- Uploaded MIDI piano roll visualization through `BrowserPianoRoll` and `useMidiPianoRoll`
 - Feedback form through the existing `FeedbackSection`
 
 When customizing visuals, preserve these connections.
