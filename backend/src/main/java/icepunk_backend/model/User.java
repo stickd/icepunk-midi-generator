@@ -2,6 +2,7 @@ package icepunk_backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(
@@ -32,6 +33,18 @@ public class User {
 
     private Integer generationsToday = 0;
     private LocalDate generationDate = LocalDate.now();
+
+    @Column(length = 300)
+    private String bio;
+
+    @Column(nullable = false)
+    private Integer credits = 0;
+
+    @Column(nullable = false)
+    private Boolean verified = false;
+
+    @Column(nullable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     public User() {
     }
@@ -90,5 +103,37 @@ public class User {
 
     public void setGenerationDate(LocalDate generationDate) {
         this.generationDate = generationDate;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public Integer getCredits() {
+        return credits;
+    }
+
+    public void setCredits(Integer credits) {
+        this.credits = credits;
+    }
+
+    public Boolean getVerified() {
+        return verified;
+    }
+
+    public void setVerified(Boolean verified) {
+        this.verified = verified;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -226,6 +226,134 @@ export function getPublicUploadMidiPreviewUrl(projectId: number) {
   return `${API_URL}/uploads/projects/${projectId}/midi`;
 }
 
+export type UserProfileResponse = {
+  id: number;
+  username: string;
+  bio: string | null;
+  verified: boolean;
+  joinedAt: string;
+  packCount: number;
+  totalDownloads: number;
+  totalLikes: number;
+};
+
+export type UserPackItem = {
+  id: number;
+  ownerId: number;
+  ownerUsername: string;
+  title: string;
+  midiUrl: string;
+  sampleUrl: string | null;
+  uploadedAt: string;
+  metadata: Record<string, unknown>;
+  downloadCount: number;
+  likeCount: number;
+  likedByViewer: boolean;
+};
+
+export type UserPackListResponse = {
+  items: UserPackItem[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+};
+
+export type MeResponse = {
+  id: number;
+  username: string;
+  email: string;
+  bio: string | null;
+  credits: number;
+  verified: boolean;
+  joinedAt: string;
+};
+
+export type LikeResponse = {
+  projectId: number;
+  liked: boolean;
+  likeCount: number;
+};
+
+function authHeaders(token?: string | null): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function fetchJson<T>(
+  path: string,
+  init: RequestInit & { signal?: AbortSignal } = {},
+): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    signal: withTimeout(init.signal ?? undefined),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getUserProfile(
+  username: string,
+  signal?: AbortSignal,
+): Promise<UserProfileResponse> {
+  return fetchJson(`/users/${encodeURIComponent(username)}/profile`, { signal });
+}
+
+export async function getUserPacks(
+  username: string,
+  page = 0,
+  size = 12,
+  token?: string | null,
+  signal?: AbortSignal,
+): Promise<UserPackListResponse> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+
+  return fetchJson(`/users/${encodeURIComponent(username)}/packs?${params.toString()}`, {
+    headers: authHeaders(token),
+    signal,
+  });
+}
+
+export async function getMe(
+  token: string,
+  signal?: AbortSignal,
+): Promise<MeResponse> {
+  return fetchJson("/users/me", { headers: authHeaders(token), signal });
+}
+
+export async function getFavorites(
+  token: string,
+  page = 0,
+  size = 12,
+  signal?: AbortSignal,
+): Promise<UserPackListResponse> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+
+  return fetchJson(`/users/me/favorites?${params.toString()}`, {
+    headers: authHeaders(token),
+    signal,
+  });
+}
+
+export async function setProjectLiked(
+  projectId: number,
+  liked: boolean,
+  token: string,
+  signal?: AbortSignal,
+): Promise<LikeResponse> {
+  return fetchJson(`/uploads/projects/${projectId}/like`, {
+    method: liked ? "POST" : "DELETE",
+    headers: authHeaders(token),
+    signal,
+  });
+}
+
 export function uploadMidiProject({
   title,
   visibility,

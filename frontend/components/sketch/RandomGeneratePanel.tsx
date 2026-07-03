@@ -1,9 +1,8 @@
 "use client";
 
+import { Button, Panel, SegmentedControl } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
 import MidiDropZone from "./MidiDropZone";
-import SketchButton from "./SketchButton";
-import styles from "./sketchTheme.module.css";
 
 export type GenerationSourceState = {
   source: GenerationSource;
@@ -18,6 +17,11 @@ type RandomGeneratePanelProps = {
   status: string;
 };
 
+const sourceOptions: Array<{ label: string; value: GenerationSource }> = [
+  { label: "Factory", value: "FACTORY" },
+  { label: "Custom", value: "CUSTOM_UPLOAD" },
+];
+
 export default function RandomGeneratePanel({
   sourceState,
   onSourceStateChange,
@@ -29,26 +33,19 @@ export default function RandomGeneratePanel({
   const canGenerate = !isCustom || Boolean(sourceState.tempAnalysisId);
 
   return (
-    <section className={styles.heroCenter} aria-label="MIDI creation controls">
-      <div className={styles.sourceSelector} aria-label="Generation source">
-        <label>
-          <input
-            checked={sourceState.source === "FACTORY"}
-            name="source"
-            onChange={() => onSourceStateChange({ source: "FACTORY" })}
-            type="radio"
-          />{" "}
-          Factory
-        </label>
-        <label>
-          <input
-            checked={isCustom}
-            name="source"
-            onChange={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
-            type="radio"
-          />{" "}
-          Custom
-        </label>
+    <Panel className="grid gap-5 p-5" elevated>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-ice-primary">Create from source</h2>
+          <p className="mt-1 text-sm leading-6 text-ice-secondary">
+            Choose the factory dataset or analyze your own MIDI files first.
+          </p>
+        </div>
+        <SegmentedControl
+          onChange={(source) => onSourceStateChange({ source })}
+          options={sourceOptions}
+          value={sourceState.source}
+        />
       </div>
 
       {isCustom ? (
@@ -60,21 +57,25 @@ export default function RandomGeneratePanel({
           onStubStatus={onStubStatus}
         />
       ) : (
-        <div className={styles.feedStatePanel}>
-          <strong>Factory dataset selected.</strong>
-          <span>Generation will use the bundled IcePunk analysis dataset.</span>
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5">
+          <p className="text-sm font-medium text-ice-primary">Factory dataset selected.</p>
+          <p className="mt-2 text-sm leading-6 text-ice-secondary">
+            Generation will use the bundled IcePunk analysis dataset.
+          </p>
         </div>
       )}
 
-      <div className={styles.orText}>THEN</div>
-      <SketchButton disabled={!canGenerate} type="button" onClick={onOpenCreatePack}>
-        Generate random
-      </SketchButton>
-      <p className={styles.statusLine} role="status">
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Button disabled={!canGenerate} onClick={onOpenCreatePack} type="button" variant="primary">
+          Generate random
+        </Button>
+      </div>
+
+      <p className="min-h-[20px] text-center text-sm text-ice-muted" role="status">
         {isCustom && !sourceState.tempAnalysisId
           ? "Upload and analyze 1-8 MIDI files before generating from Custom."
           : status}
       </p>
-    </section>
+    </Panel>
   );
 }

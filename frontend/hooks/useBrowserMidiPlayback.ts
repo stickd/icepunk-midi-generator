@@ -4,8 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type ToneModule = typeof import("tone");
 type MidiClass = typeof import("@tonejs/midi").Midi;
-type ToneSampler = InstanceType<ToneModule["Sampler"]>;
 type PlaybackStatus = "idle" | "loading" | "playing" | "paused" | "stopped" | "error";
+
+type Instrument = {
+  triggerAttackRelease: (note: string, duration: number, time: number, velocity: number) => void;
+  releaseAll: () => void;
+  dispose: () => void;
+};
 
 const SAMPLE_ROOT_NOTE = "C4";
 const POSITION_FRAME_MS = 33;
@@ -18,7 +23,7 @@ export function useBrowserMidiPlayback() {
   const [status, setStatus] = useState<PlaybackStatus>("idle");
   const [message, setMessage] = useState("");
   const [positionSeconds, setPositionSeconds] = useState(0);
-  const samplerRef = useRef<ToneSampler | null>(null);
+  const instrumentRef = useRef<Instrument | null>(null);
   const sampleUrlRef = useRef<string | null>(null);
   const activeToneRef = useRef<ToneModule | null>(null);
   const positionFrameRef = useRef<number | null>(null);
@@ -56,9 +61,9 @@ export function useBrowserMidiPlayback() {
       Tone.Transport.cancel(0);
     }
 
-    samplerRef.current?.releaseAll();
-    samplerRef.current?.dispose();
-    samplerRef.current = null;
+    instrumentRef.current?.releaseAll();
+    instrumentRef.current?.dispose();
+    instrumentRef.current = null;
 
     if (sampleUrlRef.current) {
       URL.revokeObjectURL(sampleUrlRef.current);
@@ -83,14 +88,14 @@ export function useBrowserMidiPlayback() {
     stopPositionLoop();
     setPositionSeconds(Tone.Transport.seconds);
     Tone.Transport.pause();
-    samplerRef.current?.releaseAll();
+    instrumentRef.current?.releaseAll();
     setStatus("paused");
     setMessage("Playback paused.");
   }, [status, stopPositionLoop]);
 
   const play = useCallback(
-    async (midiFile: File | null, sampleFile: File | null) => {
-      if (status === "paused" && activeToneRef.current && samplerRef.current) {
+    async (midiFile: File | null, sampleFile: File | null = null) => {
+      if (status === "paused" && activeToneRef.current && instrumentRef.current) {
         await activeToneRef.current.start();
         activeToneRef.current.Transport.start();
         startPositionLoop(activeToneRef.current);
@@ -102,12 +107,6 @@ export function useBrowserMidiPlayback() {
       if (!midiFile) {
         setStatus("error");
         setMessage("Choose a MIDI file before playback.");
-        return;
-      }
-
-      if (!sampleFile) {
-        setStatus("error");
-        setMessage("Choose a one-shot sample before playback.");
         return;
       }
 
@@ -134,51 +133,58 @@ export function useBrowserMidiPlayback() {
           return;
         }
 
-        const sampleUrl = URL.createObjectURL(sampleFile);
-        sampleUrlRef.current = sampleUrl;
+        const startPlayback = (instrument: Instrument, sourceLabel: string) => {
+          instrumentRef.current = instrument;
+          Tone.Transport.stop();
+          Tone.Transport.cancel(0);
+          Tone.Transport.seconds = 0;
+          setPositionSeconds(0);
 
-        const sampler = new Tone.Sampler({
-          urls: {
-            [SAMPLE_ROOT_NOTE]: sampleUrl,
-          },
-          onload: () => {
-            Tone.Transport.stop();
-            Tone.Transport.cancel(0);
-            Tone.Transport.seconds = 0;
-            setPositionSeconds(0);
+          for (const note of notes) {
+            Tone.Transport.schedule((time) => {
+              instrument.triggerAttackRelease(note.name, note.duration, time, note.velocity);
+            }, note.time);
+          }
 
-            for (const note of notes) {
-              Tone.Transport.schedule((time) => {
-                sampler.triggerAttackRelease(
-                  note.name,
-                  note.duration,
-                  time,
-                  note.velocity,
-                );
-              }, note.time);
-            }
+          const endTime = Math.max(...notes.map((note) => note.time + note.duration));
+          Tone.Transport.scheduleOnce(() => {
+            setPositionSeconds(endTime);
+            cleanup();
+            setStatus("stopped");
+            setMessage("Playback finished.");
+          }, endTime + 0.1);
 
-            const endTime = Math.max(...notes.map((note) => note.time + note.duration));
-            Tone.Transport.scheduleOnce(() => {
-              setPositionSeconds(endTime);
-              cleanup();
-              setStatus("stopped");
-              setMessage("Playback finished.");
-            }, endTime + 0.1);
+          Tone.Transport.start();
+          startPositionLoop(Tone);
+          setStatus("playing");
+          setMessage(`Playing ${midiFile.name}${sourceLabel}.`);
+        };
 
-            Tone.Transport.start();
-            startPositionLoop(Tone);
-            setStatus("playing");
-            setMessage(`Playing ${midiFile.name} with ${sampleFile.name}.`);
-          },
-          onerror: (error) => {
-            if (isAbortError(error)) return;
-            setStatus("error");
-            setMessage("Could not load the one-shot sample.");
-          },
-        }).toDestination();
+        if (sampleFile) {
+          const sampleUrl = URL.createObjectURL(sampleFile);
+          sampleUrlRef.current = sampleUrl;
 
-        samplerRef.current = sampler;
+          const sampler: Instrument = new Tone.Sampler({
+            urls: {
+              [SAMPLE_ROOT_NOTE]: sampleUrl,
+            },
+            onload: () => {
+              startPlayback(sampler, ` with ${sampleFile.name}`);
+            },
+            onerror: (error) => {
+              if (isAbortError(error)) return;
+              setStatus("error");
+              setMessage("Could not load the one-shot sample.");
+            },
+          }).toDestination();
+        } else {
+          const synth = new Tone.PolySynth(Tone.Synth, {
+            envelope: { attack: 0.005, decay: 0.3, release: 1, sustain: 0.2 },
+            oscillator: { type: "triangle" },
+          }).toDestination();
+
+          startPlayback(synth, " with the stock preview sound");
+        }
       } catch {
         cleanup();
         setStatus("error");

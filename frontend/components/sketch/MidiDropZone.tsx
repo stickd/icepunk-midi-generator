@@ -1,11 +1,10 @@
 "use client";
 
 import { DragEvent, useRef, useState } from "react";
+import { Button } from "@/components/ui";
 import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { analyzeTempMidiFiles } from "@/lib/api";
 import BrowserPianoRoll from "./BrowserPianoRoll";
-import SketchButton from "./SketchButton";
-import styles from "./sketchTheme.module.css";
 
 type MidiDropZoneProps = {
   onAnalysisComplete: (tempAnalysisId: string) => void;
@@ -15,6 +14,11 @@ type MidiDropZoneProps = {
 
 const MAX_CUSTOM_MIDI_FILES = 8;
 
+function isMidiFile(file: File) {
+  const name = file.name.toLowerCase();
+  return name.endsWith(".mid") || name.endsWith(".midi");
+}
+
 export default function MidiDropZone({
   onAnalysisComplete,
   onAnalysisReset,
@@ -23,13 +27,17 @@ export default function MidiDropZone({
   const midiInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [midiFiles, setMidiFiles] = useState<File[]>([]);
-  const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "success" | "error">("idle");
+  const [analysisStatus, setAnalysisStatus] = useState<
+    "idle" | "analyzing" | "success" | "error"
+  >("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
   const playback = useBrowserMidiPlayback();
   const previewFile = midiFiles[0] ?? null;
 
   function handleFiles(fileList: FileList | null) {
-    const files = Array.from(fileList ?? []).filter(isMidiFile).slice(0, MAX_CUSTOM_MIDI_FILES);
+    const files = Array.from(fileList ?? [])
+      .filter(isMidiFile)
+      .slice(0, MAX_CUSTOM_MIDI_FILES);
 
     if (files.length === 0) {
       setAnalysisStatus("error");
@@ -40,7 +48,9 @@ export default function MidiDropZone({
 
     setMidiFiles(files);
     setAnalysisStatus("idle");
-    setAnalysisMessage(`${files.length} MIDI file${files.length === 1 ? "" : "s"} staged for custom analysis.`);
+    setAnalysisMessage(
+      `${files.length} MIDI file${files.length === 1 ? "" : "s"} staged for custom analysis.`,
+    );
     onAnalysisReset();
     onStubStatus("Custom MIDI files are staged. Analyze them before generating.");
   }
@@ -49,11 +59,6 @@ export default function MidiDropZone({
     event.preventDefault();
     setIsDragging(false);
     handleFiles(event.dataTransfer.files);
-  }
-
-  function isMidiFile(file: File) {
-    const name = file.name.toLowerCase();
-    return name.endsWith(".mid") || name.endsWith(".midi");
   }
 
   async function analyzeFiles() {
@@ -68,19 +73,25 @@ export default function MidiDropZone({
       setAnalysisMessage("Analyzing uploaded MIDI structure...");
       const response = await analyzeTempMidiFiles(midiFiles);
       setAnalysisStatus("success");
-      setAnalysisMessage(`${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`);
+      setAnalysisMessage(
+        `${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`,
+      );
       onAnalysisComplete(response.tempAnalysisId);
-    } catch (error) {
+    } catch {
       setAnalysisStatus("error");
-      setAnalysisMessage(error instanceof Error ? "Custom analysis failed. Check the MIDI files and try again." : "Custom analysis failed.");
+      setAnalysisMessage("Custom analysis failed. Check the MIDI files and try again.");
       onAnalysisReset();
     }
   }
 
   return (
-    <div className={styles.dropZoneStack}>
+    <div className="grid gap-3">
       <label
-        className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ""}`}
+        className={`flex min-h-[92px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-6 text-center transition-[background-color,border-color] duration-150 ease-out ${
+          isDragging
+            ? "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)]"
+            : "border-white/[0.12] bg-white/[0.03] hover:border-white/[0.2] hover:bg-white/[0.05]"
+        }`}
         onDragEnter={() => setIsDragging(true)}
         onDragLeave={() => setIsDragging(false)}
         onDragOver={(event) => event.preventDefault()}
@@ -88,72 +99,83 @@ export default function MidiDropZone({
       >
         <input
           ref={midiInputRef}
-          className={styles.visuallyHidden}
-          type="file"
-          multiple
           accept=".mid,.midi,audio/midi,audio/x-midi,application/x-midi"
+          className="sr-only"
+          multiple
           onChange={(event) => handleFiles(event.currentTarget.files)}
+          type="file"
         />
-        <span>Upload your midis</span>
-        <span className={styles.uploadGlyph} aria-hidden="true">
+        <span
+          aria-hidden="true"
+          className="grid h-9 w-9 place-items-center rounded-full border border-white/[0.1] bg-white/[0.05] text-ice-secondary"
+        >
           ↧
         </span>
+        <span className="text-sm font-medium text-ice-primary">Upload your midis</span>
+        <span className="text-xs text-ice-muted">1-8 .mid/.midi files</span>
       </label>
 
-      <div className={styles.dropZoneMeta}>
+      <div className="flex flex-wrap justify-center gap-2">
         <button
-          className={styles.fileChip}
-          type="button"
+          className="max-w-[220px] truncate rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-xs text-ice-secondary transition-colors duration-150 ease-out hover:bg-white/[0.08] hover:text-ice-primary"
           onClick={() => midiInputRef.current?.click()}
-        >
-          {midiFiles.length > 0 ? `${midiFiles.length} MIDI selected` : "Choose 1-8 MIDIs"}
-        </button>
-        <SketchButton
-          disabled={analysisStatus === "analyzing" || midiFiles.length === 0}
-          size="small"
           type="button"
+        >
+          {midiFiles.length > 0 ? `${midiFiles.length} MIDI selected` : "Choose MIDIs"}
+        </button>
+        <Button
+          disabled={analysisStatus === "analyzing" || midiFiles.length === 0}
           onClick={analyzeFiles}
+          size="sm"
+          type="button"
+          variant="primary"
         >
           {analysisStatus === "analyzing" ? "Analyzing..." : "Analyze MIDIs"}
-        </SketchButton>
+        </Button>
       </div>
 
       {midiFiles.length > 0 ? (
-        <ul className={styles.customMidiList} aria-label="Selected custom MIDI files">
+        <ul
+          aria-label="Selected custom MIDI files"
+          className="mx-auto grid w-full max-w-md gap-1 text-xs text-ice-muted"
+        >
           {midiFiles.map((file) => (
-            <li key={`${file.name}-${file.size}`}>{file.name}</li>
+            <li
+              className="truncate rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1"
+              key={`${file.name}-${file.size}`}
+            >
+              {file.name}
+            </li>
           ))}
         </ul>
       ) : null}
 
-      <div className={styles.playbackControls} aria-label="Browser MIDI playback controls">
-        <SketchButton
-          disabled={playback.isLoading || playback.isPlaying}
-          size="small"
-          type="button"
+      <div
+        aria-label="Browser MIDI playback controls"
+        className="flex flex-wrap justify-center gap-2"
+      >
+        <Button
+          disabled={playback.isLoading || playback.isPlaying || !previewFile}
           onClick={() => playback.play(previewFile, null)}
+          size="sm"
+          type="button"
         >
           {playback.isLoading ? "Loading..." : playback.isPaused ? "Resume" : "Play"}
-        </SketchButton>
-        <SketchButton
-          disabled={!playback.isPlaying}
-          size="small"
-          type="button"
-          onClick={playback.pause}
-        >
+        </Button>
+        <Button disabled={!playback.isPlaying} onClick={playback.pause} size="sm" type="button">
           Pause
-        </SketchButton>
-        <SketchButton
+        </Button>
+        <Button
           disabled={playback.status === "idle"}
-          size="small"
-          type="button"
           onClick={playback.stop}
+          size="sm"
+          type="button"
         >
           Stop
-        </SketchButton>
+        </Button>
       </div>
 
-      <p className={styles.statusLine} role="status">
+      <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
         {analysisMessage || playback.message}
       </p>
 

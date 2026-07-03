@@ -1,3 +1,5 @@
+import { Button, FieldLabel, Input } from "@/components/ui";
+
 type AuthMode = "login" | "register";
 
 type AuthModalProps = {
@@ -27,23 +29,20 @@ export default function AuthModal({
   onSubmit,
   onClose,
 }: AuthModalProps) {
-  const inputClass =
-    "rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-200/40 focus:bg-white/[0.09] focus:ring-4 focus:ring-cyan-300/10";
-
   return (
     <div
-      role="dialog"
-      aria-modal="true"
       aria-labelledby="auth-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 backdrop-blur-xl"
+      aria-modal="true"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-6 backdrop-blur-xl"
+      role="dialog"
     >
-      <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-[0_0_100px_rgba(103,232,249,0.18)] backdrop-blur-2xl">
+      <div className="w-full max-w-md rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[#0c0c16] p-8 shadow-[var(--ice-shadow-card)] backdrop-blur-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="auth-modal-title" className="text-3xl font-black tracking-tight text-white">
+            <h2 className="text-2xl font-semibold tracking-[-0.01em] text-ice-primary" id="auth-modal-title">
               {mode === "login" ? "Welcome back" : "Create account"}
             </h2>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-ice-secondary">
               {mode === "login"
                 ? "Login to generate your next MIDI pack."
                 : "Start generating cold melodic ideas."}
@@ -51,49 +50,59 @@ export default function AuthModal({
           </div>
 
           <button
-            onClick={onClose}
             aria-label="Close"
-            className="rounded-full border border-white/10 px-3 py-1 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ice-secondary transition-colors duration-150 ease-out hover:bg-white/[0.08] hover:text-ice-primary"
+            onClick={onClose}
+            type="button"
           >
             ✕
           </button>
         </div>
 
-        <div className="mt-7 flex flex-col gap-4">
+        <div className="mt-7 grid gap-4">
           {mode === "register" && (
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className={inputClass}
-            />
+            <FieldLabel>
+              Username
+              <Input
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Username"
+                value={username}
+              />
+            </FieldLabel>
           )}
 
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className={inputClass}
-          />
+          <FieldLabel>
+            Email
+            <Input
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+              value={email}
+            />
+          </FieldLabel>
 
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            type="password"
-            className={inputClass}
-          />
+          <FieldLabel>
+            Password
+            <Input
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              type="password"
+              value={password}
+            />
+          </FieldLabel>
 
-          <button
+          <Button
+            className="mt-2 w-full"
             disabled={isSubmitting}
             onClick={onSubmit}
-            className="mt-2 rounded-2xl bg-white px-4 py-3 font-bold text-slate-950 shadow-[0_0_40px_rgba(103,232,249,0.22)] transition hover:scale-[1.02] hover:bg-cyan-50 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 disabled:hover:scale-100"
+            size="lg"
+            type="button"
+            variant="primary"
           >
             {isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Register"}
-          </button>
+          </Button>
 
           {authStatus && (
-            <p className="rounded-2xl border border-cyan-300/10 bg-cyan-300/5 px-4 py-3 text-sm text-cyan-100">
+            <p className="rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] px-4 py-3 text-center text-sm text-[color:var(--ice-accent-text)]">
               {authStatus}
             </p>
           )}

@@ -50,6 +50,9 @@ public class UserUploadedProject {
     @Column(nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> metadata = new LinkedHashMap<>();
 
+    @Column(nullable = false)
+    private Long downloadCount = 0L;
+
     public Long getId() {
         return id;
     }
@@ -112,5 +115,13 @@ public class UserUploadedProject {
 
     public void setMetadata(Map<String, Object> metadata) {
         this.metadata = metadata;
+    }
+
+    public Long getDownloadCount() {
+        return downloadCount;
+    }
+
+    public void setDownloadCount(Long downloadCount) {
+        this.downloadCount = downloadCount;
     }
 }

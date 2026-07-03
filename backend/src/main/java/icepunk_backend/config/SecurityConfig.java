@@ -4,6 +4,7 @@ import icepunk_backend.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -68,6 +69,12 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/uploads/projects/*/midi"
                     ).permitAll()
 
+                    // Public profile reads only — POST /users/me/profile stays authenticated
+                    .requestMatchers(HttpMethod.GET,
+                            "/users/*/profile",
+                            "/users/*/packs"
+                    ).permitAll()
+
                     // Health endpoint (used by Docker / load-balancer healthchecks)
                     .requestMatchers("/actuator/health").permitAll()
 
@@ -93,7 +100,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
         config.setAllowedOrigins(allowedOrigins);
 
         // Allowed HTTP methods
-        config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
 
         // Allow all request headers
         config.setAllowedHeaders(List.of("*"));
