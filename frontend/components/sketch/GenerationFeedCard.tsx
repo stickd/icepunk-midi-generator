@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge, Button, Card, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import BrowserPianoRoll from "./BrowserPianoRoll";
@@ -45,11 +45,16 @@ export default function GenerationFeedCard({
   const [activeIndex, setActiveIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const playback = useBrowserMidiPlayback();
+  const updatePlaybackSettings = playback.updateSettings;
   const items = generation.items ?? [];
   const activeItem = items[activeIndex] ?? null;
   const midiUrl = activeItem?.downloadUrl ?? generation.midiUrl ?? null;
   const avatarLetter = generation.username.slice(0, 1).toUpperCase();
   const hasMultipleItems = items.length > 1;
+
+  useEffect(() => {
+    updatePlaybackSettings(soundEngine);
+  }, [soundEngine, updatePlaybackSettings]);
 
   function togglePreview() {
     if (!midiUrl) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Button } from "@/components/ui";
 import { GeneratedMidiItem, GenerateMidiResponse } from "@/lib/api";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
@@ -10,6 +10,8 @@ import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
 type GeneratedPackVisualizerProps = {
   generation: GenerateMidiResponse;
   onNewGeneration: () => void;
+  onActiveMidiChange?: (midiUrl: string | null) => void;
+  playback?: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
 };
 
@@ -20,11 +22,14 @@ function formatDuration(value: number | null) {
 
 export default function GeneratedPackVisualizer({
   generation,
+  onActiveMidiChange,
   onNewGeneration,
+  playback: externalPlayback,
   soundEngine,
 }: GeneratedPackVisualizerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const playback = useBrowserMidiPlayback();
+  const localPlayback = useBrowserMidiPlayback();
+  const playback = externalPlayback ?? localPlayback;
   const items = generation.items;
   const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
 
@@ -32,6 +37,10 @@ export default function GeneratedPackVisualizer({
     () => activeItem?.fileName ?? generation.name,
     [activeItem, generation.name],
   );
+
+  useEffect(() => {
+    onActiveMidiChange?.(activeItem?.downloadUrl ?? null);
+  }, [activeItem?.downloadUrl, onActiveMidiChange]);
 
   function selectItem(index: number) {
     if (index === activeIndex) return;

@@ -1,10 +1,21 @@
 "use client";
 
-import { ChangeEvent, useRef, useState } from "react";
-import { FieldLabel, Select } from "@/components/ui";
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { Select } from "@/components/ui";
 import { SoundEnginePreset, SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
 
 const soundOptions: SoundEnginePreset[] = ["Soft Piano", "Bell", "Pluck", "Pad", "808"];
+const supportedSampleExtensions = [".wav", ".mp3", ".ogg", ".m4a", ".aac", ".flac"];
+const supportedSampleTypes = [
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/aac",
+  "audio/flac",
+  "audio/x-flac",
+];
 
 type SoundEngineCardProps = {
   settings: SoundEngineSettings;
@@ -13,6 +24,11 @@ type SoundEngineCardProps = {
   onPlayToggle?: () => void;
   onStop?: () => void;
 };
+
+function isSupportedSampleFile(file: File) {
+  const lowerName = file.name.toLowerCase();
+  return supportedSampleTypes.includes(file.type) || supportedSampleExtensions.some((extension) => lowerName.endsWith(extension));
+}
 
 export default function SoundEngineCard({
   settings,
@@ -27,29 +43,46 @@ export default function SoundEngineCard({
   const [soundMode, setSoundMode] = useState<"stock" | "upload">(
     settings.sampleFile ? "upload" : "stock",
   );
+  const [isUploadDragging, setIsUploadDragging] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   const isPlaying = externalIsPlaying ?? localIsPlaying;
 
-  const currentSound = settings.sampleFile?.name ?? settings.preset;
   const currentBpm = settings.bpm ?? 146;
   const currentPitch = settings.pitch ?? 0;
-  const currentOctaves = settings.octaves ?? 1;
+  const currentOctaves = settings.octaves ?? 0;
   const isLooping = Boolean(settings.isLooping);
 
   function updatePreset(value: SoundEnginePreset) {
-    onChange({ ...settings, preset: value });
+    setUploadStatus("");
+    onChange({ ...settings, preset: value, sampleFile: null });
   }
 
   function updateVolume(value: number) {
     onChange({ ...settings, volume: value });
   }
 
-  function updateUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
+  function chooseSampleFile(file: File | null) {
     if (file) {
+      if (!isSupportedSampleFile(file)) {
+        setUploadStatus("Unsupported sample file. Use WAV, MP3, OGG, M4A, AAC, or FLAC.");
+        onChange({ ...settings, sampleFile: null });
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
       setSoundMode("upload");
+      setUploadStatus(`Selected ${file.name}`);
       onChange({ ...settings, sampleFile: file });
+      return;
     }
+
+    setUploadStatus("");
+    onChange({ ...settings, sampleFile: null });
+  }
+
+  function updateUpload(event: ChangeEvent<HTMLInputElement>) {
+    chooseSampleFile(event.target.files?.[0] ?? null);
   }
 
   function removeSample() {
@@ -57,6 +90,7 @@ export default function SoundEngineCard({
       fileInputRef.current.value = "";
     }
     setSoundMode("stock");
+    setUploadStatus("");
     onChange({ ...settings, sampleFile: null });
   }
 
@@ -71,12 +105,40 @@ export default function SoundEngineCard({
   }
 
   function updateOctaves(delta: number) {
-    const nextOct = Math.max(1, Math.min(4, currentOctaves + delta));
+    const nextOct = Math.max(-4, Math.min(4, currentOctaves + delta));
     onChange({ ...settings, octaves: nextOct });
   }
 
   function toggleLoop() {
     onChange({ ...settings, isLooping: !isLooping });
+  }
+
+  function handleUploadDragEnter(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsUploadDragging(true);
+  }
+
+  function handleUploadDragOver(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "copy";
+    setIsUploadDragging(true);
+  }
+
+  function handleUploadDragLeave(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+    setIsUploadDragging(false);
+  }
+
+  function handleUploadDrop(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsUploadDragging(false);
+    chooseSampleFile(event.dataTransfer.files?.[0] ?? null);
   }
 
   return (
@@ -154,14 +216,22 @@ export default function SoundEngineCard({
               <div className="flex items-center gap-2">
                 <input
                   ref={fileInputRef}
-                  accept="audio/*"
+                  accept="audio/*,.wav,.mp3,.ogg,.m4a,.aac,.flac"
                   className="hidden"
                   onChange={updateUpload}
                   type="file"
                 />
                 <button
-                  className="flex h-8 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-2.5 text-xs font-medium text-ice-primary transition hover:bg-white/[0.08]"
+                  className={`flex h-8 items-center gap-1.5 rounded-xl border px-2.5 text-xs font-medium text-ice-primary transition hover:bg-white/[0.08] ${
+                    isUploadDragging
+                      ? "border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)]"
+                      : "border-white/[0.08] bg-white/[0.04]"
+                  }`}
                   onClick={() => fileInputRef.current?.click()}
+                  onDragEnter={handleUploadDragEnter}
+                  onDragLeave={handleUploadDragLeave}
+                  onDragOver={handleUploadDragOver}
+                  onDrop={handleUploadDrop}
                   type="button"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -169,6 +239,16 @@ export default function SoundEngineCard({
                   </svg>
                   {settings.sampleFile ? settings.sampleFile.name : "Choose audio..."}
                 </button>
+                {settings.sampleFile ? (
+                  <button
+                    aria-label="Clear uploaded sample"
+                    className="grid h-8 w-8 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs text-ice-muted transition hover:border-white/20 hover:text-ice-primary"
+                    onClick={removeSample}
+                    type="button"
+                  >
+                    x
+                  </button>
+                ) : null}
               </div>
             )}
           </div>
@@ -184,6 +264,7 @@ export default function SoundEngineCard({
                 max={1}
                 min={0}
                 onChange={(e) => updateVolume(Number(e.target.value))}
+                onInput={(e) => updateVolume(Number(e.currentTarget.value))}
                 step={0.05}
                 type="range"
                 value={settings.volume}
@@ -318,6 +399,16 @@ export default function SoundEngineCard({
             </button>
           </div>
         </div>
+        {soundMode === "upload" && uploadStatus ? (
+          <p
+            className={`mt-2 min-h-[16px] text-center text-[11px] ${
+              uploadStatus.startsWith("Unsupported") ? "text-red-300" : "text-ice-muted"
+            }`}
+            role="status"
+          >
+            {uploadStatus}
+          </p>
+        ) : null}
       </div>
     </div>
   );

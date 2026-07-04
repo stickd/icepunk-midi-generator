@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge, Button, Panel } from "@/components/ui";
-import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import {
   authUser,
@@ -92,7 +92,16 @@ export default function SketchThemeLayout() {
     preset: "Soft Piano",
     sampleFile: null,
     volume: 0.8,
+    bpm: 146,
+    pitch: 0,
+    octaves: 0,
+    isLooping: false,
   });
+  const [activeMidiSource, setActiveMidiSource] = useState<string | null>(null);
+  const playback = useBrowserMidiPlayback();
+  const stopPlayback = playback.stop;
+  const updatePlaybackSettings = playback.updateSettings;
+  const hadGenerationRef = useRef(false);
   const {
     lastGeneration,
     resetGeneration,
@@ -134,6 +143,18 @@ export default function SketchThemeLayout() {
 
     return () => controller.abort();
   }, [token, lastGeneration]);
+
+  useEffect(() => {
+    if (lastGeneration) {
+      hadGenerationRef.current = true;
+      return;
+    }
+    if (!hadGenerationRef.current) return;
+
+    hadGenerationRef.current = false;
+    setActiveMidiSource(null);
+    stopPlayback();
+  }, [lastGeneration, stopPlayback]);
 
   const me = token && meFetch?.token === token ? meFetch.me : null;
 
@@ -250,6 +271,24 @@ export default function SketchThemeLayout() {
     });
   }
 
+  const handleActiveMidiChange = useCallback((midiUrl: string | null) => {
+    setActiveMidiSource(midiUrl);
+  }, []);
+
+  const handleSoundEngineChange = useCallback((nextSettings: SoundEngineSettings) => {
+    setSoundEngine(nextSettings);
+    updatePlaybackSettings(nextSettings);
+  }, [updatePlaybackSettings]);
+
+  function toggleMasterPlayback() {
+    if (playback.isPlaying) {
+      playback.pause();
+      return;
+    }
+
+    playback.play(activeMidiSource, soundEngine);
+  }
+
   return (
     <EtherealShadowBackground>
       <div className="relative z-10 mx-auto w-full max-w-[1880px] px-3 py-4 sm:px-6 lg:px-8">
@@ -356,7 +395,9 @@ export default function SketchThemeLayout() {
                   {lastGeneration ? (
                     <GeneratedPackVisualizer
                       generation={lastGeneration}
+                      onActiveMidiChange={handleActiveMidiChange}
                       onNewGeneration={resetGeneration}
+                      playback={playback}
                       soundEngine={soundEngine}
                     />
                   ) : (
@@ -421,7 +462,10 @@ export default function SketchThemeLayout() {
 
         {/* Floating Master Bottom Sound Engine Dock */}
         <SoundEngineCard
-          onChange={setSoundEngine}
+          isPlaying={playback.isPlaying}
+          onChange={handleSoundEngineChange}
+          onPlayToggle={toggleMasterPlayback}
+          onStop={stopPlayback}
           settings={soundEngine}
         />
       </div>
