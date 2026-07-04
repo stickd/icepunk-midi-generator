@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
+import PianoRollPreview from "./PianoRollPreview";
 import { FeedGeneration } from "./feedTypes";
 
 type GenerationFeedCardProps = {
@@ -35,7 +36,7 @@ function formatDuration(value?: number | null) {
   return `${value.toFixed(1)}s`;
 }
 
-export default function GenerationFeedCard({
+function GenerationFeedCard({
   generation,
   onStubStatus,
   soundEngine,
@@ -43,20 +44,31 @@ export default function GenerationFeedCard({
   onRequireLogin,
 }: GenerationFeedCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isInteractivePreviewOpen, setIsInteractivePreviewOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const playback = useBrowserMidiPlayback();
   const updatePlaybackSettings = playback.updateSettings;
-  const items = generation.items ?? [];
+  const items = useMemo(() => generation.items ?? [], [generation.items]);
   const activeItem = items[activeIndex] ?? null;
   const midiUrl = activeItem?.downloadUrl ?? generation.midiUrl ?? null;
-  const avatarLetter = generation.username.slice(0, 1).toUpperCase();
   const hasMultipleItems = items.length > 1;
+  const previewNotes = activeItem?.preview?.notes ?? null;
+  const hasPreviewNotes = Boolean(previewNotes && previewNotes.length > 0);
+  const showInteractivePreview = isInteractivePreviewOpen || !hasPreviewNotes;
 
   useEffect(() => {
     updatePlaybackSettings(soundEngine);
   }, [soundEngine, updatePlaybackSettings]);
 
-  function togglePreview() {
+  useEffect(() => {
+    setIsInteractivePreviewOpen(false);
+  }, [activeItem?.id]);
+
+  const openInteractivePreview = useCallback(() => {
+    setIsInteractivePreviewOpen(true);
+  }, []);
+
+  const togglePreview = useCallback(() => {
     if (!midiUrl) return;
 
     if (playback.isPlaying) {
@@ -64,8 +76,46 @@ export default function GenerationFeedCard({
       return;
     }
 
+    setIsInteractivePreviewOpen(true);
     playback.play(midiUrl, soundEngine);
-  }
+  }, [midiUrl, playback, soundEngine]);
+
+  const handleMidiDownload = useCallback(() => {
+    if (!isLoggedIn) {
+      onRequireLogin?.();
+      onStubStatus("Sign up or log in to keep creating and downloading free of charge!");
+      return;
+    }
+    if (!midiUrl) return;
+
+    const rawName = activeItem?.fileName ?? generation.title;
+    const cleanName = rawName.replace(/\.mid$/i, "").replace(/\s+/g, "_");
+    const downloadFilename = `${cleanName}_by_${generation.username}.mid`;
+
+    const link = document.createElement("a");
+    link.href = midiUrl;
+    link.download = downloadFilename;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    onStubStatus(`Downloading ${downloadFilename}`);
+  }, [activeItem?.fileName, generation.title, generation.username, isLoggedIn, midiUrl, onRequireLogin, onStubStatus]);
+
+  const handleSelectItem = useCallback(
+    (index: number) => {
+      playback.stop();
+      setIsInteractivePreviewOpen(false);
+      setActiveIndex(index);
+    },
+    [playback],
+  );
+
+  const handleDetailsToggle = useCallback(() => {
+    setShowDetails((current) => !current);
+  }, []);
 
   return (
     <Card className="group overflow-hidden p-0 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-white/[0.035] hover:shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
@@ -137,13 +187,34 @@ export default function GenerationFeedCard({
             </div>
           </div>
 
-          {/* Canvas Piano Roll Visualizer */}
-          <BrowserPianoRoll
-            isPlaying={playback.isPlaying}
-            midiFile={null}
-            midiUrl={midiUrl}
-            playbackPositionSeconds={playback.positionSeconds}
-          />
+          {/* Piano Roll Visualizer */}
+          {showInteractivePreview ? (
+            <BrowserPianoRoll
+              isPlaying={playback.isPlaying}
+              midiFile={null}
+              midiUrl={midiUrl}
+              playbackPositionSeconds={playback.positionSeconds}
+            />
+          ) : (
+            <div className="relative">
+              <PianoRollPreview
+                durationSeconds={activeItem?.durationSeconds}
+                heightClassName="h-[210px]"
+                label={`${activeItem?.fileName ?? generation.title} preview`}
+                maxPitch={activeItem?.maxPitch}
+                minPitch={activeItem?.minPitch}
+                notes={previewNotes}
+              />
+              <button
+                className="absolute bottom-3 right-3 rounded-full border border-white/[0.12] bg-black/70 px-3 py-1.5 text-[11px] font-medium text-ice-primary backdrop-blur-md transition-colors duration-150 ease-out hover:bg-black/85 disabled:pointer-events-none disabled:opacity-40"
+                disabled={!midiUrl}
+                onClick={openInteractivePreview}
+                type="button"
+              >
+                Load interactive preview
+              </button>
+            </div>
+          )}
 
           {/* Bottom Window Metadata & Action Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] bg-black/[0.2] px-3.5 py-2.5">
@@ -190,29 +261,7 @@ export default function GenerationFeedCard({
                 aria-label={`Download ${activeItem?.fileName ?? generation.title}`}
                 className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.09] bg-white/[0.04] px-3 text-xs font-medium text-ice-primary transition-colors duration-150 ease-out hover:bg-white/[0.08] disabled:pointer-events-none disabled:opacity-40"
                 disabled={!midiUrl}
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    onRequireLogin?.();
-                    onStubStatus("Sign up or log in to keep creating and downloading free of charge!");
-                    return;
-                  }
-                  if (midiUrl) {
-                    const rawName = activeItem?.fileName ?? generation.title;
-                    const cleanName = rawName.replace(/\.mid$/i, "").replace(/\s+/g, "_");
-                    const downloadFilename = `${cleanName}_by_${generation.username}.mid`;
-
-                    const link = document.createElement("a");
-                    link.href = midiUrl;
-                    link.download = downloadFilename;
-                    link.target = "_blank";
-                    link.rel = "noreferrer";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    onStubStatus(`Downloading ${downloadFilename}`);
-                  }
-                }}
+                onClick={handleMidiDownload}
                 title={isLoggedIn ? (midiUrl ? "Download MIDI" : "MIDI download unavailable") : "Log in to download MIDI"}
                 type="button"
               >
@@ -232,10 +281,7 @@ export default function GenerationFeedCard({
               activeIndex={activeIndex}
               items={items}
               label="Pack MIDIs"
-              onSelect={(index) => {
-                playback.stop();
-                setActiveIndex(index);
-              }}
+              onSelect={handleSelectItem}
             />
           </div>
         ) : null}
@@ -251,7 +297,7 @@ export default function GenerationFeedCard({
           <button
             aria-expanded={showDetails}
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-ice-muted transition-colors duration-150 ease-out hover:bg-white/[0.04] hover:text-ice-primary"
-            onClick={() => setShowDetails((current) => !current)}
+            onClick={handleDetailsToggle}
             type="button"
           >
             <span>Details</span>
@@ -330,3 +376,5 @@ export default function GenerationFeedCard({
     </Card>
   );
 }
+
+export default memo(GenerationFeedCard);

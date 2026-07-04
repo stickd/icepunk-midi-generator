@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   GenerateMidiRequest,
   GenerateMidiResponse,
@@ -19,7 +19,7 @@ export function useMidiGeneration(
   const [lastGeneration, setLastGeneration] =
     useState<GenerateMidiResponse | null>(null);
 
-  async function handleGenerateMidi(request: GenerateMidiRequest) {
+  const handleGenerateMidi = useCallback(async (request: GenerateMidiRequest) => {
     try {
       setIsGenerating(true);
       setStatus("Generating frozen MIDI patterns...");
@@ -51,6 +51,13 @@ export function useMidiGeneration(
           return;
         }
 
+        if (error.message.includes("User daily generation limit reached")) {
+          setStatus(
+            "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
+          );
+          return;
+        }
+
         if (error.message.includes("Server is busy") || error.message.includes("HTTP_429")) {
           setStatus("The generator is busy right now. Please try again in a moment.");
           return;
@@ -74,12 +81,12 @@ export function useMidiGeneration(
     } finally {
       setIsGenerating(false);
     }
-  }
+  }, [onGenerated, onGuestLimitReached, onUnauthorized]);
 
-  function resetGeneration() {
+  const resetGeneration = useCallback(() => {
     setLastGeneration(null);
     setStatus("");
-  }
+  }, []);
 
   return {
     isGenerating,

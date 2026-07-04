@@ -199,7 +199,10 @@ export function useBrowserMidiPlayback() {
         URL.revokeObjectURL(previousSampleUrl);
       }
 
-      nextInstrument.connect(gain);
+      const currentGain = gainRef.current;
+      if (!currentGain) return;
+
+      nextInstrument.connect(currentGain);
       instrumentRef.current = nextInstrument;
       sampleUrlRef.current = nextSampleUrl;
       soundSourceKeyRef.current = soundSourceKey(settings);

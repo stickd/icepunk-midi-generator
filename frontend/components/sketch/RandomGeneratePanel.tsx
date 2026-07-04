@@ -1,8 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
-import MidiDropZone from "./MidiDropZone";
 
 export type GenerationSourceState = {
   source: GenerationSource;
@@ -21,6 +21,18 @@ const sourceOptions: Array<{ label: string; value: GenerationSource }> = [
   { label: "Factory", value: "FACTORY" },
   { label: "Custom", value: "CUSTOM_UPLOAD" },
 ];
+
+const MidiDropZone = dynamic(() => import("./MidiDropZone"), {
+  loading: () => (
+    <div className="grid gap-3">
+      <div className="grid min-h-[92px] place-items-center rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.03] p-6 text-center text-xs text-ice-muted">
+        Loading custom MIDI upload...
+      </div>
+      <div className="mx-auto h-7 w-[120px] rounded-full border border-white/[0.08] bg-white/[0.05]" />
+      <div className="h-[210px] rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)]" />
+    </div>
+  ),
+});
 
 export default function RandomGeneratePanel({
   sourceState,

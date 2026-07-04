@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GeneratedMidiItem } from "@/lib/api";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 import PianoRollPreview from "./PianoRollPreview";
@@ -12,7 +12,7 @@ type MidiThumbnailCarouselProps = {
   label?: string;
 };
 
-export default function MidiThumbnailCarousel({
+function MidiThumbnailCarousel({
   items,
   activeIndex,
   onSelect,
@@ -26,6 +26,7 @@ export default function MidiThumbnailCarousel({
     function updateVisibleCount() {
       if (!containerRef.current) return;
       const width = containerRef.current.offsetWidth;
+      if (width === 0) return;
       const itemWidth = width < 640 ? 104 : 120;
       const count = Math.max(1, Math.floor((width + 8) / itemWidth));
       setVisibleCount(count);
@@ -37,33 +38,34 @@ export default function MidiThumbnailCarousel({
   }, []);
 
   const maxStartIndex = Math.max(0, items.length - visibleCount);
-  const clampedStartIndex = Math.max(0, Math.min(startIndex, maxStartIndex));
+  const baseStartIndex = Math.max(0, Math.min(startIndex, maxStartIndex));
+  const clampedStartIndex =
+    activeIndex < baseStartIndex
+      ? activeIndex
+      : activeIndex >= baseStartIndex + visibleCount
+        ? Math.min(maxStartIndex, activeIndex - visibleCount + 1)
+        : baseStartIndex;
 
-  useEffect(() => {
-    setStartIndex((currentStart) => {
-      const maxStart = Math.max(0, items.length - visibleCount);
-      if (activeIndex < currentStart) {
-        return activeIndex;
-      }
-      if (activeIndex >= currentStart + visibleCount) {
-        return Math.min(maxStart, activeIndex - visibleCount + 1);
-      }
-      return Math.min(currentStart, maxStart);
-    });
-  }, [activeIndex, visibleCount, items.length]);
+  const visibleItems = useMemo(
+    () =>
+      items
+        .slice(clampedStartIndex, clampedStartIndex + visibleCount)
+        .map((item, visibleIndex) => ({
+          item,
+          index: clampedStartIndex + visibleIndex,
+        })),
+    [clampedStartIndex, items, visibleCount],
+  );
 
-  function handlePrev() {
+  const handlePrev = useCallback(() => {
     setStartIndex((current) => Math.max(0, current - 1));
-  }
+  }, []);
 
-  function handleNext() {
+  const handleNext = useCallback(() => {
     setStartIndex((current) => Math.min(maxStartIndex, current + 1));
-  }
+  }, [maxStartIndex]);
 
   if (!items || items.length <= 1) return null;
-
-  const itemStep = typeof window !== "undefined" && window.innerWidth < 640 ? 104 : 120;
-  const translateX = -(clampedStartIndex * itemStep);
 
   return (
     <div className="grid gap-2">
@@ -100,10 +102,9 @@ export default function MidiThumbnailCarousel({
 
       <div className="relative w-full overflow-hidden" ref={containerRef}>
         <div
-          className="flex items-center gap-2 py-1 transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(${translateX}px)` }}
+          className="flex items-center gap-2 py-1"
         >
-          {items.map((item, index) => {
+          {visibleItems.map(({ item, index }) => {
             const isActive = index === activeIndex;
             const hasPreviewNotes = Boolean(item.preview?.notes && item.preview.notes.length > 0);
 
@@ -124,9 +125,9 @@ export default function MidiThumbnailCarousel({
                 {hasPreviewNotes ? (
                   <PianoRollPreview
                     compact
-                    durationSeconds={item.durationSeconds ?? item.preview?.durationSeconds}
-                    maxPitch={item.maxPitch ?? item.preview?.maxPitch}
-                    minPitch={item.minPitch ?? item.preview?.minPitch}
+                    durationSeconds={item.durationSeconds}
+                    maxPitch={item.maxPitch}
+                    minPitch={item.minPitch}
                     notes={item.preview?.notes}
                   />
                 ) : (
@@ -150,3 +151,5 @@ export default function MidiThumbnailCarousel({
     </div>
   );
 }
+
+export default memo(MidiThumbnailCarousel);

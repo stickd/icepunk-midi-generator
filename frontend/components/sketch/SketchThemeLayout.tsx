@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Badge, Button, Panel } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import {
@@ -16,15 +16,11 @@ import {
   TOKEN_KEY,
 } from "@/lib/api";
 import CreatePackModal, { CreatePackDraft } from "./CreatePackModal";
-import GeneratedPackVisualizer from "./GeneratedPackVisualizer";
 import RandomGeneratePanel, {
   GenerationSourceState,
 } from "./RandomGeneratePanel";
-import SoundEngineCard from "./SoundEngineCard";
-import UserGenerationsFeed from "./UserGenerationsFeed";
 import { EtherealShadowBackground } from "@/components/ui/ethereal-shadow";
 import { InteractiveBubbleBackground, ToastNotification, UserAvatar } from "@/components/ui";
-import { AuroraBackground } from "@/components/ui/aurora-background";
 
 type AuthMode = "login" | "register" | null;
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
@@ -35,6 +31,30 @@ const TAB_BUTTON_ACTIVE =
   "border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary";
 
 const AuthModal = dynamic(() => import("@/components/AuthModal"), {
+  ssr: false,
+});
+
+const GeneratedPackVisualizer = dynamic(() => import("./GeneratedPackVisualizer"), {
+  loading: () => (
+    <div className="grid min-h-[360px] place-items-center rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.035] text-sm text-ice-muted">
+      Preparing generated pack...
+    </div>
+  ),
+  ssr: false,
+});
+
+const SoundEngineCard = dynamic(() => import("./SoundEngineCard"), {
+  ssr: false,
+});
+
+const UserGenerationsFeed = dynamic(() => import("./UserGenerationsFeed"), {
+  loading: () => (
+    <section className="grid min-h-[220px] content-start gap-4" aria-labelledby="user-generations-feed-placeholder">
+      <h2 className="pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl" id="user-generations-feed-placeholder">
+        Latest community packs
+      </h2>
+    </section>
+  ),
   ssr: false,
 });
 
@@ -78,7 +98,7 @@ export default function SketchThemeLayout() {
     getTokenSnapshot,
     getServerTokenSnapshot,
   );
-  const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
+  const [, setTotalGenerations] = useState<number | null>(null);
   const [usage, setUsage] = useState<GenerationUsageResponse | null>(null);
   const [meFetch, setMeFetch] = useState<{
     token: string;
@@ -98,6 +118,7 @@ export default function SketchThemeLayout() {
     isLooping: false,
   });
   const [activeMidiSource, setActiveMidiSource] = useState<string | null>(null);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
   const playback = useBrowserMidiPlayback();
   const stopPlayback = playback.stop;
   const updatePlaybackSettings = playback.updateSettings;
@@ -225,37 +246,55 @@ export default function SketchThemeLayout() {
   }
 
   const generatorScrollRef = useRef<HTMLDivElement>(null);
-  const feedScrollRef = useRef<HTMLDivElement>(null);
   const [genProgress, setGenProgress] = useState(0);
   const [feedProgress, setFeedProgress] = useState(0);
   const [isGenScrolling, setIsGenScrolling] = useState(false);
   const [isFeedScrolling, setIsFeedScrolling] = useState(false);
   const genTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const feedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const genScrollFrameRef = useRef<number | null>(null);
+  const feedScrollFrameRef = useRef<number | null>(null);
 
-  const handleGenScroll = () => {
-    const el = generatorScrollRef.current;
-    if (!el) return;
-    const max = el.scrollHeight - el.clientHeight;
-    setGenProgress(max > 0 ? el.scrollTop / max : 0);
+  useEffect(() => {
+    return () => {
+      if (genTimeoutRef.current) clearTimeout(genTimeoutRef.current);
+      if (feedTimeoutRef.current) clearTimeout(feedTimeoutRef.current);
+      if (genScrollFrameRef.current !== null) cancelAnimationFrame(genScrollFrameRef.current);
+      if (feedScrollFrameRef.current !== null) cancelAnimationFrame(feedScrollFrameRef.current);
+    };
+  }, []);
 
+  const handleGenScroll = useCallback(() => {
     setIsGenScrolling(true);
     if (genTimeoutRef.current) clearTimeout(genTimeoutRef.current);
     genTimeoutRef.current = setTimeout(() => setIsGenScrolling(false), 1200);
-  };
 
-  const handleFeedScroll = () => {
-    const el = feedScrollRef.current;
-    if (!el) return;
-    const max = el.scrollHeight - el.clientHeight;
-    setFeedProgress(max > 0 ? el.scrollTop / max : 0);
+    if (genScrollFrameRef.current !== null) return;
+    genScrollFrameRef.current = requestAnimationFrame(() => {
+      genScrollFrameRef.current = null;
+      const el = generatorScrollRef.current;
+      if (!el) return;
+      const max = el.scrollHeight - el.clientHeight;
+      setGenProgress(max > 0 ? el.scrollTop / max : 0);
+    });
+  }, []);
 
+  const handleFeedScroll = useCallback(() => {
     setIsFeedScrolling(true);
     if (feedTimeoutRef.current) clearTimeout(feedTimeoutRef.current);
     feedTimeoutRef.current = setTimeout(() => setIsFeedScrolling(false), 1200);
-  };
 
-  function startGeneration(draft: CreatePackDraft) {
+    if (feedScrollFrameRef.current !== null) return;
+    feedScrollFrameRef.current = requestAnimationFrame(() => {
+      feedScrollFrameRef.current = null;
+      const el = feedScrollRef.current;
+      if (!el) return;
+      const max = el.scrollHeight - el.clientHeight;
+      setFeedProgress(max > 0 ? el.scrollTop / max : 0);
+    });
+  }, []);
+
+  const startGeneration = useCallback((draft: CreatePackDraft) => {
     setActiveModal(null);
 
     return handleGenerateMidi({
@@ -269,7 +308,7 @@ export default function SketchThemeLayout() {
       tempAnalysisId: sourceState.tempAnalysisId,
       type: draft.type === "drums" ? "DRUMS" : "MELODY",
     });
-  }
+  }, [handleGenerateMidi, sourceState.source, sourceState.tempAnalysisId]);
 
   const handleActiveMidiChange = useCallback((midiUrl: string | null) => {
     setActiveMidiSource(midiUrl);
@@ -280,14 +319,21 @@ export default function SketchThemeLayout() {
     updatePlaybackSettings(nextSettings);
   }, [updatePlaybackSettings]);
 
-  function toggleMasterPlayback() {
+  const toggleMasterPlayback = useCallback(() => {
     if (playback.isPlaying) {
       playback.pause();
       return;
     }
 
     playback.play(activeMidiSource, soundEngine);
-  }
+  }, [activeMidiSource, playback, soundEngine]);
+
+  const openCreatePack = useCallback(() => setActiveModal("create"), []);
+
+  const requireLogin = useCallback(() => {
+    setAuthMode("login");
+    setAuthStatus("Sign up or log in to keep creating and downloading free of charge!");
+  }, []);
 
   return (
     <EtherealShadowBackground>
@@ -402,7 +448,7 @@ export default function SketchThemeLayout() {
                     />
                   ) : (
                     <RandomGeneratePanel
-                      onOpenCreatePack={() => setActiveModal("create")}
+                      onOpenCreatePack={openCreatePack}
                       onSourceStateChange={setSourceState}
                       onStubStatus={setStatus}
                       sourceState={sourceState}
@@ -449,10 +495,7 @@ export default function SketchThemeLayout() {
             >
               <UserGenerationsFeed
                 isLoggedIn={Boolean(token)}
-                onRequireLogin={() => {
-                  setAuthMode("login");
-                  setAuthStatus("Sign up or log in to keep creating and downloading free of charge!");
-                }}
+                onRequireLogin={requireLogin}
                 onStubStatus={setStatus}
                 soundEngine={soundEngine}
               />

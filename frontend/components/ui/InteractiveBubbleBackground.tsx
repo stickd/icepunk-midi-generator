@@ -22,33 +22,17 @@ export function InteractiveBubbleBackground({
   const rafId = useRef<number | null>(null);
 
   useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        mousePos.current = {
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top,
-        };
-      } else {
-        mousePos.current = {
-          x: event.clientX,
-          y: event.clientY,
-        };
+    const container = containerRef.current;
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!container || prefersReducedMotion) return;
+
+    const stopAnimation = () => {
+      if (rafId.current !== null) {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
       }
     };
 
-    // Initialize position at container center
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      mousePos.current = { x: rect.width / 2, y: rect.height / 2 };
-    } else {
-      mousePos.current = { x: 300, y: 250 };
-    }
-    currentPos.current = { ...mousePos.current };
-
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-
-    // Smooth lerp loop (linear interpolation with 0.08 damping)
     const animate = () => {
       const targetX = mousePos.current.x;
       const targetY = mousePos.current.y;
@@ -60,16 +44,35 @@ export function InteractiveBubbleBackground({
         interactiveBubbleRef.current.style.transform = `translate3d(${currentPos.current.x - 200}px, ${currentPos.current.y - 200}px, 0)`;
       }
 
-      rafId.current = requestAnimationFrame(animate);
+      if (Math.abs(targetX - currentPos.current.x) < 0.5 && Math.abs(targetY - currentPos.current.y) < 0.5) {
+        rafId.current = null;
+        return;
+      }
+
+      rafId.current = window.requestAnimationFrame(animate);
     };
 
-    rafId.current = requestAnimationFrame(animate);
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      mousePos.current = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+
+      if (rafId.current === null) {
+        rafId.current = window.requestAnimationFrame(animate);
+      }
+    };
+
+    const rect = container.getBoundingClientRect();
+    mousePos.current = { x: rect.width / 2, y: rect.height / 2 };
+    currentPos.current = { ...mousePos.current };
+
+    container.addEventListener("pointermove", handlePointerMove, { passive: true });
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (rafId.current !== null) {
-        cancelAnimationFrame(rafId.current);
-      }
+      container.removeEventListener("pointermove", handlePointerMove);
+      stopAnimation();
     };
   }, []);
 
@@ -94,7 +97,7 @@ export function InteractiveBubbleBackground({
                 numOctaves="3"
                 result="noise"
               >
-                <feAnimate
+                <animate
                   attributeName="baseFrequency"
                   values="0.018;0.028;0.018"
                   dur="20s"

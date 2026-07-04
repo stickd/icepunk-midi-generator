@@ -23,13 +23,22 @@ function feedResponse(items: Awaited<ReturnType<typeof getPublicGeneratedPackFee
     hasNext: false,
     items,
     page: 0,
-    size: 5,
+    size: 2,
     totalItems: items.length,
     totalPages: items.length > 0 ? 1 : 0,
   };
 }
 
 describe("UserGenerationsFeed", () => {
+  beforeAll(() => {
+    global.IntersectionObserver = jest.fn(() => ({
+      disconnect: jest.fn(),
+      observe: jest.fn(),
+      takeRecords: jest.fn(),
+      unobserve: jest.fn(),
+    })) as unknown as typeof IntersectionObserver;
+  });
+
   beforeEach(() => {
     getPublicGeneratedPackFeedMock.mockReset();
   });

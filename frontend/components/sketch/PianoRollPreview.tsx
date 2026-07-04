@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { MidiPreviewNote } from "@/lib/api";
 
 type PianoRollPreviewProps = {
@@ -17,7 +18,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-export default function PianoRollPreview({
+function PianoRollPreview({
   notes,
   minPitch,
   maxPitch,
@@ -27,15 +28,36 @@ export default function PianoRollPreview({
   label,
 }: PianoRollPreviewProps) {
   const heightStyle = heightClassName ?? (compact ? "h-[135px]" : "h-[180px]");
-  const safeNotes = (notes ?? []).filter(
-    (note) =>
-      Number.isFinite(note.pitch) &&
-      Number.isFinite(note.start) &&
-      Number.isFinite(note.duration) &&
-      note.duration > 0,
-  );
+  const preview = useMemo(() => {
+    const safeNotes = (notes ?? []).filter(
+      (note) =>
+        Number.isFinite(note.pitch) &&
+        Number.isFinite(note.start) &&
+        Number.isFinite(note.duration) &&
+        note.duration > 0,
+    );
 
-  if (safeNotes.length === 0) {
+    if (safeNotes.length === 0) {
+      return { safeNotes };
+    }
+
+    const derivedMinPitch = Math.min(...safeNotes.map((note) => note.pitch));
+    const derivedMaxPitch = Math.max(...safeNotes.map((note) => note.pitch));
+    const lowPitch = minPitch ?? derivedMinPitch;
+    const highPitch = maxPitch ?? derivedMaxPitch;
+    const pitchRange = Math.max(1, highPitch - lowPitch);
+    const maxNoteEnd = Math.max(...safeNotes.map((note) => note.start + note.duration));
+    const timeline = Math.max(durationSeconds ?? 0, maxNoteEnd, 1);
+
+    return {
+      lowPitch,
+      pitchRange,
+      safeNotes,
+      timeline,
+    };
+  }, [durationSeconds, maxPitch, minPitch, notes]);
+
+  if (preview.safeNotes.length === 0) {
     return (
       <div
         aria-label={label ?? "Preview unavailable"}
@@ -47,13 +69,9 @@ export default function PianoRollPreview({
     );
   }
 
-  const derivedMinPitch = Math.min(...safeNotes.map((note) => note.pitch));
-  const derivedMaxPitch = Math.max(...safeNotes.map((note) => note.pitch));
-  const lowPitch = minPitch ?? derivedMinPitch;
-  const highPitch = maxPitch ?? derivedMaxPitch;
-  const pitchRange = Math.max(1, highPitch - lowPitch);
-  const maxNoteEnd = Math.max(...safeNotes.map((note) => note.start + note.duration));
-  const timeline = Math.max(durationSeconds ?? 0, maxNoteEnd, 1);
+  const lowPitch = preview.lowPitch ?? 0;
+  const pitchRange = preview.pitchRange ?? 1;
+  const timeline = preview.timeline ?? 1;
   const laneHeight = VIEWBOX_HEIGHT / 12;
 
   return (
@@ -75,7 +93,7 @@ export default function PianoRollPreview({
           y2={index * laneHeight}
         />
       ))}
-      {safeNotes.map((note, index) => {
+      {preview.safeNotes.map((note, index) => {
         const x = clamp((note.start / timeline) * VIEWBOX_WIDTH, 0, VIEWBOX_WIDTH - 3);
         const width = clamp((note.duration / timeline) * VIEWBOX_WIDTH, 3, VIEWBOX_WIDTH - x);
         const pitchPosition = (note.pitch - lowPitch) / pitchRange;
@@ -99,3 +117,5 @@ export default function PianoRollPreview({
     </svg>
   );
 }
+
+export default memo(PianoRollPreview);

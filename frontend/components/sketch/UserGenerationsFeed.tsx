@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getPublicGeneratedPackFeed } from "@/lib/api";
 import type { PublicGeneratedPackFeedItem } from "@/lib/api";
 import { FEED_REFRESH_EVENT } from "@/lib/events";
@@ -16,7 +16,34 @@ type UserGenerationsFeedProps = {
   onRequireLogin?: () => void;
 };
 
-const FEED_PAGE_SIZE = 5;
+const FEED_PAGE_SIZE = 2;
+
+function mergeUniqueFeedItems(
+  currentItems: PublicGeneratedPackFeedItem[],
+  nextItems: PublicGeneratedPackFeedItem[],
+) {
+  const seen = new Set(currentItems.map((item) => item.packId));
+  const merged = [...currentItems];
+
+  nextItems.forEach((item) => {
+    if (seen.has(item.packId)) return;
+    seen.add(item.packId);
+    merged.push(item);
+  });
+
+  return merged;
+}
+
+function mergeFreshFeedItems(
+  currentItems: PublicGeneratedPackFeedItem[],
+  freshItems: PublicGeneratedPackFeedItem[],
+) {
+  const freshIds = new Set(freshItems.map((item) => item.packId));
+  return [
+    ...freshItems,
+    ...currentItems.filter((item) => !freshIds.has(item.packId)),
+  ];
+}
 
 export default function UserGenerationsFeed({
   onStubStatus,
@@ -24,22 +51,37 @@ export default function UserGenerationsFeed({
   isLoggedIn = false,
   onRequireLogin,
 }: UserGenerationsFeedProps) {
-  const [page, setPage] = useState(0);
   const [feedItems, setFeedItems] = useState<PublicGeneratedPackFeedItem[]>([]);
+  const [nextPage, setNextPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [feedMessage, setFeedMessage] = useState("");
   const [hasError, setHasError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [hasFeedScrollIntent, setHasFeedScrollIntent] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const inFlightPageRef = useRef<number | null>(null);
+  const hasFeedScrollIntentRef = useRef(false);
+
+  const refreshFeed = useCallback(() => {
+    setIsInitialLoading(true);
+    setIsPageLoading(false);
+    setHasError(false);
+    setNextPage(0);
+    setRefreshKey((currentKey) => currentKey + 1);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
+    inFlightPageRef.current = 0;
 
-    getPublicGeneratedPackFeed(page, FEED_PAGE_SIZE, controller.signal)
+    getPublicGeneratedPackFeed(0, FEED_PAGE_SIZE, controller.signal)
       .then((feed) => {
         setHasError(false);
         setFeedItems(feed.items);
         setHasNext(feed.hasNext);
+        setNextPage(feed.hasNext ? 1 : 0);
         setFeedMessage(
           feed.totalItems > 0
             ? `${feed.totalItems.toLocaleString()} public generated packs discovered.`
@@ -51,23 +93,91 @@ export default function UserGenerationsFeed({
 
         setFeedItems([]);
         setHasNext(false);
+        setNextPage(0);
         setHasError(true);
         setFeedMessage("Public feed is unavailable. Try again in a moment.");
       })
       .finally(() => {
+        inFlightPageRef.current = null;
         if (!controller.signal.aborted) {
-          setIsLoading(false);
+          setIsInitialLoading(false);
         }
       });
 
     return () => controller.abort();
-  }, [page, refreshKey]);
+  }, [refreshKey]);
+
+  const loadNextPage = useCallback(() => {
+    if (isInitialLoading || isPageLoading || hasError || !hasNext) return;
+    if (inFlightPageRef.current !== null) return;
+
+    const pageToLoad = nextPage;
+    inFlightPageRef.current = pageToLoad;
+    setIsPageLoading(true);
+
+    getPublicGeneratedPackFeed(pageToLoad, FEED_PAGE_SIZE)
+      .then((feed) => {
+        setHasError(false);
+        setFeedItems((currentItems) =>
+          mergeUniqueFeedItems(currentItems, feed.items),
+        );
+        setHasNext(feed.hasNext);
+        setNextPage(feed.hasNext ? pageToLoad + 1 : pageToLoad);
+        setFeedMessage(
+          feed.totalItems > 0
+            ? `${feed.totalItems.toLocaleString()} public generated packs discovered.`
+            : "No public generated packs yet.",
+        );
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (inFlightPageRef.current === pageToLoad) {
+          inFlightPageRef.current = null;
+        }
+        setIsPageLoading(false);
+      });
+  }, [hasError, hasNext, isInitialLoading, isPageLoading, nextPage]);
+
+  useEffect(() => {
+    const markScrollIntent = () => {
+      if (hasFeedScrollIntentRef.current) return;
+      hasFeedScrollIntentRef.current = true;
+      setHasFeedScrollIntent(true);
+    };
+
+    window.addEventListener("scroll", markScrollIntent, { passive: true });
+    window.addEventListener("wheel", markScrollIntent, { passive: true });
+    window.addEventListener("touchstart", markScrollIntent, { passive: true });
+    window.addEventListener("keydown", markScrollIntent);
+
+    return () => {
+      window.removeEventListener("scroll", markScrollIntent);
+      window.removeEventListener("wheel", markScrollIntent);
+      window.removeEventListener("touchstart", markScrollIntent);
+      window.removeEventListener("keydown", markScrollIntent);
+    };
+  }, []);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNext || hasError || isInitialLoading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!hasFeedScrollIntentRef.current) return;
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadNextPage();
+        }
+      },
+      { rootMargin: "240px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasError, hasFeedScrollIntent, hasNext, isInitialLoading, loadNextPage]);
 
   // Live background polling for real-time feed updates without page reloads
   useEffect(() => {
-    // Only background poll on the first page
-    if (page !== 0) return;
-
     const interval = setInterval(() => {
       getPublicGeneratedPackFeed(0, FEED_PAGE_SIZE)
         .then((feed) => {
@@ -75,8 +185,8 @@ export default function UserGenerationsFeed({
             setFeedItems((prev) => {
               const prevFirstId = prev[0]?.packId;
               const newFirstId = feed.items[0]?.packId;
-              if (prevFirstId !== newFirstId || prev.length !== feed.items.length) {
-                return feed.items;
+              if (prevFirstId !== newFirstId) {
+                return mergeFreshFeedItems(prev, feed.items);
               }
               return prev;
             });
@@ -92,24 +202,22 @@ export default function UserGenerationsFeed({
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [page]);
+  }, []);
 
   useEffect(() => {
-    function refreshFeed() {
-      setIsLoading(true);
-      setHasError(false);
-      setPage(0);
-      setRefreshKey((currentKey) => currentKey + 1);
-    }
-
     window.addEventListener(FEED_REFRESH_EVENT, refreshFeed);
 
     return () => {
       window.removeEventListener(FEED_REFRESH_EVENT, refreshFeed);
     };
-  }, []);
+  }, [refreshFeed]);
 
   const generations = useMemo(() => feedItems.map(toFeedGeneration), [feedItems]);
+
+  const handleRefreshClick = useCallback(() => {
+    refreshFeed();
+    onStubStatus("Public generated feed refreshed and sorted by newest packs.");
+  }, [onStubStatus, refreshFeed]);
 
   return (
     <section aria-labelledby="user-generations-feed" className="grid content-start gap-4">
@@ -129,13 +237,7 @@ export default function UserGenerationsFeed({
         </div>
         <button
           className="text-xs font-medium uppercase tracking-[0.06em] text-ice-muted transition-colors duration-150 ease-out hover:text-ice-primary"
-          onClick={() => {
-            setIsLoading(true);
-            setHasError(false);
-            setPage(0);
-            setRefreshKey((currentKey) => currentKey + 1);
-            onStubStatus("Public generated feed refreshed and sorted by newest packs.");
-          }}
+          onClick={handleRefreshClick}
           type="button"
         >
           Refresh ☰
@@ -143,18 +245,14 @@ export default function UserGenerationsFeed({
       </div>
 
       <p className="text-sm text-ice-secondary" role="status">
-        {isLoading ? "Loading public generated MIDI feed..." : feedMessage}
+        {isInitialLoading ? "Loading public generated MIDI feed..." : feedMessage}
       </p>
 
       {hasError ? (
         <EmptyState
           action={
             <Button
-              onClick={() => {
-                setIsLoading(true);
-                setHasError(false);
-                setRefreshKey((currentKey) => currentKey + 1);
-              }}
+              onClick={refreshFeed}
               size="sm"
               type="button"
             >
@@ -166,7 +264,7 @@ export default function UserGenerationsFeed({
         />
       ) : null}
 
-      {!hasError && !isLoading && generations.length === 0 ? (
+      {!hasError && !isInitialLoading && generations.length === 0 ? (
         <EmptyState
           description="Generate a public MIDI pack and it will appear here."
           title="No public generated MIDI packs yet."
@@ -188,32 +286,12 @@ export default function UserGenerationsFeed({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-center gap-3 pt-2">
-        <Button
-          disabled={page === 0 || isLoading}
-          onClick={() => {
-            setIsLoading(true);
-            setHasError(false);
-            setPage((currentPage) => Math.max(0, currentPage - 1));
-          }}
-          size="sm"
-          type="button"
-        >
-          &lt;
-        </Button>
-        <span className="text-xs text-ice-muted">Page {page + 1}</span>
-        <Button
-          disabled={!hasNext || isLoading}
-          onClick={() => {
-            setIsLoading(true);
-            setHasError(false);
-            setPage((currentPage) => currentPage + 1);
-          }}
-          size="sm"
-          type="button"
-        >
-          &gt;
-        </Button>
+      <div
+        aria-hidden={!hasNext}
+        className="grid min-h-8 place-items-center pt-2 text-xs text-ice-muted"
+        ref={sentinelRef}
+      >
+        {isPageLoading ? "Loading more packs..." : hasNext ? "Scroll for more" : "End of feed"}
       </div>
     </section>
   );

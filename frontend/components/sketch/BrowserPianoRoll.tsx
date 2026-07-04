@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { PianoRollData, PianoRollNote, useMidiPianoRoll } from "@/hooks/useMidiPianoRoll";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -153,7 +153,7 @@ function draw(
   }
 }
 
-export default function BrowserPianoRoll({
+function BrowserPianoRoll({
   isPlaying,
   midiFile,
   midiUrl = null,
@@ -276,3 +276,5 @@ export default function BrowserPianoRoll({
     </section>
   );
 }
+
+export default memo(BrowserPianoRoll);

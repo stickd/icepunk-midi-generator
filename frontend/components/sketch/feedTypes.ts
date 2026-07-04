@@ -10,6 +10,8 @@ export type FeedGeneration = {
   sound: string;
   type?: GenerationType;
   bpm?: number | null;
+  pitch?: number | null;
+  octaves?: number | null;
   packDownloadUrl?: string;
   items?: GeneratedMidiItem[];
   midiUrl?: string;
@@ -49,6 +51,8 @@ export function toFeedGeneration(item: PublicGeneratedPackFeedItem): FeedGenerat
     title: item.name,
     type: item.type,
     bpm: item.bpm,
+    pitch: item.pitch,
+    octaves: item.octaves,
     uploadedAt: item.createdAt,
     username: item.ownerUsername,
   };
