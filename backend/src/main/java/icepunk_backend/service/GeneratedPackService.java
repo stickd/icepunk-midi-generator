@@ -63,6 +63,10 @@ public class GeneratedPackService {
             GenerationRequest request,
             MidiGenerationService.GeneratedFiles generatedFiles
     ) {
+        if (owner == null) {
+            return uploadGuestGeneratedPack(request, generatedFiles);
+        }
+
         List<String> uploadedKeys = new ArrayList<>();
 
         try {
@@ -129,7 +133,7 @@ public class GeneratedPackService {
     public PublicGeneratedPackFeedResponse getPublicFeed(int page, int size) {
         int normalizedPage = Math.max(0, page);
         int normalizedSize = Math.max(1, Math.min(size, MAX_FEED_PAGE_SIZE));
-        Page<GeneratedPack> packs = packRepository.findByVisibilityOrderByCreatedAtDesc(
+        Page<GeneratedPack> packs = packRepository.findPublicAuthenticatedPacks(
                 GeneratedPackVisibility.PUBLIC,
                 PageRequest.of(normalizedPage, normalizedSize)
         );
@@ -148,7 +152,7 @@ public class GeneratedPackService {
     public PublicGeneratedPackFeedResponse getPublicFeedByUsername(String username, int page, int size) {
         int normalizedPage = Math.max(0, page);
         int normalizedSize = Math.max(1, Math.min(size, MAX_FEED_PAGE_SIZE));
-        Page<GeneratedPack> packs = packRepository.findByOwner_UsernameAndVisibilityOrderByCreatedAtDesc(
+        Page<GeneratedPack> packs = packRepository.findPublicAuthenticatedPacksByUsername(
                 username,
                 GeneratedPackVisibility.PUBLIC,
                 PageRequest.of(normalizedPage, normalizedSize)
@@ -248,6 +252,48 @@ public class GeneratedPackService {
         return pack;
     }
 
+    private GeneratedPackResponse uploadGuestGeneratedPack(
+            GenerationRequest request,
+            MidiGenerationService.GeneratedFiles generatedFiles
+    ) {
+        List<String> uploadedKeys = new ArrayList<>();
+
+        try {
+            List<GeneratedMidiItemResponse> items = new ArrayList<>();
+            int index = 0;
+
+            for (Path midiFile : generatedFiles.midiFiles()) {
+                MidiMetadataExtractor.MidiMetadata metadata = metadataExtractor.extract(midiFile);
+                GeneratedPackStorageService.StoredObject upload = storageService.uploadMidi(midiFile);
+                uploadedKeys.add(upload.objectKey());
+                items.add(toGuestItemResponse(index, midiFile.getFileName().toString(), upload, metadata));
+                index++;
+            }
+
+            GeneratedPackStorageService.StoredObject zipUpload = storageService.uploadZip(generatedFiles.zipPath());
+            uploadedKeys.add(zipUpload.objectKey());
+
+            return new GeneratedPackResponse(
+                    UUID.randomUUID(),
+                    normalizedPackName(request.getPackName()),
+                    request.getSource().name(),
+                    request.getType().name(),
+                    request.getBpm(),
+                    request.getPitch(),
+                    request.getOctaves(),
+                    request.getAmount(),
+                    OffsetDateTime.now(),
+                    zipUpload.publicUrl(),
+                    items
+            );
+        } catch (RuntimeException exception) {
+            uploadedKeys.forEach(storageService::deleteObjectQuietly);
+            log.warn("Guest generated pack upload failed; uploaded objects were cleaned where possible: {}",
+                    exception.getMessage());
+            throw exception;
+        }
+    }
+
     private List<GeneratedItemDraft> uploadMidiItems(List<Path> midiFiles, List<String> uploadedKeys) {
         List<GeneratedItemDraft> drafts = new ArrayList<>();
         int index = 0;
@@ -340,6 +386,28 @@ public class GeneratedPackService {
                 item.getAvgPitch(),
                 item.getBpm(),
                 previewFromMetadata(item.getMetadata())
+        );
+    }
+
+    private GeneratedMidiItemResponse toGuestItemResponse(
+            int index,
+            String fileName,
+            GeneratedPackStorageService.StoredObject upload,
+            MidiMetadataExtractor.MidiMetadata metadata
+    ) {
+        return new GeneratedMidiItemResponse(
+                UUID.randomUUID(),
+                index,
+                fileName,
+                upload.publicUrl(),
+                metadata.durationSeconds(),
+                metadata.noteCount(),
+                metadata.trackCount(),
+                metadata.minPitch(),
+                metadata.maxPitch(),
+                metadata.avgPitch(),
+                metadata.bpm(),
+                metadata.preview()
         );
     }
 

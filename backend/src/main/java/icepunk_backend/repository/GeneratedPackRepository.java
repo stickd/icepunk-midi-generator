@@ -23,7 +23,26 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
     List<GeneratedPack> findWithItemsByOwnerId(Long ownerId);
 
     @EntityGraph(attributePaths = "owner")
-    Page<GeneratedPack> findByVisibilityOrderByCreatedAtDesc(
+    @Query("""
+            select pack from GeneratedPack pack
+            join pack.owner owner
+            where pack.visibility = :visibility
+              and lower(owner.username) <> 'guest'
+            order by pack.createdAt desc
+            """)
+    Page<GeneratedPack> findPublicAuthenticatedPacks(GeneratedPackVisibility visibility, Pageable pageable);
+
+    @EntityGraph(attributePaths = "owner")
+    @Query("""
+            select pack from GeneratedPack pack
+            join pack.owner owner
+            where owner.username = :username
+              and pack.visibility = :visibility
+              and lower(owner.username) <> 'guest'
+            order by pack.createdAt desc
+            """)
+    Page<GeneratedPack> findPublicAuthenticatedPacksByUsername(
+            String username,
             GeneratedPackVisibility visibility,
             Pageable pageable
     );
