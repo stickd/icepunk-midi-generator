@@ -12,6 +12,7 @@ import { notifyFeedRefresh } from "@/lib/events";
 export function useMidiGeneration(
   onUnauthorized?: () => void,
   onGenerated?: (totalGenerations: number) => void,
+  onGuestLimitReached?: () => void,
 ) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState("");
@@ -46,13 +47,7 @@ export function useMidiGeneration(
           setStatus(
             "You've used your guest generation limit. Log in or create an account to unlock unlimited generations.",
           );
-          return;
-        }
-
-        if (error.message.includes("User daily generation limit reached")) {
-          setStatus(
-            "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
-          );
+          onGuestLimitReached?.();
           return;
         }
 

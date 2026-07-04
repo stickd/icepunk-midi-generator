@@ -13,8 +13,7 @@ import java.time.LocalDate;
 @Service
 public class GenerationLimitService {
 
-    private static final int GUEST_DAILY_LIMIT = 3;
-    private static final int USER_DAILY_LIMIT = 7;
+    private static final int GUEST_DAILY_LIMIT = 5;
 
     private final GuestUsageRepository guestUsageRepository;
     private final UserRepository userRepository;
@@ -42,13 +41,7 @@ public class GenerationLimitService {
 
     @Transactional(readOnly = true)
     public GenerationUsage getUserUsage(User user) {
-        User currentUser = userRepository.findByEmail(user.getEmail())
-                .orElseThrow();
-
-        LocalDate today = LocalDate.now();
-        int used = today.equals(currentUser.getGenerationDate()) ? currentUser.getGenerationsToday() : 0;
-
-        return new GenerationUsage(used, USER_DAILY_LIMIT);
+        return new GenerationUsage(0, 0);
     }
 
     public record GenerationUsage(int used, int limit) {
@@ -92,36 +85,10 @@ public class GenerationLimitService {
 
     @Transactional(readOnly = true)
     public void checkUserLimit(User user) {
-        User currentUser = userRepository.findByEmail(user.getEmail())
-                .orElseThrow();
-
-        LocalDate today = LocalDate.now();
-
-        if (isLimitReached(
-                currentUser.getGenerationDate(),
-                currentUser.getGenerationsToday(),
-                USER_DAILY_LIMIT,
-                today
-        )) {
-            throw new GenerationLimitException("User daily generation limit reached");
-        }
     }
 
     @Transactional
     public void incrementUserUsage(User user) {
-        User lockedUser = userRepository.findByEmailForUpdate(user.getEmail())
-                .orElseThrow();
-
-        LocalDate today = LocalDate.now();
-
-        resetUsageIfNeeded(lockedUser, today);
-
-        if (lockedUser.getGenerationsToday() >= USER_DAILY_LIMIT) {
-            throw new GenerationLimitException("User daily generation limit reached");
-        }
-
-        lockedUser.setGenerationsToday(lockedUser.getGenerationsToday() + 1);
-        userRepository.save(lockedUser);
     }
 
     private boolean isLimitReached(
@@ -140,10 +107,4 @@ public class GenerationLimitService {
         }
     }
 
-    private void resetUsageIfNeeded(User user, LocalDate today) {
-        if (!today.equals(user.getGenerationDate())) {
-            user.setGenerationDate(today);
-            user.setGenerationsToday(0);
-        }
-    }
 }
