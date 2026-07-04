@@ -71,11 +71,7 @@ export default function RandomGeneratePanel({
           onStubStatus={onStubStatus}
         />
       ) : (
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center backdrop-blur-md">
-          <p className="text-xs font-medium text-ice-secondary">
-            Factory IcePunk Dataset active — trained on dark melodic synth scales and cold polyphonic motifs.
-          </p>
-        </div>
+        null
       )}
 
       {/* Hero Generate Trigger CTA Area */}
