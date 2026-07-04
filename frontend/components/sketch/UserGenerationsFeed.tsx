@@ -327,7 +327,7 @@ export default function UserGenerationsFeed({
         />
       ) : null}
 
-      {!hasError && !isInitialLoading && generations.length === 0 ? (
+      {!hasError && isFeedActive && !isInitialLoading && generations.length === 0 ? (
         <EmptyState
           description="Generate a public MIDI pack and it will appear here."
           title="No public generated MIDI packs yet."

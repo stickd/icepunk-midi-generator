@@ -67,8 +67,12 @@ function draw(
   const height = canvas.clientHeight;
   if (width === 0 || height === 0) return;
 
-  canvas.width = Math.floor(width * dpr);
-  canvas.height = Math.floor(height * dpr);
+  const targetWidth = Math.floor(width * dpr);
+  const targetHeight = Math.floor(height * dpr);
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+  }
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   context.fillStyle = "#07070e";
@@ -167,10 +171,14 @@ function BrowserPianoRoll({
   const compact = size === "compact";
   const showPlayhead = !compact && (isPlaying || playbackPositionSeconds > 0);
   const playbackPositionRef = useRef(playbackPositionSeconds);
+  const renderRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     playbackPositionRef.current = playbackPositionSeconds;
-  }, [playbackPositionSeconds]);
+    if (!isPlaying || prefersReducedMotion()) {
+      renderRef.current?.();
+    }
+  }, [isPlaying, playbackPositionSeconds]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -186,6 +194,7 @@ function BrowserPianoRoll({
       draw(canvas, data, playbackPositionRef.current, showPlayhead, shimmerT);
     }
 
+    renderRef.current = render;
     render();
 
     if (shouldAnimate) {
@@ -203,8 +212,11 @@ function BrowserPianoRoll({
     return () => {
       observer.disconnect();
       if (frame !== null) cancelAnimationFrame(frame);
+      if (renderRef.current === render) {
+        renderRef.current = null;
+      }
     };
-  }, [pianoRoll.data, playbackPositionSeconds, showPlayhead, compact, isPlaying]);
+  }, [pianoRoll.data, showPlayhead, compact, isPlaying]);
 
   function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
     if (compact || !pianoRoll.data) return;

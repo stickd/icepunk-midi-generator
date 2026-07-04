@@ -35,12 +35,12 @@ function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-async function readMidiSource(source: Exclude<BrowserMidiSource, null>) {
+async function readMidiSource(source: Exclude<BrowserMidiSource, null>, signal?: AbortSignal) {
   if (source instanceof File) {
     return source.arrayBuffer();
   }
 
-  const response = await fetch(source);
+  const response = await fetch(source, { signal });
   if (!response.ok) {
     throw new Error(`HTTP_${response.status}`);
   }
@@ -123,6 +123,7 @@ export function useBrowserMidiPlayback() {
   const instrumentSwapIdRef = useRef(0);
   const loopEndRef = useRef<string | null>(null);
   const positionFrameRef = useRef<number | null>(null);
+  const playAbortControllerRef = useRef<AbortController | null>(null);
   const lastPositionUpdateRef = useRef(0);
 
   const stopPositionLoop = useCallback(() => {
@@ -151,6 +152,8 @@ export function useBrowserMidiPlayback() {
   const cleanup = useCallback(() => {
     playbackIdRef.current += 1;
     instrumentSwapIdRef.current += 1;
+    playAbortControllerRef.current?.abort();
+    playAbortControllerRef.current = null;
     stopPositionLoop();
     const Tone = activeToneRef.current;
 
@@ -309,6 +312,9 @@ export function useBrowserMidiPlayback() {
         cleanup();
         const playbackId = playbackIdRef.current + 1;
         playbackIdRef.current = playbackId;
+        const controller = new AbortController();
+        playAbortControllerRef.current = controller;
+        const isCurrentPlayback = () => playbackIdRef.current === playbackId && !controller.signal.aborted;
         setPositionSeconds(0);
 
         const [{ Midi }, Tone] = await Promise.all([
@@ -316,10 +322,17 @@ export function useBrowserMidiPlayback() {
           import("tone") as Promise<ToneModule>,
         ]);
 
+        if (!isCurrentPlayback()) return;
+
         activeToneRef.current = Tone;
         await Tone.start();
+        if (!isCurrentPlayback()) return;
 
-        const midi = new Midi(await readMidiSource(midiSource));
+        const midiBuffer = await readMidiSource(midiSource, controller.signal);
+        if (!isCurrentPlayback()) return;
+
+        const midi = new Midi(midiBuffer);
+        if (!isCurrentPlayback()) return;
         const notes = midi.tracks.flatMap((track) => track.notes);
         const sourceName = midiSourceLabel(midiSource);
         const playbackSettings = normalizeSettings(soundEngine);
@@ -398,6 +411,10 @@ export function useBrowserMidiPlayback() {
           setMessage(`Playing ${sourceName}${sourceLabel}.`);
         };
 
+        if (playAbortControllerRef.current === controller) {
+          playAbortControllerRef.current = null;
+        }
+
         const sampleFile = soundEngine?.sampleFile ?? null;
 
         if (sampleFile) {
@@ -430,7 +447,9 @@ export function useBrowserMidiPlayback() {
 
           startPlayback(synth, ` with ${preset}`);
         }
-      } catch {
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (playAbortControllerRef.current?.signal.aborted) return;
         cleanup();
         setStatus("error");
         setMessage("Browser MIDI playback failed.");
