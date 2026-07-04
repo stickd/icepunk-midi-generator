@@ -166,6 +166,11 @@ function BrowserPianoRoll({
   const pianoRoll = useMidiPianoRoll(midiFile ?? midiUrl);
   const compact = size === "compact";
   const showPlayhead = !compact && (isPlaying || playbackPositionSeconds > 0);
+  const playbackPositionRef = useRef(playbackPositionSeconds);
+
+  useEffect(() => {
+    playbackPositionRef.current = playbackPositionSeconds;
+  }, [playbackPositionSeconds]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -174,15 +179,16 @@ function BrowserPianoRoll({
     const data = pianoRoll.data;
     let frame: number | null = null;
     let shimmerT = 0;
+    const shouldAnimate = !compact && isPlaying && !prefersReducedMotion();
 
     function render() {
       if (!canvas) return;
-      draw(canvas, data, playbackPositionSeconds, showPlayhead, shimmerT);
+      draw(canvas, data, playbackPositionRef.current, showPlayhead, shimmerT);
     }
 
-    if (compact || prefersReducedMotion()) {
-      render();
-    } else {
+    render();
+
+    if (shouldAnimate) {
       const tick = () => {
         shimmerT += 0.004;
         render();
@@ -198,7 +204,7 @@ function BrowserPianoRoll({
       observer.disconnect();
       if (frame !== null) cancelAnimationFrame(frame);
     };
-  }, [pianoRoll.data, playbackPositionSeconds, showPlayhead, compact]);
+  }, [pianoRoll.data, playbackPositionSeconds, showPlayhead, compact, isPlaying]);
 
   function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
     if (compact || !pianoRoll.data) return;

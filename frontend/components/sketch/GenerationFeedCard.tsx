@@ -4,7 +4,6 @@ import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
-import BrowserPianoRoll from "./BrowserPianoRoll";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
 import PianoRollPreview from "./PianoRollPreview";
 import { FeedGeneration } from "./feedTypes";
@@ -44,7 +43,6 @@ function GenerationFeedCard({
   onRequireLogin,
 }: GenerationFeedCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isInteractivePreviewOpen, setIsInteractivePreviewOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const playback = useBrowserMidiPlayback();
   const updatePlaybackSettings = playback.updateSettings;
@@ -54,19 +52,10 @@ function GenerationFeedCard({
   const hasMultipleItems = items.length > 1;
   const previewNotes = activeItem?.preview?.notes ?? null;
   const hasPreviewNotes = Boolean(previewNotes && previewNotes.length > 0);
-  const showInteractivePreview = isInteractivePreviewOpen || !hasPreviewNotes;
 
   useEffect(() => {
     updatePlaybackSettings(soundEngine);
   }, [soundEngine, updatePlaybackSettings]);
-
-  useEffect(() => {
-    setIsInteractivePreviewOpen(false);
-  }, [activeItem?.id]);
-
-  const openInteractivePreview = useCallback(() => {
-    setIsInteractivePreviewOpen(true);
-  }, []);
 
   const togglePreview = useCallback(() => {
     if (!midiUrl) return;
@@ -76,7 +65,6 @@ function GenerationFeedCard({
       return;
     }
 
-    setIsInteractivePreviewOpen(true);
     playback.play(midiUrl, soundEngine);
   }, [midiUrl, playback, soundEngine]);
 
@@ -107,7 +95,6 @@ function GenerationFeedCard({
   const handleSelectItem = useCallback(
     (index: number) => {
       playback.stop();
-      setIsInteractivePreviewOpen(false);
       setActiveIndex(index);
     },
     [playback],
@@ -188,31 +175,18 @@ function GenerationFeedCard({
           </div>
 
           {/* Piano Roll Visualizer */}
-          {showInteractivePreview ? (
-            <BrowserPianoRoll
-              isPlaying={playback.isPlaying}
-              midiFile={null}
-              midiUrl={midiUrl}
-              playbackPositionSeconds={playback.positionSeconds}
+          {hasPreviewNotes ? (
+            <PianoRollPreview
+              durationSeconds={activeItem?.durationSeconds}
+              heightClassName="h-[210px]"
+              label={`${activeItem?.fileName ?? generation.title} preview`}
+              maxPitch={activeItem?.maxPitch}
+              minPitch={activeItem?.minPitch}
+              notes={previewNotes}
             />
           ) : (
-            <div className="relative">
-              <PianoRollPreview
-                durationSeconds={activeItem?.durationSeconds}
-                heightClassName="h-[210px]"
-                label={`${activeItem?.fileName ?? generation.title} preview`}
-                maxPitch={activeItem?.maxPitch}
-                minPitch={activeItem?.minPitch}
-                notes={previewNotes}
-              />
-              <button
-                className="absolute bottom-3 right-3 rounded-full border border-white/[0.12] bg-black/70 px-3 py-1.5 text-[11px] font-medium text-ice-primary backdrop-blur-md transition-colors duration-150 ease-out hover:bg-black/85 disabled:pointer-events-none disabled:opacity-40"
-                disabled={!midiUrl}
-                onClick={openInteractivePreview}
-                type="button"
-              >
-                Load interactive preview
-              </button>
+            <div className="grid h-[210px] place-items-center bg-[color:var(--ice-bg-canvas)] p-3 text-center text-xs text-ice-muted">
+              Preview unavailable
             </div>
           )}
 

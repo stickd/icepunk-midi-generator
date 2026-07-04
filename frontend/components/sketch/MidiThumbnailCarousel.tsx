@@ -2,7 +2,6 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GeneratedMidiItem } from "@/lib/api";
-import BrowserPianoRoll from "./BrowserPianoRoll";
 import PianoRollPreview from "./PianoRollPreview";
 
 type MidiThumbnailCarouselProps = {
@@ -131,13 +130,9 @@ function MidiThumbnailCarousel({
                     notes={item.preview?.notes}
                   />
                 ) : (
-                  <BrowserPianoRoll
-                    isPlaying={false}
-                    midiFile={null}
-                    midiUrl={item.downloadUrl}
-                    playbackPositionSeconds={0}
-                    size="compact"
-                  />
+                  <span className="grid h-full w-full place-items-center bg-[color:var(--ice-bg-canvas)] px-2 text-center text-[10px] font-medium text-ice-muted">
+                    Preview unavailable
+                  </span>
                 )}
 
                 <span className="pointer-events-none absolute left-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90 shadow-sm backdrop-blur-sm">

@@ -54,17 +54,29 @@ export default function UserGenerationsFeed({
   const [feedItems, setFeedItems] = useState<PublicGeneratedPackFeedItem[]>([]);
   const [nextPage, setNextPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isFeedActive, setIsFeedActive] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [feedMessage, setFeedMessage] = useState("");
   const [hasError, setHasError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [hasFeedScrollIntent, setHasFeedScrollIntent] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState !== "hidden");
+  const feedRef = useRef<HTMLElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const inFlightPageRef = useRef<number | null>(null);
+  const isFeedActiveRef = useRef(false);
+  const isFeedVisibleRef = useRef(false);
   const hasFeedScrollIntentRef = useRef(false);
 
-  const refreshFeed = useCallback(() => {
+  const activateFeed = useCallback(() => {
+    if (isFeedActiveRef.current) return;
+    isFeedActiveRef.current = true;
+    setIsFeedActive(true);
+    setIsInitialLoading(true);
+  }, []);
+
+  const requestFeedRefresh = useCallback(() => {
     setIsInitialLoading(true);
     setIsPageLoading(false);
     setHasError(false);
@@ -72,7 +84,14 @@ export default function UserGenerationsFeed({
     setRefreshKey((currentKey) => currentKey + 1);
   }, []);
 
+  const refreshFeed = useCallback(() => {
+    if (!isFeedActiveRef.current) return;
+    requestFeedRefresh();
+  }, [requestFeedRefresh]);
+
   useEffect(() => {
+    if (!isFeedActive || !isPageVisible) return;
+
     const controller = new AbortController();
     inFlightPageRef.current = 0;
 
@@ -105,10 +124,10 @@ export default function UserGenerationsFeed({
       });
 
     return () => controller.abort();
-  }, [refreshKey]);
+  }, [isFeedActive, isPageVisible, refreshKey]);
 
   const loadNextPage = useCallback(() => {
-    if (isInitialLoading || isPageLoading || hasError || !hasNext) return;
+    if (!isFeedActive || !isPageVisible || isInitialLoading || isPageLoading || hasError || !hasNext) return;
     if (inFlightPageRef.current !== null) return;
 
     const pageToLoad = nextPage;
@@ -136,13 +155,47 @@ export default function UserGenerationsFeed({
         }
         setIsPageLoading(false);
       });
-  }, [hasError, hasNext, isInitialLoading, isPageLoading, nextPage]);
+  }, [hasError, hasNext, isFeedActive, isInitialLoading, isPageLoading, isPageVisible, nextPage]);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const isVisible = entries.some((entry) => entry.isIntersecting);
+        isFeedVisibleRef.current = isVisible;
+
+        if (isVisible && hasFeedScrollIntentRef.current) {
+          activateFeed();
+        }
+      },
+      { threshold: 0.01 },
+    );
+
+    observer.observe(feed);
+    return () => observer.disconnect();
+  }, [activateFeed]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(document.visibilityState !== "hidden");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
     const markScrollIntent = () => {
-      if (hasFeedScrollIntentRef.current) return;
-      hasFeedScrollIntentRef.current = true;
-      setHasFeedScrollIntent(true);
+      if (!hasFeedScrollIntentRef.current) {
+        hasFeedScrollIntentRef.current = true;
+        setHasFeedScrollIntent(true);
+      }
+
+      if (isFeedVisibleRef.current) {
+        activateFeed();
+      }
     };
 
     window.addEventListener("scroll", markScrollIntent, { passive: true });
@@ -156,11 +209,11 @@ export default function UserGenerationsFeed({
       window.removeEventListener("touchstart", markScrollIntent);
       window.removeEventListener("keydown", markScrollIntent);
     };
-  }, []);
+  }, [activateFeed]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNext || hasError || isInitialLoading) return;
+    if (!sentinel || !isFeedActive || !isPageVisible || !hasNext || hasError || isInitialLoading) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -174,10 +227,12 @@ export default function UserGenerationsFeed({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasError, hasFeedScrollIntent, hasNext, isInitialLoading, loadNextPage]);
+  }, [hasError, hasFeedScrollIntent, hasNext, isFeedActive, isInitialLoading, isPageVisible, loadNextPage]);
 
   // Live background polling for real-time feed updates without page reloads
   useEffect(() => {
+    if (!isFeedActive || !isPageVisible) return;
+
     const interval = setInterval(() => {
       getPublicGeneratedPackFeed(0, FEED_PAGE_SIZE)
         .then((feed) => {
@@ -202,7 +257,7 @@ export default function UserGenerationsFeed({
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isFeedActive, isPageVisible]);
 
   useEffect(() => {
     window.addEventListener(FEED_REFRESH_EVENT, refreshFeed);
@@ -215,12 +270,16 @@ export default function UserGenerationsFeed({
   const generations = useMemo(() => feedItems.map(toFeedGeneration), [feedItems]);
 
   const handleRefreshClick = useCallback(() => {
-    refreshFeed();
+    if (!isFeedActiveRef.current) {
+      activateFeed();
+    }
+
+    requestFeedRefresh();
     onStubStatus("Public generated feed refreshed and sorted by newest packs.");
-  }, [onStubStatus, refreshFeed]);
+  }, [activateFeed, onStubStatus, requestFeedRefresh]);
 
   return (
-    <section aria-labelledby="user-generations-feed" className="grid content-start gap-4">
+    <section aria-labelledby="user-generations-feed" className="grid content-start gap-4" ref={feedRef}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div className="flex items-center gap-3">
           <h2 className="flex items-center gap-3 pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl" id="user-generations-feed">
@@ -245,7 +304,11 @@ export default function UserGenerationsFeed({
       </div>
 
       <p className="text-sm text-ice-secondary" role="status">
-        {isInitialLoading ? "Loading public generated MIDI feed..." : feedMessage}
+        {!isFeedActive
+          ? "Scroll to load public generated MIDI feed."
+          : isInitialLoading
+            ? "Loading public generated MIDI feed..."
+            : feedMessage}
       </p>
 
       {hasError ? (
