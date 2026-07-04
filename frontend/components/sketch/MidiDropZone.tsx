@@ -1,7 +1,7 @@
 "use client";
 
 import { DragEvent, useRef, useState } from "react";
-import { Button } from "@/components/ui";
+import { Button, ToastNotification } from "@/components/ui";
 import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { analyzeTempMidiFiles } from "@/lib/api";
 import BrowserPianoRoll from "./BrowserPianoRoll";
@@ -12,7 +12,7 @@ type MidiDropZoneProps = {
   onStubStatus: (message: string) => void;
 };
 
-const MAX_CUSTOM_MIDI_FILES = 8;
+const MAX_CUSTOM_MIDI_FILES = 100;
 
 function isMidiFile(file: File) {
   const name = file.name.toLowerCase();
@@ -41,18 +41,15 @@ export default function MidiDropZone({
 
     if (files.length === 0) {
       setAnalysisStatus("error");
-      setAnalysisMessage("Drop 1-8 .mid/.midi files.");
+      setAnalysisMessage("Drop 1-100 .mid/.midi files.");
       onAnalysisReset();
       return;
     }
 
     setMidiFiles(files);
-    setAnalysisStatus("idle");
-    setAnalysisMessage(
-      `${files.length} MIDI file${files.length === 1 ? "" : "s"} staged for custom analysis.`,
-    );
     onAnalysisReset();
-    onStubStatus("Custom MIDI files are staged. Analyze them before generating.");
+    onStubStatus("Custom MIDI files uploaded. Analyzing automatically...");
+    void analyzeFiles(files);
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
@@ -61,17 +58,11 @@ export default function MidiDropZone({
     handleFiles(event.dataTransfer.files);
   }
 
-  async function analyzeFiles() {
-    if (midiFiles.length === 0) {
-      setAnalysisStatus("error");
-      setAnalysisMessage("Choose at least one MIDI file first.");
-      return;
-    }
-
+  async function analyzeFiles(files: File[]) {
     try {
       setAnalysisStatus("analyzing");
       setAnalysisMessage("Analyzing uploaded MIDI structure...");
-      const response = await analyzeTempMidiFiles(midiFiles);
+      const response = await analyzeTempMidiFiles(files);
       setAnalysisStatus("success");
       setAnalysisMessage(
         `${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`,
@@ -112,26 +103,22 @@ export default function MidiDropZone({
           ↧
         </span>
         <span className="text-sm font-medium text-ice-primary">Upload your midis</span>
-        <span className="text-xs text-ice-muted">1-8 .mid/.midi files</span>
+        <span className="text-xs text-ice-muted">1-100 .mid/.midi files</span>
       </label>
 
       <div className="flex flex-wrap justify-center gap-2">
         <button
           className="max-w-[220px] truncate rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-xs text-ice-secondary transition-colors duration-150 ease-out hover:bg-white/[0.08] hover:text-ice-primary"
+          disabled={analysisStatus === "analyzing"}
           onClick={() => midiInputRef.current?.click()}
           type="button"
         >
-          {midiFiles.length > 0 ? `${midiFiles.length} MIDI selected` : "Choose MIDIs"}
+          {analysisStatus === "analyzing"
+            ? "Analyzing..."
+            : midiFiles.length > 0
+              ? `${midiFiles.length} MIDI selected`
+              : "Choose MIDIs"}
         </button>
-        <Button
-          disabled={analysisStatus === "analyzing" || midiFiles.length === 0}
-          onClick={analyzeFiles}
-          size="sm"
-          type="button"
-          variant="primary"
-        >
-          {analysisStatus === "analyzing" ? "Analyzing..." : "Analyze MIDIs"}
-        </Button>
       </div>
 
       {midiFiles.length > 0 ? (
@@ -175,9 +162,13 @@ export default function MidiDropZone({
         </Button>
       </div>
 
-      <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
-        {analysisMessage || playback.message}
-      </p>
+      {analysisMessage || playback.message ? (
+        <ToastNotification
+          message={analysisMessage || playback.message}
+          onClose={() => setAnalysisMessage("")}
+          type={analysisStatus === "error" ? "error" : analysisStatus === "success" ? "success" : "info"}
+        />
+      ) : null}
 
       <BrowserPianoRoll
         isPlaying={playback.isPlaying}

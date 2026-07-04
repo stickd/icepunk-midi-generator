@@ -10,8 +10,8 @@ test('key controls are visible and usable at a mobile viewport', async ({ page }
 
   const viewportWidth = page.viewportSize()!.width
 
-  const title = page.getByRole('heading', { name: 'Midis Generator' })
-  const generateButton = page.getByRole('button', { name: 'Generate random' })
+  const title = page.getByRole('heading', { name: 'Generator' })
+  const generateButton = page.getByRole('button', { name: 'Generate' })
 
   await expect(title).toBeVisible()
   await expect(generateButton).toBeVisible()

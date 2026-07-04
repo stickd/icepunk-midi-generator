@@ -28,6 +28,33 @@ public class GenerationLimitService {
     }
 
     @Transactional(readOnly = true)
+    public GenerationUsage getGuestUsage(String ipAddress) {
+        LocalDate today = LocalDate.now();
+
+        GuestUsage guestUsage = guestUsageRepository
+                .findByIpAddress(ipAddress)
+                .orElseGet(() -> new GuestUsage(ipAddress));
+
+        int used = today.equals(guestUsage.getGenerationDate()) ? guestUsage.getGenerationsToday() : 0;
+
+        return new GenerationUsage(used, GUEST_DAILY_LIMIT);
+    }
+
+    @Transactional(readOnly = true)
+    public GenerationUsage getUserUsage(User user) {
+        User currentUser = userRepository.findByEmail(user.getEmail())
+                .orElseThrow();
+
+        LocalDate today = LocalDate.now();
+        int used = today.equals(currentUser.getGenerationDate()) ? currentUser.getGenerationsToday() : 0;
+
+        return new GenerationUsage(used, USER_DAILY_LIMIT);
+    }
+
+    public record GenerationUsage(int used, int limit) {
+    }
+
+    @Transactional(readOnly = true)
     public void checkGuestLimit(String ipAddress) {
         LocalDate today = LocalDate.now();
 

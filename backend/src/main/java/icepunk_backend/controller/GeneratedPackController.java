@@ -51,6 +51,15 @@ public class GeneratedPackController {
         return generatedPackService.getPublicFeed(page, size);
     }
 
+    @GetMapping("/users/{username}/generated-packs")
+    public PublicGeneratedPackFeedResponse publicFeedByUsername(
+            @PathVariable String username,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ) {
+        return generatedPackService.getPublicFeedByUsername(username, page, size);
+    }
+
     @GetMapping("/generated-packs/{packId}/download")
     public ResponseEntity<ByteArrayResource> downloadPack(@PathVariable UUID packId) {
         return generatedPackService.getPackDownload(packId)

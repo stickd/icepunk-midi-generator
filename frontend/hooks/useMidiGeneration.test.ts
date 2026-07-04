@@ -91,7 +91,7 @@ describe("useMidiGeneration", () => {
     });
 
     expect(result.current.status).toBe(
-      "You've used your free daily generation. Log in or create an account to unlock more generations.",
+      "You've used your guest generation limit. Log in or create an account to unlock unlimited generations.",
     );
     expect(onUnauthorized).not.toHaveBeenCalled();
     expect(result.current.isGenerating).toBe(false);
@@ -107,7 +107,7 @@ describe("useMidiGeneration", () => {
     });
 
     expect(result.current.status).toBe(
-      "You've reached today's generation limit. Please try again tomorrow.",
+      "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
     );
   });
 

@@ -37,11 +37,11 @@ type ButtonSize = "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "border-[rgba(188,200,255,0.5)] bg-[linear-gradient(180deg,rgba(160,174,255,0.42),rgba(92,108,255,0.24))] text-white shadow-[0_18px_54px_rgba(92,108,255,0.28),inset_0_1px_0_rgba(255,255,255,0.22)] hover:border-[rgba(220,228,255,0.65)] hover:bg-[linear-gradient(180deg,rgba(178,190,255,0.5),rgba(106,122,255,0.3))] hover:shadow-[0_22px_70px_rgba(92,108,255,0.36),0_0_34px_rgba(110,231,255,0.09),inset_0_1px_0_rgba(255,255,255,0.26)]",
+    "border-[rgba(188,200,255,0.45)] bg-[linear-gradient(180deg,rgba(160,174,255,0.38),rgba(92,108,255,0.22))] text-white shadow-[0_12px_40px_rgba(92,108,255,0.25),inset_0_1px_0_rgba(255,255,255,0.28)] hover:border-[rgba(220,228,255,0.65)] hover:bg-[linear-gradient(180deg,rgba(178,190,255,0.48),rgba(106,122,255,0.28))] hover:shadow-[0_16px_50px_rgba(92,108,255,0.35),0_0_24px_rgba(110,231,255,0.12),inset_0_1px_0_rgba(255,255,255,0.35)] hover:scale-[1.015]",
   secondary:
-    "border-[color:var(--ice-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.038))] text-[color:var(--ice-text-secondary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] hover:border-[color:var(--ice-border-strong)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.052))] hover:text-[color:var(--ice-text-primary)]",
+    "border-white/[0.12] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-white/[0.22] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] hover:text-white hover:scale-[1.015]",
   ghost:
-    "border-transparent bg-transparent text-[color:var(--ice-text-secondary)] hover:bg-[rgba(255,255,255,0.06)] hover:text-[color:var(--ice-text-primary)]",
+    "border-transparent bg-transparent text-white/80 hover:bg-white/[0.08] hover:text-white hover:scale-[1.015]",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -62,13 +62,13 @@ export function Button({
   return (
     <button
       className={cn(
-        "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border font-semibold tracking-[0.02em] outline-none",
-        "transition-[background,border-color,color,box-shadow,transform,opacity] duration-200 ease-out",
+        "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border font-semibold tracking-[0.02em] outline-none backdrop-blur-md",
+        "transition-all duration-300 ease-out",
         "focus-visible:ring-2 focus-visible:ring-[rgba(160,174,255,0.5)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--ice-bg)]",
         "disabled:pointer-events-none disabled:opacity-45",
         "active:scale-[0.975]",
-        "before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_44%)] before:opacity-70",
-        "after:pointer-events-none after:absolute after:inset-x-[16%] after:top-0 after:h-px after:bg-white/30",
+        "before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_60%)] before:opacity-60 before:transition-opacity before:duration-300 hover:before:opacity-100",
+        "after:pointer-events-none after:absolute after:inset-x-[12%] after:top-0 after:h-px after:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent)]",
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -102,10 +102,11 @@ export function Panel({
     <div
       className={cn(
         "relative overflow-hidden rounded-[var(--ice-radius-card)] border border-[color:var(--ice-border)]",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.032))]",
-        "text-[color:var(--ice-text-primary)] backdrop-blur-2xl",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-        "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_0%,rgba(132,146,255,0.11),transparent_34%),radial-gradient(circle_at_92%_6%,rgba(110,231,255,0.06),transparent_28%)]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.028))]",
+        "text-[color:var(--ice-text-primary)] backdrop-blur-2xl transition-all duration-300",
+        "shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_36px_rgba(132,146,255,0.05)]",
+        "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_0%,rgba(132,146,255,0.12),transparent_34%),radial-gradient(circle_at_92%_6%,rgba(110,231,255,0.07),transparent_28%)]",
+        "hover:border-white/[0.16] hover:shadow-[0_24px_70px_rgba(0,0,0,0.6),0_0_46px_rgba(132,146,255,0.12)]",
         elevated && "shadow-[var(--ice-shadow-card)]",
         className,
       )}
@@ -119,11 +120,11 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
     <div
       className={cn(
         "relative overflow-hidden rounded-[var(--ice-radius-card)] border border-[color:var(--ice-border)]",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.038))]",
-        "text-[color:var(--ice-text-primary)] backdrop-blur-2xl",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.032))]",
+        "text-[color:var(--ice-text-primary)] backdrop-blur-2xl transition-all duration-300",
         "shadow-[var(--ice-shadow-card)]",
-        "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_16%_0%,rgba(132,146,255,0.13),transparent_36%),radial-gradient(circle_at_88%_8%,rgba(110,231,255,0.07),transparent_30%)]",
-        "after:pointer-events-none after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-white/[0.12]",
+        "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_16%_0%,rgba(132,146,255,0.14),transparent_36%),radial-gradient(circle_at_88%_8%,rgba(110,231,255,0.08),transparent_30%)]",
+        "hover:border-white/[0.18] hover:shadow-[0_24px_70px_rgba(0,0,0,0.65),0_0_50px_rgba(132,146,255,0.15)]",
         className,
       )}
       {...props}
@@ -176,7 +177,16 @@ export function Select({
   className,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn(controlClasses, className)} {...props} />;
+  return (
+    <select
+      className={cn(
+        controlClasses,
+        "[&>option]:bg-[#141722] [&>option]:text-white [&>option]:py-2 [&>option]:px-3",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function Badge({
@@ -230,30 +240,32 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-full border border-[color:var(--ice-border)] bg-[rgba(255,255,255,0.04)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl",
+        "inline-flex rounded-full border border-white/[0.12] bg-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl",
         className,
       )}
       role="tablist"
     >
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          role="tab"
-          aria-selected={option.value === value}
-          onClick={() => onChange(option.value)}
-          className={cn(
-            "rounded-full px-4 py-1.5 text-sm font-medium text-[color:var(--ice-text-muted)] outline-none",
-            "transition-[background,color,box-shadow] duration-200 ease-out",
-            "focus-visible:ring-2 focus-visible:ring-[rgba(160,174,255,0.5)]",
-            option.value === value
-              ? "bg-[linear-gradient(180deg,rgba(160,174,255,0.28),rgba(100,116,255,0.15))] text-[color:var(--ice-accent-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.13),0_10px_24px_rgba(92,108,255,0.16)]"
-              : "hover:bg-[rgba(255,255,255,0.06)] hover:text-[color:var(--ice-text-primary)]",
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
+      {options.map((option) => {
+        const isSelected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={isSelected}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm outline-none transition-all duration-200 ease-out",
+              "focus-visible:ring-2 focus-visible:ring-[rgba(160,174,255,0.5)]",
+              isSelected
+                ? "bg-[linear-gradient(180deg,rgba(160,174,255,0.36),rgba(100,116,255,0.22))] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_24px_rgba(92,108,255,0.25)]"
+                : "font-semibold text-white/80 hover:bg-white/[0.08] hover:text-white",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -325,5 +337,50 @@ export function EmptyState({
         {action && <div className="mt-6">{action}</div>}
       </div>
     </Panel>
+  );
+}
+
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  className,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-xl">
+      <section
+        aria-labelledby="modal-title"
+        aria-modal="true"
+        className={cn(
+          "w-full max-w-lg rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[#0c0c16] shadow-[var(--ice-shadow-card)] backdrop-blur-2xl",
+          className,
+        )}
+        role="dialog"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] p-5">
+          <h2 className="text-xl font-semibold text-ice-primary" id="modal-title">
+            {title}
+          </h2>
+          <button
+            aria-label="Close"
+            className="grid h-8 w-8 place-items-center rounded-full text-ice-secondary transition-colors duration-150 ease-out hover:bg-white/[0.08] hover:text-ice-primary"
+            onClick={onClose}
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </section>
+    </div>
   );
 }

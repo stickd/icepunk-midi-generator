@@ -62,6 +62,21 @@ class SecurityConfigTest {
     }
 
     @Test
+    void publicUserGeneratedPacksFeedIsReachableWithoutToken() throws Exception {
+        mockMvc.perform(get("/users/somebody/generated-packs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray());
+    }
+
+    @Test
+    void ownGeneratedPacksListRequiresAuthenticationDespiteUsersWildcard() throws Exception {
+        // "/users/me/generated-packs" must NOT be swallowed by the public
+        // "/users/*/generated-packs" wildcard below it.
+        mockMvc.perform(get("/users/me/generated-packs"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void protectedEndpointWithInvalidTokenIsForbidden() throws Exception {
         // JwtAuthFilter swallows a malformed/expired token and continues
         // unauthenticated, so the request still hits anyRequest().authenticated()

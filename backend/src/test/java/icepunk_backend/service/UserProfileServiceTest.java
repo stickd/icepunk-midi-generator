@@ -9,6 +9,7 @@ import icepunk_backend.model.ProjectLike;
 import icepunk_backend.model.UploadVisibility;
 import icepunk_backend.model.User;
 import icepunk_backend.model.UserUploadedProject;
+import icepunk_backend.repository.GeneratedPackRepository;
 import icepunk_backend.repository.ProjectLikeRepository;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.repository.UserUploadedProjectRepository;
@@ -45,6 +46,9 @@ class UserProfileServiceTest {
     private UserUploadedProjectRepository projectRepository;
 
     @Mock
+    private GeneratedPackRepository generatedPackRepository;
+
+    @Mock
     private ProjectLikeRepository likeRepository;
 
     @Mock
@@ -57,7 +61,7 @@ class UserProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserProfileService(userRepository, projectRepository, likeRepository, storageService);
+        service = new UserProfileService(userRepository, projectRepository, generatedPackRepository, likeRepository, storageService);
 
         owner = new User("maco", "maco@example.com", "hash");
         owner.setId(1L);
@@ -83,6 +87,7 @@ class UserProfileServiceTest {
     void getProfileAggregatesPublicStats() {
         when(userRepository.findByUsername("maco")).thenReturn(Optional.of(owner));
         when(projectRepository.countByOwnerIdAndVisibility(1L, UploadVisibility.PUBLIC)).thenReturn(3L);
+        when(generatedPackRepository.countByOwnerIdAndVisibility(1L, icepunk_backend.model.GeneratedPackVisibility.PUBLIC)).thenReturn(2L);
         when(projectRepository.sumDownloadCountByOwnerIdAndVisibility(1L, UploadVisibility.PUBLIC)).thenReturn(120L);
         when(likeRepository.countLikesReceivedByOwner(1L, UploadVisibility.PUBLIC)).thenReturn(48L);
 
@@ -91,7 +96,7 @@ class UserProfileServiceTest {
         assertThat(profile.username()).isEqualTo("maco");
         assertThat(profile.bio()).isEqualTo("Dark ambient producer");
         assertThat(profile.verified()).isTrue();
-        assertThat(profile.packCount()).isEqualTo(3L);
+        assertThat(profile.packCount()).isEqualTo(5L);
         assertThat(profile.totalDownloads()).isEqualTo(120L);
         assertThat(profile.totalLikes()).isEqualTo(48L);
     }

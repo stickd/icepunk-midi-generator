@@ -3,21 +3,23 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 export const TOKEN_KEY = "icepunk_token";
 
-function apiUrl(pathOrUrl: string) {
+function apiUrl(pathOrUrl?: string) {
+  if (!pathOrUrl) return "";
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
   return `${API_URL}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 }
 
 function normalizeGeneratedMidiResponse(response: GenerateMidiResponse): GenerateMidiResponse {
-  return {
-    ...response,
-    downloadUrl: apiUrl(response.downloadUrl),
-    packDownloadUrl: apiUrl(response.packDownloadUrl),
-    items: response.items.map((item) => ({
+  const result: GenerateMidiResponse = { ...response };
+  if (response.downloadUrl) result.downloadUrl = apiUrl(response.downloadUrl);
+  if (response.packDownloadUrl) result.packDownloadUrl = apiUrl(response.packDownloadUrl);
+  if (Array.isArray(response.items)) {
+    result.items = response.items.map((item) => ({
       ...item,
       downloadUrl: apiUrl(item.downloadUrl),
-    })),
-  };
+    }));
+  }
+  return result;
 }
 
 function withTimeout(signal?: AbortSignal): AbortSignal {
@@ -74,6 +76,11 @@ export async function authUser(
 
 export type GenerationStatsResponse = {
   totalGenerations: number;
+};
+
+export type GenerationUsageResponse = {
+  used: number;
+  limit: number;
 };
 
 export type MidiPreviewNote = {
@@ -231,6 +238,25 @@ export async function getGenerationStats(
   return response.json();
 }
 
+export async function getGenerationUsage(
+  token?: string | null,
+  signal?: AbortSignal,
+): Promise<GenerationUsageResponse> {
+  const response = await fetch(`${API_URL}/generation-usage`, {
+    method: "GET",
+    headers: authHeaders(token),
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
 export async function generateMidiPack(
   request: GenerateMidiRequest,
   token?: string | null,
@@ -319,6 +345,46 @@ export async function getPublicGeneratedPackFeed(
     method: "GET",
     signal: withTimeout(signal),
   });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  const feed = (await response.json()) as PublicGeneratedPackFeedResponse;
+
+  return {
+    ...feed,
+    items: feed.items.map((item) => ({
+      ...item,
+      packDownloadUrl: apiUrl(item.packDownloadUrl),
+      items: item.items.map((midiItem) => ({
+        ...midiItem,
+        downloadUrl: apiUrl(midiItem.downloadUrl),
+      })),
+    })),
+  };
+}
+
+export async function getUserGeneratedPacksFeed(
+  username: string,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal,
+): Promise<PublicGeneratedPackFeedResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  const response = await fetch(
+    `${API_URL}/users/${encodeURIComponent(username)}/generated-packs?${params.toString()}`,
+    {
+      method: "GET",
+      signal: withTimeout(signal),
+    },
+  );
 
   if (!response.ok) {
     const message = await response.text();

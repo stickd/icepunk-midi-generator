@@ -27,4 +27,13 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
             GeneratedPackVisibility visibility,
             Pageable pageable
     );
+
+    @EntityGraph(attributePaths = "owner")
+    Page<GeneratedPack> findByOwner_UsernameAndVisibilityOrderByCreatedAtDesc(
+            String username,
+            GeneratedPackVisibility visibility,
+            Pageable pageable
+    );
+
+    long countByOwnerIdAndVisibility(Long ownerId, GeneratedPackVisibility visibility);
 }

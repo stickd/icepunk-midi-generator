@@ -5,52 +5,25 @@ import { getPublicGeneratedPackFeed } from "@/lib/api";
 import type { PublicGeneratedPackFeedItem } from "@/lib/api";
 import { FEED_REFRESH_EVENT } from "@/lib/events";
 import { Button, EmptyState } from "@/components/ui";
+import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
 import GenerationFeedCard from "./GenerationFeedCard";
-import { FeedGeneration } from "./feedTypes";
+import { toFeedGeneration } from "./feedTypes";
 
 type UserGenerationsFeedProps = {
   onStubStatus: (message: string) => void;
+  soundEngine: SoundEngineSettings;
+  isLoggedIn?: boolean;
+  onRequireLogin?: () => void;
 };
 
 const FEED_PAGE_SIZE = 5;
 
-function formatRelativeTime(uploadedAt: string) {
-  const timestamp = Date.parse(uploadedAt);
-
-  if (Number.isNaN(timestamp)) {
-    return "new";
-  }
-
-  const diffMs = Date.now() - timestamp;
-  const diffMinutes = Math.max(0, Math.round(diffMs / 60_000));
-
-  if (diffMinutes < 1) return "now";
-  if (diffMinutes < 60) return `${diffMinutes} min`;
-
-  const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} hr`;
-
-  return `${Math.round(diffHours / 24)} d`;
-}
-
-function toGeneration(item: PublicGeneratedPackFeedItem): FeedGeneration {
-  return {
-    downloads: 0,
-    id: item.packId,
-    items: item.items,
-    midiCount: item.items.length,
-    packDownloadUrl: item.packDownloadUrl,
-    sound: item.type === "DRUMS" ? "Generated drums" : "Generated melody",
-    timeAgo: formatRelativeTime(item.createdAt),
-    title: item.name,
-    type: item.type,
-    bpm: item.bpm,
-    uploadedAt: item.createdAt,
-    username: item.ownerUsername,
-  };
-}
-
-export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFeedProps) {
+export default function UserGenerationsFeed({
+  onStubStatus,
+  soundEngine,
+  isLoggedIn = false,
+  onRequireLogin,
+}: UserGenerationsFeedProps) {
   const [page, setPage] = useState(0);
   const [feedItems, setFeedItems] = useState<PublicGeneratedPackFeedItem[]>([]);
   const [hasNext, setHasNext] = useState(false);
@@ -90,6 +63,37 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
     return () => controller.abort();
   }, [page, refreshKey]);
 
+  // Live background polling for real-time feed updates without page reloads
+  useEffect(() => {
+    // Only background poll on the first page
+    if (page !== 0) return;
+
+    const interval = setInterval(() => {
+      getPublicGeneratedPackFeed(0, FEED_PAGE_SIZE)
+        .then((feed) => {
+          if (feed.items.length > 0) {
+            setFeedItems((prev) => {
+              const prevFirstId = prev[0]?.packId;
+              const newFirstId = feed.items[0]?.packId;
+              if (prevFirstId !== newFirstId || prev.length !== feed.items.length) {
+                return feed.items;
+              }
+              return prev;
+            });
+            setHasNext(feed.hasNext);
+            setFeedMessage(
+              feed.totalItems > 0
+                ? `${feed.totalItems.toLocaleString()} public generated packs discovered.`
+                : "No public generated packs yet.",
+            );
+          }
+        })
+        .catch(() => {});
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [page]);
+
   useEffect(() => {
     function refreshFeed() {
       setIsLoading(true);
@@ -105,14 +109,24 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
     };
   }, []);
 
-  const generations = useMemo(() => feedItems.map(toGeneration), [feedItems]);
+  const generations = useMemo(() => feedItems.map(toFeedGeneration), [feedItems]);
 
   return (
     <section aria-labelledby="user-generations-feed" className="grid content-start gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-xl font-semibold tracking-[-0.01em] text-ice-primary" id="user-generations-feed">
-          User Generations Feed
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="flex items-center gap-3 pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl" id="user-generations-feed">
+            <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center p-0.5">
+              <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-[3px] bg-[#6ee7ff] opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-[3px] bg-[#6ee7ff] shadow-[0_0_14px_#6ee7ff]" />
+            </span>
+            Feed
+          </h2>
+          <span className="inline-flex items-center gap-1 rounded-full border border-[#6ee7ff]/30 bg-[#6ee7ff]/10 px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase text-[#6ee7ff]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#6ee7ff] animate-pulse" />
+            Live
+          </span>
+        </div>
         <button
           className="text-xs font-medium uppercase tracking-[0.06em] text-ice-muted transition-colors duration-150 ease-out hover:text-ice-primary"
           onClick={() => {
@@ -164,8 +178,11 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
           {generations.map((generation) => (
             <GenerationFeedCard
               generation={generation}
+              isLoggedIn={isLoggedIn}
               key={generation.id}
+              onRequireLogin={onRequireLogin}
               onStubStatus={onStubStatus}
+              soundEngine={soundEngine}
             />
           ))}
         </div>
@@ -182,7 +199,7 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
           size="sm"
           type="button"
         >
-          Previous
+          &lt;
         </Button>
         <span className="text-xs text-ice-muted">Page {page + 1}</span>
         <Button
@@ -195,7 +212,7 @@ export default function UserGenerationsFeed({ onStubStatus }: UserGenerationsFee
           size="sm"
           type="button"
         >
-          Next
+          &gt;
         </Button>
       </div>
     </section>

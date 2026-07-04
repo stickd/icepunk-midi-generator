@@ -207,7 +207,7 @@ describe("lib/api", () => {
       );
 
       await expect(generateMidiPack(factoryRequest, "tok")).resolves.toEqual({
-        downloadUrl: "d",
+        downloadUrl: "http://localhost:8081/d",
         totalGenerations: 3,
       });
     });

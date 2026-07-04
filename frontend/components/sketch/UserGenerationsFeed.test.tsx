@@ -1,11 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import UserGenerationsFeed from "./UserGenerationsFeed";
-import { getPublicUploadFeed } from "@/lib/api";
+import { getPublicGeneratedPackFeed } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
-  getPublicUploadFeed: jest.fn(),
-  getPublicUploadMidiPreviewUrl: (id: number) => `http://localhost:8081/uploads/projects/${id}/midi`,
+  getPublicGeneratedPackFeed: jest.fn(),
 }));
 
 jest.mock("./BrowserPianoRoll", () => ({
@@ -15,11 +14,11 @@ jest.mock("./BrowserPianoRoll", () => ({
   ),
 }));
 
-const getPublicUploadFeedMock = getPublicUploadFeed as jest.MockedFunction<
-  typeof getPublicUploadFeed
+const getPublicGeneratedPackFeedMock = getPublicGeneratedPackFeed as jest.MockedFunction<
+  typeof getPublicGeneratedPackFeed
 >;
 
-function feedResponse(items: Awaited<ReturnType<typeof getPublicUploadFeed>>["items"]) {
+function feedResponse(items: Awaited<ReturnType<typeof getPublicGeneratedPackFeed>>["items"]) {
   return {
     hasNext: false,
     items,
@@ -32,59 +31,89 @@ function feedResponse(items: Awaited<ReturnType<typeof getPublicUploadFeed>>["it
 
 describe("UserGenerationsFeed", () => {
   beforeEach(() => {
-    getPublicUploadFeedMock.mockReset();
+    getPublicGeneratedPackFeedMock.mockReset();
   });
 
-  it("renders real public upload cards from the backend feed", async () => {
-    getPublicUploadFeedMock.mockResolvedValue(
+  it("renders real public generated pack cards from the backend feed", async () => {
+    getPublicGeneratedPackFeedMock.mockResolvedValue(
       feedResponse([
         {
-          id: 11,
-          metadata: { sampleOriginalFilename: "ice.wav" },
-          midiUrl: "http://localhost:9010/icepunk-zips/user_uploads/11/lead.mid",
+          amount: 5,
+          bpm: 140,
+          createdAt: "2026-07-03T10:00:00Z",
+          items: [
+            {
+              avgPitch: 60,
+              bpm: 140,
+              downloadUrl: "http://localhost:8081/download/item1",
+              durationSeconds: 2,
+              fileName: "lead.mid",
+              id: "item1",
+              index: 0,
+              maxPitch: 72,
+              minPitch: 48,
+              noteCount: 16,
+              preview: { notes: [], truncated: false },
+              trackCount: 1,
+            },
+          ],
+          name: "Frozen Lead Pack",
+          octaves: 2,
           ownerId: 7,
           ownerUsername: "nikul",
-          sampleUrl: "http://localhost:9010/icepunk-zips/user_uploads/11/ice.wav",
-          title: "Frozen Lead",
-          uploadedAt: "2026-07-03T10:00:00Z",
+          packDownloadUrl: "http://localhost:8081/download/pack1",
+          packId: "pack1",
+          pitch: 0,
+          source: "FACTORY",
+          type: "MELODY",
           visibility: "PUBLIC",
         },
       ]),
     );
 
-    render(<UserGenerationsFeed onStubStatus={jest.fn()} />);
-
-    expect(await screen.findByText("Frozen Lead")).toBeInTheDocument();
-    expect(screen.getByText("nikul")).toBeInTheDocument();
-    expect(screen.getByText("Preview sound: ice.wav")).toBeInTheDocument();
-    expect(screen.getByTestId("mock-piano-roll")).toHaveTextContent(
-      "http://localhost:8081/uploads/projects/11/midi",
+    render(
+      <UserGenerationsFeed
+        onStubStatus={jest.fn()}
+        soundEngine={{ preset: "Soft Piano", sampleFile: null, volume: 0.8 }}
+      />,
     );
-    expect(screen.queryByText("Frozen arp pack")).not.toBeInTheDocument();
+
+    expect(await screen.findByText("Frozen Lead Pack")).toBeInTheDocument();
+    expect(screen.getByText("nikul")).toBeInTheDocument();
+    expect(screen.getByText("Generated melody")).toBeInTheDocument();
   });
 
-  it("shows an honest empty state instead of demo cards", async () => {
-    getPublicUploadFeedMock.mockResolvedValue(feedResponse([]));
+  it("shows an honest empty state when there are no generated packs", async () => {
+    getPublicGeneratedPackFeedMock.mockResolvedValue(feedResponse([]));
 
-    render(<UserGenerationsFeed onStubStatus={jest.fn()} />);
+    render(
+      <UserGenerationsFeed
+        onStubStatus={jest.fn()}
+        soundEngine={{ preset: "Soft Piano", sampleFile: null, volume: 0.8 }}
+      />,
+    );
 
-    expect(await screen.findByText("No public MIDI uploads yet.")).toBeInTheDocument();
-    expect(screen.queryByText("Frozen arp pack")).not.toBeInTheDocument();
+    expect(await screen.findByText("No public generated MIDI packs yet.")).toBeInTheDocument();
   });
 
   it("shows an error state and allows retrying the feed request", async () => {
-    getPublicUploadFeedMock
+    getPublicGeneratedPackFeedMock
       .mockRejectedValueOnce(new Error("network down"))
       .mockResolvedValueOnce(feedResponse([]));
 
-    render(<UserGenerationsFeed onStubStatus={jest.fn()} />);
+    render(
+      <UserGenerationsFeed
+        onStubStatus={jest.fn()}
+        soundEngine={{ preset: "Soft Piano", sampleFile: null, volume: 0.8 }}
+      />,
+    );
 
     expect(await screen.findByText("Feed could not load.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => {
-      expect(getPublicUploadFeedMock).toHaveBeenCalledTimes(2);
+      expect(getPublicGeneratedPackFeedMock).toHaveBeenCalledTimes(2);
     });
   });
 });

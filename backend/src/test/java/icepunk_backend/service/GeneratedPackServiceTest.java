@@ -4,15 +4,24 @@ import icepunk_backend.dto.GeneratedPackResponse;
 import icepunk_backend.dto.GenerationRequest;
 import icepunk_backend.dto.MidiPreviewNoteResponse;
 import icepunk_backend.dto.MidiPreviewResponse;
+import icepunk_backend.dto.PublicGeneratedPackFeedResponse;
 import icepunk_backend.model.GeneratedPack;
 import icepunk_backend.model.GeneratedPackItem;
+import icepunk_backend.model.GeneratedPackType;
+import icepunk_backend.model.GeneratedPackVisibility;
+import icepunk_backend.model.GenerationSourceType;
+import icepunk_backend.model.User;
 import icepunk_backend.repository.GeneratedPackItemRepository;
 import icepunk_backend.repository.GeneratedPackRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -164,6 +174,37 @@ class GeneratedPackServiceTest {
 
         verify(storageService).deleteObjectQuietly("generated_midi_items/item.mid");
         verify(storageService).deleteObjectQuietly("generated_midi/pack.zip");
+    }
+
+    @Test
+    void getPublicFeedByUsernameReturnsPacksOwnedByThatUser() {
+        User owner = new User("nikul", "nikul@example.com", "hash");
+        owner.setId(7L);
+
+        GeneratedPack pack = new GeneratedPack();
+        pack.setId(UUID.randomUUID());
+        pack.setOwner(owner);
+        pack.setName("SteveMuis");
+        pack.setSourceType(GenerationSourceType.FACTORY);
+        pack.setGenerationType(GeneratedPackType.MELODY);
+        pack.setBpm(146);
+        pack.setPitch(0);
+        pack.setOctaves(1);
+        pack.setAmount(5);
+        pack.setVisibility(GeneratedPackVisibility.PUBLIC);
+        pack.setCreatedAt(OffsetDateTime.now());
+
+        Pageable pageable = PageRequest.of(0, 10);
+        when(packRepository.findByOwner_UsernameAndVisibilityOrderByCreatedAtDesc(
+                eq("nikul"), eq(GeneratedPackVisibility.PUBLIC), any(Pageable.class)
+        )).thenReturn(new PageImpl<>(List.of(pack), pageable, 1));
+
+        PublicGeneratedPackFeedResponse response = service.getPublicFeedByUsername("nikul", 0, 10);
+
+        assertEquals(1, response.items().size());
+        assertEquals("SteveMuis", response.items().get(0).name());
+        assertEquals("nikul", response.items().get(0).ownerUsername());
+        assertEquals(1, response.totalItems());
     }
 
     private GenerationRequest factoryRequest() {

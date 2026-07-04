@@ -64,6 +64,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/auth/login",
                             "/generate",
                             "/generation-stats",
+                            "/generation-usage",
                             "/datasets/analyze-temp",
                             "/uploads/feed",
                             "/uploads/projects/*/midi"
@@ -72,10 +73,15 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                     // Public reads only — rename/visibility/delete and "my packs" stay authenticated
                     .requestMatchers(HttpMethod.GET, "/generated-packs/**").permitAll()
 
+                    // "My packs" must stay authenticated — declared before the /users/*/generated-packs
+                    // wildcard below so it takes precedence (first matching rule wins).
+                    .requestMatchers(HttpMethod.GET, "/users/me/generated-packs").authenticated()
+
                     // Public profile reads only — POST /users/me/profile stays authenticated
                     .requestMatchers(HttpMethod.GET,
                             "/users/*/profile",
-                            "/users/*/packs"
+                            "/users/*/packs",
+                            "/users/*/generated-packs"
                     ).permitAll()
 
                     // Health endpoint (used by Docker / load-balancer healthchecks)

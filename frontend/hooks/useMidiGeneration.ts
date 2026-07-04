@@ -7,6 +7,7 @@ import {
   generateMidiPack,
   TOKEN_KEY,
 } from "@/lib/api";
+import { notifyFeedRefresh } from "@/lib/events";
 
 export function useMidiGeneration(
   onUnauthorized?: () => void,
@@ -37,19 +38,20 @@ export function useMidiGeneration(
       setLastGeneration(data);
 
       onGenerated?.(data.totalGenerations);
+      notifyFeedRefresh();
       setStatus("MIDI pack generated. Download links are ready.");
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes("Guest daily generation limit reached")) {
           setStatus(
-            "You've used your free daily generation. Log in or create an account to unlock more generations.",
+            "You've used your guest generation limit. Log in or create an account to unlock unlimited generations.",
           );
           return;
         }
 
         if (error.message.includes("User daily generation limit reached")) {
           setStatus(
-            "You've reached today's generation limit. Please try again tomorrow.",
+            "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
           );
           return;
         }

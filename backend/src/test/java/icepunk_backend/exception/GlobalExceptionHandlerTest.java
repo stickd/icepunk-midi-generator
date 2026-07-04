@@ -131,7 +131,8 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void unexpectedRuntimeReturns500WithNoSensitiveData() {
-        ResponseEntity<Map<String, String>> response = handler.handleRuntimeException();
+        ResponseEntity<Map<String, String>> response =
+                handler.handleRuntimeException(new RuntimeException("internal detail"));
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("Unexpected server error", response.getBody().get("error"));

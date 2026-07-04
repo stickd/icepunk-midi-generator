@@ -3,31 +3,53 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
+  authUser,
   getFavorites,
   getMe,
+  getUserGeneratedPacksFeed,
   getUserPacks,
   getUserProfile,
   MeResponse,
+  PublicGeneratedPackFeedItem,
   TOKEN_KEY,
   UserPackItem,
   UserProfileResponse,
 } from "@/lib/api";
-import { Button, CreditBadge, EmptyState, Panel, Skeleton } from "@/components/ui";
+import { Button, CreditBadge, EmptyState, Panel, Skeleton, ToastNotification } from "@/components/ui";
+import AuthModal from "@/components/AuthModal";
+import GenerationFeedCard from "@/components/sketch/GenerationFeedCard";
+import { toFeedGeneration } from "@/components/sketch/feedTypes";
+import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
 import PackCard from "./PackCard";
 import ProfileHeader from "./ProfileHeader";
 import ProfileStats from "./ProfileStats";
 
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
 
+const DEFAULT_SOUND_ENGINE: SoundEngineSettings = {
+  preset: "Soft Piano",
+  sampleFile: null,
+  volume: 0.8,
+};
+
 type ProfileViewProps = {
   username: string;
 };
 
-type TabId = "packs" | "favorites";
+type TabId = "generated" | "packs" | "favorites";
 
 type PackListState = {
   items: UserPackItem[];
   page: number;
+  totalItems?: number;
+  hasNext: boolean;
+  status: "idle" | "loading" | "ready" | "error";
+};
+
+type GeneratedPackListState = {
+  items: PublicGeneratedPackFeedItem[];
+  page: number;
+  totalItems?: number;
   hasNext: boolean;
   status: "idle" | "loading" | "ready" | "error";
 };
@@ -66,7 +88,13 @@ export default function ProfileView({ username }: ProfileViewProps) {
     "loading",
   );
   const [meFetch, setMeFetch] = useState<{ token: string; me: MeResponse } | null>(null);
-  const [tab, setTab] = useState<TabId>("packs");
+  const [tab, setTab] = useState<TabId>("generated");
+  const [generatedPacks, setGeneratedPacks] = useState<GeneratedPackListState>({
+    items: [],
+    page: 0,
+    hasNext: false,
+    status: "loading",
+  });
   const [packs, setPacks] = useState<PackListState>({
     items: [],
     page: 0,
@@ -79,11 +107,78 @@ export default function ProfileView({ username }: ProfileViewProps) {
     hasNext: false,
     status: "idle",
   });
+  const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [authStatus, setAuthStatus] = useState("");
+  const [email, setEmail] = useState("");
+  const [authUsername, setAuthUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const [authNotice, setAuthNotice] = useState(false);
 
   const me = token && meFetch?.token === token ? meFetch.me : null;
   const isOwnProfile = me !== null && me.username === username;
-  const activeTab: TabId = isOwnProfile ? tab : "packs";
+  const activeTab: TabId = !isOwnProfile && tab === "favorites" ? "generated" : tab;
+
+  function handleRequireLogin() {
+    setAuthMode("login");
+    setAuthStatus("Sign up or log in to keep creating and downloading free of charge!");
+    setToastMessage("Sign up or log in to keep creating and downloading free of charge!");
+  }
+
+  function notifyTokenChanged() {
+    window.dispatchEvent(new Event(TOKEN_CHANGE_EVENT));
+  }
+
+  async function handleAuth() {
+    if (!authMode) return;
+
+    try {
+      setIsAuthenticating(true);
+      setAuthStatus(authMode === "login" ? "Logging in..." : "Creating account...");
+
+      const body =
+        authMode === "login"
+          ? { email, password }
+          : { username: authUsername, email, password };
+
+      const response = await authUser(authMode, body);
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          setAuthStatus("Username or email is already taken.");
+          return;
+        }
+
+        if (response.status === 401) {
+          setAuthStatus("Invalid credentials.");
+          return;
+        }
+
+        if (response.status === 400) {
+          setAuthStatus("Check your email, username, and password length.");
+          return;
+        }
+
+        setAuthStatus("Auth failed. Check your data.");
+        return;
+      }
+
+      const data = await response.json();
+      localStorage.setItem(TOKEN_KEY, data.token);
+      notifyTokenChanged();
+      setToastMessage("You are logged in.");
+      setAuthStatus("");
+      setAuthMode(null);
+      setEmail("");
+      setAuthUsername("");
+      setPassword("");
+    } catch {
+      setAuthStatus("Backend is not available right now.");
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,6 +216,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
         setPacks({
           items: response.items,
           page: response.page,
+          totalItems: response.totalItems,
           hasNext: response.hasNext,
           status: "ready",
         }),
@@ -133,6 +229,42 @@ export default function ProfileView({ username }: ProfileViewProps) {
     return () => controller.abort();
   }, [username]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getUserGeneratedPacksFeed(username, 0, 6, controller.signal)
+      .then((response) =>
+        setGeneratedPacks({
+          items: response.items,
+          page: response.page,
+          totalItems: response.totalItems,
+          hasNext: response.hasNext,
+          status: "ready",
+        }),
+      )
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setGeneratedPacks((state) => ({ ...state, status: "error" }));
+      });
+
+    return () => controller.abort();
+  }, [username]);
+
+  function fetchMoreGeneratedPacks() {
+    setGeneratedPacks((state) => ({ ...state, status: "loading" }));
+    getUserGeneratedPacksFeed(username, generatedPacks.page + 1, 6)
+      .then((response) =>
+        setGeneratedPacks((state) => ({
+          items: [...state.items, ...response.items],
+          page: response.page,
+          totalItems: response.totalItems,
+          hasNext: response.hasNext,
+          status: "ready",
+        })),
+      )
+      .catch(() => setGeneratedPacks((state) => ({ ...state, status: "error" })));
+  }
+
   function fetchFavorites(page: number) {
     if (!token) return;
 
@@ -142,6 +274,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
         setFavorites((state) => ({
           items: page === 0 ? response.items : [...state.items, ...response.items],
           page: response.page,
+          totalItems: response.totalItems,
           hasNext: response.hasNext,
           status: "ready",
         })),
@@ -156,6 +289,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
         setPacks((state) => ({
           items: [...state.items, ...response.items],
           page: response.page,
+          totalItems: response.totalItems,
           hasNext: response.hasNext,
           status: "ready",
         })),
@@ -170,9 +304,9 @@ export default function ProfileView({ username }: ProfileViewProps) {
     }
   }
 
-  const activeList = activeTab === "packs" ? packs : favorites;
+  const activeList = activeTab === "favorites" ? favorites : packs;
   const loadMore = () =>
-    activeTab === "packs" ? fetchMorePacks() : fetchFavorites(favorites.page + 1);
+    activeTab === "favorites" ? fetchFavorites(favorites.page + 1) : fetchMorePacks();
 
   if (profileStatus === "not-found") {
     return (
@@ -247,16 +381,32 @@ export default function ProfileView({ username }: ProfileViewProps) {
         >
           {(
             [
-              { id: "packs" as TabId, label: "Packs", visible: true },
-              { id: "favorites" as TabId, label: "Favorites", visible: isOwnProfile },
-            ] satisfies Array<{ id: TabId; label: string; visible: boolean }>
+              {
+                id: "generated" as TabId,
+                label: "Generated",
+                count: generatedPacks.totalItems,
+                visible: true,
+              },
+              {
+                id: "packs" as TabId,
+                label: "Uploads",
+                count: packs.totalItems,
+                visible: true,
+              },
+              {
+                id: "favorites" as TabId,
+                label: "Favorites",
+                count: favorites.totalItems,
+                visible: isOwnProfile,
+              },
+            ] satisfies Array<{ id: TabId; label: string; count?: number; visible: boolean }>
           )
             .filter((item) => item.visible)
             .map((item) => (
               <button
                 key={item.id}
                 aria-selected={activeTab === item.id}
-                className={`-mb-px border-b-2 pb-3 text-sm font-medium outline-none transition-[color,border-color] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] ${
+                className={`-mb-px flex items-center gap-2 border-b-2 pb-3 text-sm font-medium outline-none transition-[color,border-color] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] ${
                   activeTab === item.id
                     ? "border-[color:var(--ice-accent)] text-ice-primary"
                     : "border-transparent text-ice-muted hover:text-ice-secondary"
@@ -265,7 +415,12 @@ export default function ProfileView({ username }: ProfileViewProps) {
                 role="tab"
                 type="button"
               >
-                {item.label}
+                <span>{item.label}</span>
+                {typeof item.count === "number" ? (
+                  <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-xs font-semibold text-ice-muted">
+                    {item.count}
+                  </span>
+                ) : null}
               </button>
             ))}
         </div>
@@ -280,49 +435,123 @@ export default function ProfileView({ username }: ProfileViewProps) {
           </Panel>
         ) : null}
 
-        {activeList.status === "error" ? (
-          <EmptyState
-            title="Could not load packs"
-            description="The backend is not reachable right now."
-          />
-        ) : activeList.status === "ready" && activeList.items.length === 0 ? (
-          <EmptyState
-            title={activeTab === "packs" ? "No public packs yet" : "No favorites yet"}
-            description={
-              activeTab === "packs"
-                ? "Public uploads will show up here as playable piano-roll previews."
-                : "Packs you like will be collected here."
-            }
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeList.items.map((pack) => (
-              <PackCard
-                key={`${activeTab}-${pack.id}`}
-                onAuthRequired={() => setAuthNotice(true)}
-                pack={pack}
-                token={token}
+        {activeTab === "generated" ? (
+          <>
+            {generatedPacks.status === "error" ? (
+              <EmptyState
+                title="Could not load generated packs"
+                description="The backend is not reachable right now."
               />
-            ))}
-            {activeList.status === "loading"
-              ? Array.from({ length: activeList.items.length === 0 ? 6 : 3 }).map((_, index) => (
-                  <Skeleton
-                    className="h-60 rounded-[var(--ice-radius-card)]"
-                    key={`skeleton-${index}`}
+            ) : generatedPacks.status === "ready" && generatedPacks.items.length === 0 ? (
+              <EmptyState
+                title="No generated packs yet"
+                description="Public MIDI packs created with the generator will show up here."
+              />
+            ) : (
+              <div className="grid gap-4">
+                {generatedPacks.items.map((item) => (
+                  <GenerationFeedCard
+                    generation={toFeedGeneration(item)}
+                    isLoggedIn={Boolean(token)}
+                    key={item.packId}
+                    onRequireLogin={handleRequireLogin}
+                    onStubStatus={setToastMessage}
+                    soundEngine={DEFAULT_SOUND_ENGINE}
                   />
-                ))
-              : null}
-          </div>
-        )}
+                ))}
+                {generatedPacks.status === "loading"
+                  ? Array.from({ length: generatedPacks.items.length === 0 ? 3 : 1 }).map((_, index) => (
+                      <Skeleton
+                        className="h-60 rounded-[var(--ice-radius-card)]"
+                        key={`generated-skeleton-${index}`}
+                      />
+                    ))
+                  : null}
+              </div>
+            )}
 
-        {activeList.hasNext && activeList.status === "ready" ? (
-          <div className="justify-self-center">
-            <Button onClick={loadMore} type="button">
-              Load more
-            </Button>
-          </div>
-        ) : null}
+            {generatedPacks.hasNext && generatedPacks.status === "ready" ? (
+              <div className="justify-self-center">
+                <Button onClick={fetchMoreGeneratedPacks} type="button">
+                  Load more
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <>
+            {activeList.status === "error" ? (
+              <EmptyState
+                title="Could not load packs"
+                description="The backend is not reachable right now."
+              />
+            ) : activeList.status === "ready" && activeList.items.length === 0 ? (
+              <EmptyState
+                title={activeTab === "packs" ? "No public uploads yet" : "No favorites yet"}
+                description={
+                  activeTab === "packs"
+                    ? "Public uploads will show up here as playable piano-roll previews."
+                    : "Packs you like will be collected here."
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {activeList.items.map((pack) => (
+                  <PackCard
+                    key={`${activeTab}-${pack.id}`}
+                    onAuthRequired={handleRequireLogin}
+                    pack={pack}
+                    token={token}
+                  />
+                ))}
+                {activeList.status === "loading"
+                  ? Array.from({ length: activeList.items.length === 0 ? 6 : 3 }).map((_, index) => (
+                      <Skeleton
+                        className="h-60 rounded-[var(--ice-radius-card)]"
+                        key={`skeleton-${index}`}
+                      />
+                    ))
+                  : null}
+              </div>
+            )}
+
+            {activeList.hasNext && activeList.status === "ready" ? (
+              <div className="justify-self-center">
+                <Button onClick={loadMore} type="button">
+                  Load more
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
+
+      {toastMessage ? (
+        <div className="fixed top-6 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 px-4 pointer-events-auto">
+          <ToastNotification
+            message={toastMessage}
+            onClose={() => setToastMessage("")}
+            title="Account Required"
+            type="info"
+          />
+        </div>
+      ) : null}
+
+      {authMode ? (
+        <AuthModal
+          authStatus={authStatus}
+          email={email}
+          isSubmitting={isAuthenticating}
+          mode={authMode}
+          onClose={() => setAuthMode(null)}
+          onSubmit={handleAuth}
+          password={password}
+          setEmail={setEmail}
+          setPassword={setPassword}
+          setUsername={setAuthUsername}
+          username={authUsername}
+        />
+      ) : null}
     </div>
   );
 }

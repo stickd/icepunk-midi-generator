@@ -2,14 +2,16 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge, Button, Panel } from "@/components/ui";
 import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import {
   authUser,
   getGenerationStats,
+  getGenerationUsage,
   getMe,
+  GenerationUsageResponse,
   MeResponse,
   TOKEN_KEY,
 } from "@/lib/api";
@@ -20,6 +22,9 @@ import RandomGeneratePanel, {
 } from "./RandomGeneratePanel";
 import SoundEngineCard from "./SoundEngineCard";
 import UserGenerationsFeed from "./UserGenerationsFeed";
+import { EtherealShadowBackground } from "@/components/ui/ethereal-shadow";
+import { InteractiveBubbleBackground, ToastNotification, UserAvatar } from "@/components/ui";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 
 type AuthMode = "login" | "register" | null;
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
@@ -73,6 +78,7 @@ export default function SketchThemeLayout() {
     getServerTokenSnapshot,
   );
   const [totalGenerations, setTotalGenerations] = useState<number | null>(null);
+  const [usage, setUsage] = useState<GenerationUsageResponse | null>(null);
   const [meFetch, setMeFetch] = useState<{
     token: string;
     me: MeResponse;
@@ -115,6 +121,16 @@ export default function SketchThemeLayout() {
     return () => controller.abort();
   }, [token]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getGenerationUsage(token, controller.signal)
+      .then((data) => setUsage(data))
+      .catch(() => setUsage(null));
+
+    return () => controller.abort();
+  }, [token, lastGeneration]);
+
   const me = token && meFetch?.token === token ? meFetch.me : null;
 
   function saveToken(value: string) {
@@ -144,15 +160,13 @@ export default function SketchThemeLayout() {
       const response = await authUser(authMode, body);
 
       if (!response.ok) {
-        if (response.status === 429) {
-          setAuthStatus("Too many attempts. Please try again later.");
+        if (response.status === 409) {
+          setAuthStatus("Username or email is already taken.");
           return;
         }
 
-        if (response.status === 409) {
-          setAuthStatus(
-            "An account with that email or username already exists.",
-          );
+        if (response.status === 401) {
+          setAuthStatus("Invalid credentials.");
           return;
         }
 
@@ -166,12 +180,6 @@ export default function SketchThemeLayout() {
       }
 
       const data = await response.json();
-
-      if (!data.token || typeof data.token !== "string") {
-        setAuthStatus("Auth failed. Token was not returned.");
-        return;
-      }
-
       saveToken(data.token);
       setStatus("You are logged in.");
       setAuthStatus("");
@@ -191,6 +199,37 @@ export default function SketchThemeLayout() {
     setStatus("You are logged out.");
   }
 
+  const generatorScrollRef = useRef<HTMLDivElement>(null);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
+  const [genProgress, setGenProgress] = useState(0);
+  const [feedProgress, setFeedProgress] = useState(0);
+  const [isGenScrolling, setIsGenScrolling] = useState(false);
+  const [isFeedScrolling, setIsFeedScrolling] = useState(false);
+  const genTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const feedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleGenScroll = () => {
+    const el = generatorScrollRef.current;
+    if (!el) return;
+    const max = el.scrollHeight - el.clientHeight;
+    setGenProgress(max > 0 ? el.scrollTop / max : 0);
+
+    setIsGenScrolling(true);
+    if (genTimeoutRef.current) clearTimeout(genTimeoutRef.current);
+    genTimeoutRef.current = setTimeout(() => setIsGenScrolling(false), 1200);
+  };
+
+  const handleFeedScroll = () => {
+    const el = feedScrollRef.current;
+    if (!el) return;
+    const max = el.scrollHeight - el.clientHeight;
+    setFeedProgress(max > 0 ? el.scrollTop / max : 0);
+
+    setIsFeedScrolling(true);
+    if (feedTimeoutRef.current) clearTimeout(feedTimeoutRef.current);
+    feedTimeoutRef.current = setTimeout(() => setIsFeedScrolling(false), 1200);
+  };
+
   function startGeneration(draft: CreatePackDraft) {
     setActiveModal(null);
 
@@ -208,30 +247,34 @@ export default function SketchThemeLayout() {
   }
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)]">
-      <div className="mx-auto w-full max-w-7xl px-6 py-6">
+    <EtherealShadowBackground>
+      <div className="relative z-10 mx-auto w-full max-w-[1880px] px-3 py-4 sm:px-6 lg:px-8">
         <nav className="flex flex-wrap items-center justify-between gap-4">
           <Link
-            className="text-sm font-semibold tracking-[0.02em] text-ice-primary outline-none transition-colors duration-150 ease-out hover:text-white focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
+            className="text-sm font-bold tracking-[0.04em] text-white outline-none transition-colors duration-150 ease-out hover:text-ice-accent focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
             href="/"
           >
             iCEPUNK
           </Link>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Badge tone="accent">{token ? "7/day" : "3/day"}</Badge>
+            <Badge
+              title={usage ? `${usage.used} of ${usage.limit} used today` : undefined}
+              tone="accent"
+            >
+              {usage
+                ? `${Math.max(0, usage.limit - usage.used)} left today`
+                : token
+                  ? "7/day"
+                  : "3/day"}
+            </Badge>
 
             {me ? (
               <Link
                 className="flex items-center gap-2 text-sm font-medium text-ice-primary outline-none transition-colors duration-150 ease-out hover:text-white focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
                 href={`/u/${encodeURIComponent(me.username)}`}
               >
-                <span
-                  aria-hidden="true"
-                  className="grid h-7 w-7 place-items-center rounded-full bg-[color:var(--ice-accent-soft)] text-xs font-semibold text-[color:var(--ice-accent-text)] ring-1 ring-[color:var(--ice-accent-border)]"
-                >
-                  {me.username.slice(0, 1).toUpperCase()}
-                </span>
+                <UserAvatar sizeClassName="h-7 w-7 text-xs" username={me.username} />
                 {me.username}
               </Link>
             ) : (
@@ -272,57 +315,124 @@ export default function SketchThemeLayout() {
           </div>
         </nav>
 
-        <h1 className="mt-8 text-2xl font-medium tracking-[-0.01em] text-ice-primary">
-          Midis Generator
-        </h1>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.3fr)] lg:items-start lg:gap-8">
+          {/* Generator Column */}
+          <div
+            ref={generatorScrollRef}
+            onScroll={handleGenScroll}
+            className="ice-scrollbar grid gap-6 pr-1 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto"
+          >
+            <h1 className="flex items-center gap-3 pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center p-0.5">
+                <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-[3px] bg-[color:var(--ice-accent)] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-[3px] bg-[color:var(--ice-accent)] shadow-[0_0_14px_var(--ice-accent)]" />
+              </span>
+              Generator
+            </h1>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px_minmax(0,1fr)] lg:items-start">
-          <div className="grid gap-0">
-            <div className="flex gap-1 px-1" role="tablist">
-              <button
-                aria-selected="true"
-                className={`${TAB_BUTTON_BASE} ${TAB_BUTTON_ACTIVE}`}
-                role="tab"
-                type="button"
-              >
-                Generate
-              </button>
+            <div className="grid gap-0">
+              <div className="flex gap-1 px-1" role="tablist">
+                <button
+                  aria-selected="true"
+                  className={`${TAB_BUTTON_BASE} ${TAB_BUTTON_ACTIVE}`}
+                  role="tab"
+                  type="button"
+                >
+                  Generate
+                </button>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl rounded-tl-none border border-white/[0.08] bg-[#070914]/94 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_36px_rgba(132,146,255,0.05)]">
+                <InteractiveBubbleBackground className="min-h-[440px] p-5 flex flex-col justify-center">
+                  {lastGeneration ? (
+                    <GeneratedPackVisualizer
+                      generation={lastGeneration}
+                      onNewGeneration={resetGeneration}
+                      soundEngine={soundEngine}
+                    />
+                  ) : (
+                    <RandomGeneratePanel
+                      onOpenCreatePack={() => setActiveModal("create")}
+                      onSourceStateChange={setSourceState}
+                      onStubStatus={setStatus}
+                      sourceState={sourceState}
+                      status={generationStatus || status}
+                    />
+                  )}
+                </InteractiveBubbleBackground>
+              </div>
             </div>
-            <Panel className="grid gap-5 rounded-tl-none p-5" elevated>
-              {lastGeneration ? (
-                <GeneratedPackVisualizer
-                  generation={lastGeneration}
-                  onNewGeneration={resetGeneration}
-                  soundEngine={soundEngine}
-                />
-              ) : (
-                <RandomGeneratePanel
-                  onOpenCreatePack={() => setActiveModal("create")}
-                  onSourceStateChange={setSourceState}
-                  onStubStatus={setStatus}
-                  sourceState={sourceState}
-                  status={generationStatus || status}
-                />
-              )}
-            </Panel>
           </div>
 
-          <SoundEngineCard
-            onChange={setSoundEngine}
-            settings={soundEngine}
-          />
+          {/* Symmetrical Dual Scroll Indicator Track */}
+          <div
+            aria-hidden="true"
+            className="hidden self-stretch w-5 relative flex-col items-center justify-between py-6 lg:flex select-none pointer-events-none"
+            title="Left dot: Generator scroll • Right dot: Feed scroll"
+          >
+            {/* Center Vertical Divider Line */}
+            <div className="absolute inset-y-6 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
 
-          <div className="grid max-h-[720px] gap-4 overflow-y-auto">
-            <UserGenerationsFeed onStubStatus={setStatus} />
+            {/* Left Square (Generator Scroll Position - Soft Periwinkle) */}
+            <div
+              className={`absolute left-1/2 h-2 w-2 -translate-x-[11px] rounded-[2px] bg-[color:var(--ice-accent)] shadow-[0_0_8px_rgba(132,146,255,0.4)] transition-all duration-300 ease-out ${
+                isGenScrolling ? "opacity-60 scale-100" : "opacity-0 scale-75"
+              }`}
+              style={{ top: `calc(1.5rem + ${genProgress * 85}%)` }}
+            />
+
+            {/* Right Square (Feed Scroll Position - Soft Cyan, 1-to-1 Symmetrical relative to divider) */}
+            <div
+              className={`absolute left-1/2 h-2 w-2 translate-x-[3px] rounded-[2px] bg-[#6ee7ff] shadow-[0_0_8px_rgba(110,231,255,0.4)] transition-all duration-300 ease-out ${
+                isFeedScrolling ? "opacity-60 scale-100" : "opacity-0 scale-75"
+              }`}
+              style={{ top: `calc(1.5rem + ${feedProgress * 85}%)` }}
+            />
+          </div>
+
+          {/* Feed Column */}
+          <div className="min-w-0">
+            <div
+              ref={feedScrollRef}
+              onScroll={handleFeedScroll}
+              className="ice-scrollbar grid gap-4 overflow-y-auto pr-1 lg:max-h-[calc(100vh-4.5rem)]"
+            >
+              <UserGenerationsFeed
+                isLoggedIn={Boolean(token)}
+                onRequireLogin={() => {
+                  setAuthMode("login");
+                  setAuthStatus("Sign up or log in to keep creating and downloading free of charge!");
+                }}
+                onStubStatus={setStatus}
+                soundEngine={soundEngine}
+              />
+            </div>
           </div>
         </div>
 
-        {totalGenerations !== null ? (
-          <p className="mt-8 text-center text-sm text-ice-muted">
-            Generated {totalGenerations.toLocaleString()} MIDI packs
-          </p>
-        ) : null}
+        {/* Floating Master Bottom Sound Engine Dock */}
+        <SoundEngineCard
+          onChange={setSoundEngine}
+          settings={soundEngine}
+        />
       </div>
+
+      {status ? (() => {
+        const isSuccessToast = status.includes("generated") || status.includes("ready") || status.includes("logged in");
+        const isErrorToast = status.includes("failed") || status.includes("expired") || status.includes("busy");
+        const toastType = isSuccessToast ? "success" : isErrorToast ? "error" : "info";
+        const toastTitle = isSuccessToast ? "Success" : isErrorToast ? "Notice" : "Account Required";
+
+        return (
+          <div className="fixed top-6 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 px-4 pointer-events-auto">
+            <ToastNotification
+              message={status}
+              onClose={() => setStatus("")}
+              title={toastTitle}
+              type={toastType}
+            />
+          </div>
+        );
+      })() : null}
 
       {activeModal === "create" ? (
         <CreatePackModal
@@ -346,6 +456,6 @@ export default function SketchThemeLayout() {
           username={username}
         />
       ) : null}
-    </main>
+    </EtherealShadowBackground>
   );
 }

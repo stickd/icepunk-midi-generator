@@ -64,7 +64,7 @@ class TempAnalysisServiceTest {
     @Test
     void analyzeTempRejectsTooManyFiles() {
         TempAnalysisService service = serviceWithAnalyzer(true);
-        List<MultipartFile> files = java.util.stream.IntStream.range(0, 9)
+        List<MultipartFile> files = java.util.stream.IntStream.range(0, 101)
                 .mapToObj(index -> file("file-" + index + ".mid", "audio/midi"))
                 .map(MultipartFile.class::cast)
                 .toList();
@@ -74,7 +74,7 @@ class TempAnalysisServiceTest {
                 () -> service.analyzeTemp(files)
         );
 
-        assertEquals("Upload no more than 8 MIDI files.", thrown.getMessage());
+        assertEquals("Upload no more than 100 MIDI files.", thrown.getMessage());
     }
 
     @Test

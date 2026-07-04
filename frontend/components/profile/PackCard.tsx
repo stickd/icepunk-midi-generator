@@ -125,9 +125,16 @@ export default function PackCard({ pack, token, onAuthRequired }: PackCardProps)
           <a
             aria-label={`Download ${pack.title}`}
             className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/[0.09] bg-white/[0.04] text-white/[0.55] outline-none transition-[background-color,color,transform] duration-150 ease-out after:pointer-events-none after:absolute after:inset-x-[10%] after:top-0 after:h-[40%] after:rounded-full after:bg-gradient-to-b after:from-white/[0.09] after:to-transparent hover:bg-white/[0.08] hover:text-white/[0.85] focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] active:scale-[0.94]"
-            download
+            download={`${pack.title.replace(/\s+/g, "_")}_by_creator.mid`}
             href={getPublicUploadMidiPreviewUrl(pack.id)}
-            onClick={() => setDownloads((count) => count + 1)}
+            onClick={(event) => {
+              if (!token) {
+                event.preventDefault();
+                onAuthRequired();
+                return;
+              }
+              setDownloads((count) => count + 1);
+            }}
           >
             <svg
               aria-hidden="true"

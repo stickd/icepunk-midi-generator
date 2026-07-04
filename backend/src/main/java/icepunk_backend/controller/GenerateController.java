@@ -22,6 +22,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -59,6 +60,27 @@ public class GenerateController {
 
     public ResponseEntity<GenerationResponse> generate(HttpServletRequest request) throws Exception {
         return generate(request, null);
+    }
+
+    @GetMapping("/generation-usage")
+    public GenerationLimitService.GenerationUsage getGenerationUsage(HttpServletRequest request) {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (
+                authentication != null
+                        && authentication.isAuthenticated()
+                        && !(authentication instanceof AnonymousAuthenticationToken)
+        ) {
+            User user = userRepository.findByEmail(authentication.getName())
+                    .orElseThrow();
+
+            return generationLimitService.getUserUsage(user);
+        }
+
+        String ipAddress = clientIpService.getClientIp(request);
+        return generationLimitService.getGuestUsage(ipAddress);
     }
 
     @PostMapping("/generate")

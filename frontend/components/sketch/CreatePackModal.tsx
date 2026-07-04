@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, FieldLabel, Input } from "@/components/ui";
+import { generateRandomPackName } from "@/lib/randomNames";
 
 export type CreatePackDraft = {
   amount: number;
@@ -16,7 +17,7 @@ type CreatePackModalProps = {
 
 export default function CreatePackModal({ onClose, onNext }: CreatePackModalProps) {
   const [amount, setAmount] = useState(17);
-  const [packName, setPackName] = useState("SteveMuis");
+  const [packName, setPackName] = useState(() => generateRandomPackName());
   const [type, setType] = useState<CreatePackDraft["type"]>("melody");
 
   return (
@@ -60,12 +61,34 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
 
           <div className="grid gap-4">
             <FieldLabel htmlFor="pack-name">
-              Pack Name
-              <Input
-                id="pack-name"
-                onChange={(event) => setPackName(event.currentTarget.value)}
-                value={packName}
-              />
+              <div className="flex items-center justify-between">
+                <span>Pack Name</span>
+                <button
+                  aria-label="Generate random 2-word name"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--ice-accent-text)] hover:text-ice-primary transition"
+                  onClick={() => setPackName(generateRandomPackName())}
+                  type="button"
+                >
+                  <span>🎲 Randomize</span>
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  className="w-full"
+                  id="pack-name"
+                  onChange={(event) => setPackName(event.currentTarget.value)}
+                  value={packName}
+                />
+                <button
+                  aria-label="Reroll name"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/[0.1] bg-white/[0.04] text-sm text-ice-secondary transition hover:bg-white/[0.08] hover:text-ice-primary"
+                  onClick={() => setPackName(generateRandomPackName())}
+                  title="Generate new 2-word name"
+                  type="button"
+                >
+                  🎲
+                </button>
+              </div>
             </FieldLabel>
 
             <fieldset>

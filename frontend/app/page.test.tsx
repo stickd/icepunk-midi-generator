@@ -88,22 +88,15 @@ describe("Home page", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Midis Generator",
+        name: "Generator",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Generate random" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "User Generations Feed" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Feed", exact: true })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Factory" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Custom" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Generate" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Upload" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Help Shape IcePunk" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Upload" }));
-    expect(await screen.findByPlaceholderText("Frozen lead sketch")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "Generate" }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Generate random" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }));
     const createDialog = screen.getByRole("dialog", { name: "Create pack" });
     expect(createDialog).toBeInTheDocument();
 
@@ -128,21 +121,20 @@ describe("Home page", () => {
     fireEvent.change(input as HTMLInputElement, {
       target: { files: [midiFile] },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Analyze MIDIs" }));
 
     await waitFor(() => {
       expect(mockAnalyzeTempMidiFiles).toHaveBeenCalledWith([midiFile]);
     });
     expect(await screen.findByText(/Custom generation is ready/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Generate random" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }));
     fireEvent.click(within(screen.getByRole("dialog", { name: "Create pack" })).getByRole("button", { name: /Next/i }));
 
     await waitFor(() => {
       expect(mockGenerateMidiPack).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 17,
-          packName: "SteveMuis",
+          packName: expect.any(String),
           source: "CUSTOM_UPLOAD",
           tempAnalysisId: "temp-analysis-1",
           type: "MELODY",

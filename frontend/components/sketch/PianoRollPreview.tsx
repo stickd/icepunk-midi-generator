@@ -6,6 +6,7 @@ type PianoRollPreviewProps = {
   maxPitch?: number | null;
   durationSeconds?: number | null;
   compact?: boolean;
+  heightClassName?: string;
   label?: string;
 };
 
@@ -22,8 +23,10 @@ export default function PianoRollPreview({
   maxPitch,
   durationSeconds,
   compact = false,
+  heightClassName,
   label,
 }: PianoRollPreviewProps) {
+  const heightStyle = heightClassName ?? (compact ? "h-[135px]" : "h-[180px]");
   const safeNotes = (notes ?? []).filter(
     (note) =>
       Number.isFinite(note.pitch) &&
@@ -36,9 +39,7 @@ export default function PianoRollPreview({
     return (
       <div
         aria-label={label ?? "Preview unavailable"}
-        className={`grid place-items-center rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)] text-center text-xs text-ice-muted ${
-          compact ? "h-[88px]" : "h-[180px]"
-        }`}
+        className={`grid place-items-center rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)] text-center text-xs text-ice-muted ${heightStyle}`}
         role="img"
       >
         Preview unavailable
@@ -58,9 +59,7 @@ export default function PianoRollPreview({
   return (
     <svg
       aria-label={label ?? "Generated MIDI piano roll preview"}
-      className={`w-full rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)] ${
-        compact ? "h-[88px]" : "h-[180px]"
-      }`}
+      className={`w-full rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)] ${heightStyle}`}
       preserveAspectRatio="none"
       role="img"
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}

@@ -6,10 +6,12 @@ import icepunk_backend.dto.UserPackItem;
 import icepunk_backend.dto.UserPackListResponse;
 import icepunk_backend.dto.UserProfileResponse;
 import icepunk_backend.exception.ResourceNotFoundException;
+import icepunk_backend.model.GeneratedPackVisibility;
 import icepunk_backend.model.ProjectLike;
 import icepunk_backend.model.UploadVisibility;
 import icepunk_backend.model.User;
 import icepunk_backend.model.UserUploadedProject;
+import icepunk_backend.repository.GeneratedPackRepository;
 import icepunk_backend.repository.ProjectLikeRepository;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.repository.UserUploadedProjectRepository;
@@ -30,17 +32,20 @@ public class UserProfileService {
 
     private final UserRepository userRepository;
     private final UserUploadedProjectRepository projectRepository;
+    private final GeneratedPackRepository generatedPackRepository;
     private final ProjectLikeRepository likeRepository;
     private final UserUploadStorageService storageService;
 
     public UserProfileService(
             UserRepository userRepository,
             UserUploadedProjectRepository projectRepository,
+            GeneratedPackRepository generatedPackRepository,
             ProjectLikeRepository likeRepository,
             UserUploadStorageService storageService
     ) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
+        this.generatedPackRepository = generatedPackRepository;
         this.likeRepository = likeRepository;
         this.storageService = storageService;
     }
@@ -49,7 +54,10 @@ public class UserProfileService {
     public UserProfileResponse getProfile(String username) {
         User user = findUserByUsername(username);
 
-        long packCount = projectRepository.countByOwnerIdAndVisibility(user.getId(), UploadVisibility.PUBLIC);
+        long publicUploads = projectRepository.countByOwnerIdAndVisibility(user.getId(), UploadVisibility.PUBLIC);
+        long publicGenerated = generatedPackRepository.countByOwnerIdAndVisibility(user.getId(), GeneratedPackVisibility.PUBLIC);
+        long packCount = publicUploads + publicGenerated;
+
         long totalDownloads = projectRepository.sumDownloadCountByOwnerIdAndVisibility(
                 user.getId(), UploadVisibility.PUBLIC);
         long totalLikes = likeRepository.countLikesReceivedByOwner(user.getId(), UploadVisibility.PUBLIC);

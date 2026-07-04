@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, SegmentedControl } from "@/components/ui";
+import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
 import MidiDropZone from "./MidiDropZone";
 
@@ -34,18 +34,32 @@ export default function RandomGeneratePanel({
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-ice-primary">Create from source</h2>
-          <p className="mt-1 text-sm leading-6 text-ice-secondary">
-            Choose the factory dataset or analyze your own MIDI files first.
-          </p>
-        </div>
+      {/* Top Switch Bar */}
+      <div className="flex justify-center pt-1">
         <SegmentedControl
           onChange={(source) => onSourceStateChange({ source })}
           options={sourceOptions}
           value={sourceState.source}
         />
+      </div>
+
+      {/* Prominent 3D Orbital Loader Ring */}
+      {!isCustom && (
+        <div className="flex items-center justify-center py-4">
+          <div className="loader">
+            <div className="dot" />
+            <div className="dot" />
+            <div className="dot" />
+          </div>
+        </div>
+      )}
+
+      {/* Section Title & Subtitle */}
+      <div className="text-center">
+        <h2 className="text-lg font-semibold text-ice-primary">Create from Source</h2>
+        <p className="mt-0.5 text-xs text-ice-secondary">
+          Choose the factory dataset or analyze your own MIDI files first.
+        </p>
       </div>
 
       {isCustom ? (
@@ -57,25 +71,50 @@ export default function RandomGeneratePanel({
           onStubStatus={onStubStatus}
         />
       ) : (
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5">
-          <p className="text-sm font-medium text-ice-primary">Factory dataset selected.</p>
-          <p className="mt-2 text-sm leading-6 text-ice-secondary">
-            Generation will use the bundled IcePunk analysis dataset.
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center backdrop-blur-md">
+          <p className="text-xs font-medium text-ice-secondary">
+            Factory IcePunk Dataset active — trained on dark melodic synth scales and cold polyphonic motifs.
           </p>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button disabled={!canGenerate} onClick={onOpenCreatePack} type="button" variant="primary">
-          Generate random
+      {/* Hero Generate Trigger CTA Area */}
+      <div className="relative flex flex-col items-center justify-center pt-2">
+        <Button
+          className="relative px-8 py-3 text-base shadow-[0_0_25px_rgba(132,146,255,0.25)] hover:shadow-[0_0_35px_rgba(132,146,255,0.4)] active:scale-95"
+          disabled={!canGenerate}
+          onClick={onOpenCreatePack}
+          size="lg"
+          type="button"
+          variant="primary"
+        >
+          <svg
+            className="h-5 w-5 fill-none stroke-current"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 3V21M3 12H21M7.5 7.5L16.5 16.5M16.5 7.5L7.5 16.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
+          <span>Generate</span>
         </Button>
       </div>
 
-      <p className="min-h-[20px] text-center text-sm text-ice-muted" role="status">
-        {isCustom && !sourceState.tempAnalysisId
-          ? "Upload and analyze 1-8 MIDI files before generating from Custom."
-          : status}
-      </p>
+      {isCustom && !sourceState.tempAnalysisId ? (
+        <ToastNotification
+          message="Upload and analyze 1-100 MIDI files before generating from Custom."
+          type="info"
+        />
+      ) : status ? (
+        <ToastNotification
+          message={status}
+          type={status.toLowerCase().includes("failed") || status.toLowerCase().includes("error") ? "error" : "success"}
+        />
+      ) : null}
     </div>
   );
 }

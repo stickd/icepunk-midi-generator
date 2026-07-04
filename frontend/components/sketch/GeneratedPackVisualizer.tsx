@@ -5,6 +5,7 @@ import { Badge, Button } from "@/components/ui";
 import { GeneratedMidiItem, GenerateMidiResponse } from "@/lib/api";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import BrowserPianoRoll from "./BrowserPianoRoll";
+import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
 
 type GeneratedPackVisualizerProps = {
   generation: GenerateMidiResponse;
@@ -53,20 +54,27 @@ export default function GeneratedPackVisualizer({
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
-          className="text-xs font-medium uppercase tracking-[0.06em] text-ice-muted transition-colors duration-150 ease-out hover:text-ice-primary"
+          className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition duration-150 ease-out hover:border-white/20 hover:bg-white/[0.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.15)]"
           onClick={onNewGeneration}
           type="button"
         >
-          <span aria-hidden="true">{"← "}</span>
-          New generation
+          <svg className="h-3.5 w-3.5 text-ice-accent" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M19 12H5m0 0l6-6m-6 6l6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>New generation</span>
         </button>
+
         <a
-          className="text-xs font-medium text-ice-secondary underline-offset-4 transition-colors duration-150 ease-out hover:text-ice-primary hover:underline"
+          className="inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white"
+          download={`${generation.name.replace(/\s+/g, "_")}_by_icepunk.zip`}
           href={generation.packDownloadUrl || generation.downloadUrl}
           rel="noreferrer"
           target="_blank"
         >
-          Download whole pack (ZIP)
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>Download whole pack (ZIP)</span>
         </a>
       </div>
 
@@ -129,46 +137,28 @@ export default function GeneratedPackVisualizer({
               )}
             </Button>
             <a
-              className={`inline-flex h-8 items-center rounded-full border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-medium text-ice-primary transition-colors duration-150 ease-out hover:bg-white/[0.08] ${
+              className={`inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-medium text-ice-primary transition-colors duration-150 ease-out hover:bg-white/[0.08] ${
                 activeItem ? "" : "pointer-events-none opacity-50"
               }`}
+              download={activeItem ? `${(activeItem.fileName ?? "midi").replace(/\.mid$/i, "").replace(/\s+/g, "_")}_by_icepunk.mid` : undefined}
               href={activeItem?.downloadUrl ?? "#download"}
               rel="noreferrer"
               target="_blank"
             >
-              <span aria-hidden="true">{"↓ "}</span>
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               Download
             </a>
           </div>
         </div>
       </div>
 
-      {items.length > 1 ? (
-        <div aria-label="Other MIDIs in this pack" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-          {items.map((item, index) => (
-            <button
-              aria-current={index === activeIndex}
-              aria-label={`Preview ${item.fileName}`}
-              className={`overflow-hidden rounded-lg border transition-colors duration-150 ease-out ${
-                index === activeIndex
-                  ? "border-[color:var(--ice-accent-border)] ring-1 ring-[color:var(--ice-accent-border)]"
-                  : "border-white/[0.06] hover:border-white/[0.15]"
-              }`}
-              key={item.id}
-              onClick={() => selectItem(index)}
-              type="button"
-            >
-              <BrowserPianoRoll
-                isPlaying={false}
-                midiFile={null}
-                midiUrl={item.downloadUrl}
-                playbackPositionSeconds={0}
-                size="compact"
-              />
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <MidiThumbnailCarousel
+        activeIndex={activeIndex}
+        items={items}
+        onSelect={selectItem}
+      />
 
       <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
         {playback.message}

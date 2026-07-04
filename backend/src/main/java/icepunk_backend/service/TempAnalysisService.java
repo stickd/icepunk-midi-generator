@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class TempAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(TempAnalysisService.class);
-    private static final int MAX_FILES = 8;
+    private static final int MAX_FILES = 100;
     private static final long DEFAULT_RETENTION_HOURS = 24;
 
     private final Path projectDir;
@@ -223,7 +223,7 @@ public class TempAnalysisService {
         }
 
         if (files.size() > MAX_FILES) {
-            throw new GenerationRequestException("Upload no more than 8 MIDI files.");
+            throw new GenerationRequestException("Upload no more than 100 MIDI files.");
         }
 
         List<MultipartFile> validFiles = new ArrayList<>();

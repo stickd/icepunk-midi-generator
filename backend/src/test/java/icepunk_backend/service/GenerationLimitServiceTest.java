@@ -109,4 +109,56 @@ class GenerationLimitServiceTest {
                 () -> service.checkUserLimit(user)
         );
     }
+
+    @Test
+    void getGuestUsageReturnsTodaysCountAndLimit() {
+        GuestUsage usage = new GuestUsage("127.0.0.1");
+        usage.setGenerationsToday(2);
+        usage.setGenerationDate(LocalDate.now());
+        when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
+
+        GenerationLimitService.GenerationUsage result = service.getGuestUsage("127.0.0.1");
+
+        assertEquals(2, result.used());
+        assertEquals(3, result.limit());
+    }
+
+    @Test
+    void getGuestUsageIgnoresStaleCountFromAPreviousDay() {
+        GuestUsage usage = new GuestUsage("127.0.0.1");
+        usage.setGenerationsToday(3);
+        usage.setGenerationDate(LocalDate.now().minusDays(1));
+        when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
+
+        GenerationLimitService.GenerationUsage result = service.getGuestUsage("127.0.0.1");
+
+        assertEquals(0, result.used());
+        assertEquals(3, result.limit());
+    }
+
+    @Test
+    void getUserUsageReturnsTodaysCountAndLimit() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(4);
+        user.setGenerationDate(LocalDate.now());
+        when(userRepository.findByEmail("nikul@example.com")).thenReturn(Optional.of(user));
+
+        GenerationLimitService.GenerationUsage result = service.getUserUsage(user);
+
+        assertEquals(4, result.used());
+        assertEquals(7, result.limit());
+    }
+
+    @Test
+    void getUserUsageIgnoresStaleCountFromAPreviousDay() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(7);
+        user.setGenerationDate(LocalDate.now().minusDays(1));
+        when(userRepository.findByEmail("nikul@example.com")).thenReturn(Optional.of(user));
+
+        GenerationLimitService.GenerationUsage result = service.getUserUsage(user);
+
+        assertEquals(0, result.used());
+        assertEquals(7, result.limit());
+    }
 }

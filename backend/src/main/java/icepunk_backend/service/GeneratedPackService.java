@@ -145,6 +145,26 @@ public class GeneratedPackService {
     }
 
     @Transactional(readOnly = true)
+    public PublicGeneratedPackFeedResponse getPublicFeedByUsername(String username, int page, int size) {
+        int normalizedPage = Math.max(0, page);
+        int normalizedSize = Math.max(1, Math.min(size, MAX_FEED_PAGE_SIZE));
+        Page<GeneratedPack> packs = packRepository.findByOwner_UsernameAndVisibilityOrderByCreatedAtDesc(
+                username,
+                GeneratedPackVisibility.PUBLIC,
+                PageRequest.of(normalizedPage, normalizedSize)
+        );
+
+        return new PublicGeneratedPackFeedResponse(
+                packs.getContent().stream().map(this::toPublicFeedItem).toList(),
+                packs.getNumber(),
+                packs.getSize(),
+                packs.getTotalElements(),
+                packs.getTotalPages(),
+                packs.hasNext()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public Optional<String> getItemDownloadUrl(UUID packId, UUID itemId) {
         return itemRepository.findByIdAndPackId(itemId, packId)
                 .map(item -> storageService.publicUrlForObjectKey(item.getMidiObjectKey()));
