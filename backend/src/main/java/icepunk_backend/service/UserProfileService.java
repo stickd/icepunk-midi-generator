@@ -196,7 +196,7 @@ public class UserProfileService {
     }
 
     private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
+        return userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 

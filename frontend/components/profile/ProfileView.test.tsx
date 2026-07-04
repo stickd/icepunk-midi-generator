@@ -40,13 +40,14 @@ describe("ProfileView", () => {
     jest.resetAllMocks();
 
     getUserProfileMock.mockResolvedValue({
-      createdAt: "2026-01-01T00:00:00Z",
+      bio: null,
       id: 1,
       joinedAt: "2026-01-01T00:00:00Z",
       packCount: 2,
       totalDownloads: 15,
       totalLikes: 5,
       username: "testuser",
+      verified: false,
     });
 
     getUserPacksMock.mockResolvedValue({
@@ -73,21 +74,35 @@ describe("ProfileView", () => {
       hasNext: false,
       items: [
         {
+          amount: 1,
           bpm: 140,
           createdAt: "2026-07-04T00:00:00Z",
           items: [
             {
               id: "item-1",
-              filename: "lead.mid",
-              previewUrl: "http://localhost:8081/preview/1",
+              index: 0,
+              fileName: "lead.mid",
               downloadUrl: "http://localhost:8081/download/1",
+              durationSeconds: 5,
+              noteCount: 10,
+              trackCount: 1,
+              minPitch: 48,
+              maxPitch: 72,
+              avgPitch: 60,
+              bpm: 140,
+              preview: { notes: [], truncated: false },
             },
           ],
           name: "Cold Melodies Pack",
+          octaves: 2,
+          ownerId: 1,
           ownerUsername: "testuser",
           packDownloadUrl: "http://localhost:8081/pack/1",
           packId: "pack-1",
+          pitch: 0,
+          source: "FACTORY",
           type: "MELODY",
+          visibility: "PUBLIC",
         },
       ],
       page: 0,

@@ -27,13 +27,16 @@ export default function ProfileSettingsModal({
   const [statusMessage, setStatusMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const [prevOpenKey, setPrevOpenKey] = useState("");
+  const openKey = isOpen ? username : "";
+  if (prevOpenKey !== openKey) {
+    setPrevOpenKey(openKey);
     if (isOpen && username) {
       const stored = getProfileSettings(username);
       setAvatarUrl(stored.avatarUrl);
       setSelectedRing(stored.auraRingId);
     }
-  }, [isOpen, username]);
+  }
 
   if (!isOpen) return null;
 

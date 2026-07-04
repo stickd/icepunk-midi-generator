@@ -23,7 +23,7 @@ export function useDualScrollProgress() {
     };
   }, []);
 
-  const handleGenScroll = useCallback(() => {
+  const handleGenScroll = useCallback((_e?: React.UIEvent<HTMLElement>) => {
     setIsGenScrolling(true);
     if (genTimeoutRef.current) clearTimeout(genTimeoutRef.current);
     genTimeoutRef.current = setTimeout(() => setIsGenScrolling(false), 1200);
@@ -38,7 +38,7 @@ export function useDualScrollProgress() {
     });
   }, []);
 
-  const handleFeedScroll = useCallback(() => {
+  const handleFeedScroll = useCallback((_e?: React.UIEvent<HTMLElement>) => {
     setIsFeedScrolling(true);
     if (feedTimeoutRef.current) clearTimeout(feedTimeoutRef.current);
     feedTimeoutRef.current = setTimeout(() => setIsFeedScrolling(false), 1200);

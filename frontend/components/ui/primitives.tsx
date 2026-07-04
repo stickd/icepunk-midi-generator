@@ -240,7 +240,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-full border border-white/[0.12] bg-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl",
+        "inline-flex rounded-full border border-white/[0.14] bg-black/40 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_20px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-300 ease-out",
         className,
       )}
       role="tablist"
@@ -255,11 +255,11 @@ export function SegmentedControl<T extends string>({
             aria-selected={isSelected}
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm outline-none transition-all duration-200 ease-out",
+              "rounded-full px-4.5 py-1.5 text-sm outline-none transition-all duration-300 ease-out transform active:scale-95",
               "focus-visible:ring-2 focus-visible:ring-[rgba(160,174,255,0.5)]",
               isSelected
-                ? "bg-[linear-gradient(180deg,rgba(160,174,255,0.36),rgba(100,116,255,0.22))] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_24px_rgba(92,108,255,0.25)]"
-                : "font-semibold text-white/80 hover:bg-white/[0.08] hover:text-white",
+                ? "bg-[linear-gradient(180deg,rgba(160,174,255,0.38),rgba(92,108,255,0.22))] border border-[rgba(188,200,255,0.45)] font-bold text-white shadow-[0_4px_20px_rgba(92,108,255,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] scale-[1.02]"
+                : "font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white hover:scale-[1.01]",
             )}
           >
             {option.label}

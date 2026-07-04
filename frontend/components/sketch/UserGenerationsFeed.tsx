@@ -158,23 +158,7 @@ export default function UserGenerationsFeed({
   }, [hasError, hasNext, isFeedActive, isInitialLoading, isPageLoading, isPageVisible, nextPage]);
 
   useEffect(() => {
-    const feed = feedRef.current;
-    if (!feed) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const isVisible = entries.some((entry) => entry.isIntersecting);
-        isFeedVisibleRef.current = isVisible;
-
-        if (isVisible && hasFeedScrollIntentRef.current) {
-          activateFeed();
-        }
-      },
-      { threshold: 0.01 },
-    );
-
-    observer.observe(feed);
-    return () => observer.disconnect();
+    activateFeed();
   }, [activateFeed]);
 
   useEffect(() => {
@@ -337,14 +321,15 @@ export default function UserGenerationsFeed({
       {generations.length > 0 ? (
         <div className="grid gap-4">
           {generations.map((generation) => (
-            <GenerationFeedCard
-              generation={generation}
-              isLoggedIn={isLoggedIn}
-              key={generation.id}
-              onRequireLogin={onRequireLogin}
-              onStubStatus={onStubStatus}
-              soundEngine={soundEngine}
-            />
+            <div key={generation.id} style={{ contentVisibility: "auto", containIntrinsicSize: "0 280px" }}>
+              <GenerationFeedCard
+                generation={generation}
+                isLoggedIn={isLoggedIn}
+                onRequireLogin={onRequireLogin}
+                onStubStatus={onStubStatus}
+                soundEngine={soundEngine}
+              />
+            </div>
           ))}
         </div>
       ) : null}

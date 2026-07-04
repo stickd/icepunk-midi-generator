@@ -36,7 +36,7 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
     @Query("""
             select pack from GeneratedPack pack
             join pack.owner owner
-            where owner.username = :username
+            where lower(owner.username) = lower(:username)
               and pack.visibility = :visibility
               and lower(owner.username) <> 'guest'
             order by pack.createdAt desc
@@ -49,6 +49,13 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
 
     @EntityGraph(attributePaths = "owner")
     Page<GeneratedPack> findByOwner_UsernameAndVisibilityOrderByCreatedAtDesc(
+            String username,
+            GeneratedPackVisibility visibility,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = "owner")
+    Page<GeneratedPack> findByOwner_UsernameIgnoreCaseAndVisibilityOrderByCreatedAtDesc(
             String username,
             GeneratedPackVisibility visibility,
             Pageable pageable

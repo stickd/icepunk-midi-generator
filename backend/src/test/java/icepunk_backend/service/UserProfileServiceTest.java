@@ -85,7 +85,7 @@ class UserProfileServiceTest {
 
     @Test
     void getProfileAggregatesPublicStats() {
-        when(userRepository.findByUsername("maco")).thenReturn(Optional.of(owner));
+        when(userRepository.findByUsernameIgnoreCase("maco")).thenReturn(Optional.of(owner));
         when(projectRepository.countByOwnerIdAndVisibility(1L, UploadVisibility.PUBLIC)).thenReturn(3L);
         when(generatedPackRepository.countByOwnerIdAndVisibility(1L, icepunk_backend.model.GeneratedPackVisibility.PUBLIC)).thenReturn(2L);
         when(projectRepository.sumDownloadCountByOwnerIdAndVisibility(1L, UploadVisibility.PUBLIC)).thenReturn(120L);
@@ -103,7 +103,7 @@ class UserProfileServiceTest {
 
     @Test
     void getProfileThrowsNotFoundForUnknownUser() {
-        when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameIgnoreCase("ghost")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getProfile("ghost"))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -119,7 +119,7 @@ class UserProfileServiceTest {
                 2
         );
 
-        when(userRepository.findByUsername("maco")).thenReturn(Optional.of(owner));
+        when(userRepository.findByUsernameIgnoreCase("maco")).thenReturn(Optional.of(owner));
         when(projectRepository.findByOwnerIdAndVisibilityOrderByUploadedAtDesc(
                 eq(1L), eq(UploadVisibility.PUBLIC), any(Pageable.class)))
                 .thenReturn(page);
@@ -147,7 +147,7 @@ class UserProfileServiceTest {
                 1
         );
 
-        when(userRepository.findByUsername("maco")).thenReturn(Optional.of(owner));
+        when(userRepository.findByUsernameIgnoreCase("maco")).thenReturn(Optional.of(owner));
         when(projectRepository.findByOwnerIdAndVisibilityOrderByUploadedAtDesc(
                 eq(1L), eq(UploadVisibility.PUBLIC), any(Pageable.class)))
                 .thenReturn(page);

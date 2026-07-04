@@ -40,20 +40,24 @@ export function formatRelativeTime(uploadedAt: string) {
 }
 
 export function toFeedGeneration(item: PublicGeneratedPackFeedItem): FeedGeneration {
+  const safeItems = Array.isArray(item.items) ? item.items : [];
   return {
     downloads: 0,
-    id: item.packId,
-    items: item.items,
-    midiCount: item.items.length,
+    id: item.packId ?? `pack-${Math.random()}`,
+    items: safeItems.map((m) => ({
+      ...m,
+      fileName: (m as { fileName?: string; filename?: string }).fileName ?? (m as { fileName?: string; filename?: string }).filename ?? "MIDI",
+    })),
+    midiCount: safeItems.length,
     packDownloadUrl: item.packDownloadUrl,
     sound: item.type === "DRUMS" ? "Generated drums" : "Generated melody",
-    timeAgo: formatRelativeTime(item.createdAt),
-    title: item.name,
+    timeAgo: formatRelativeTime(item.createdAt ?? ""),
+    title: item.name ?? "Untitled Pack",
     type: item.type,
     bpm: item.bpm,
     pitch: item.pitch,
     octaves: item.octaves,
     uploadedAt: item.createdAt,
-    username: item.ownerUsername,
+    username: item.ownerUsername ?? "Anonymous",
   };
 }

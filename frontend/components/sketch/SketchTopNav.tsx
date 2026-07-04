@@ -32,22 +32,20 @@ export default function SketchTopNav({
       </Link>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Badge
-          title={
-            token
-              ? "Unlimited generations"
-              : usage
+        {!token ? (
+          <Badge
+            title={
+              usage
                 ? `${usage.used} of ${usage.limit} used today`
                 : undefined
-          }
-          tone="accent"
-        >
-          {token
-            ? "Unlimited"
-            : usage
+            }
+            tone="accent"
+          >
+            {usage
               ? `${Math.max(0, usage.limit - usage.used)} left today`
               : "5/day"}
-        </Badge>
+          </Badge>
+        ) : null}
 
         {me ? (
           <Link

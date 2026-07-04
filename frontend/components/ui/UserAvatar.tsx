@@ -19,10 +19,14 @@ export default function UserAvatar({
   const [settings, setSettings] = useState<UserCustomSettings>(() =>
     getProfileSettings(username),
   );
+  const [prevUsername, setPrevUsername] = useState(username);
+
+  if (prevUsername !== username) {
+    setPrevUsername(username);
+    setSettings(getProfileSettings(username));
+  }
 
   useEffect(() => {
-    setSettings(getProfileSettings(username));
-
     const handleProfileUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<{
         username: string;

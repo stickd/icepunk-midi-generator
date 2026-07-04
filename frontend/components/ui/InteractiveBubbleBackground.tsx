@@ -1,6 +1,6 @@
 "use client";
 
-import { HTMLAttributes, useEffect, useRef } from "react";
+import { HTMLAttributes, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/ui";
 
 type InteractiveBubbleBackgroundProps = HTMLAttributes<HTMLDivElement> & {
@@ -20,6 +20,8 @@ export function InteractiveBubbleBackground({
   const mousePos = useRef({ x: 0, y: 0 });
   const currentPos = useRef({ x: 0, y: 0 });
   const rafId = useRef<number | null>(null);
+
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -53,6 +55,7 @@ export function InteractiveBubbleBackground({
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      setHasInteracted(true);
       const rect = container.getBoundingClientRect();
       mousePos.current = {
         x: event.clientX - rect.left,
@@ -117,7 +120,7 @@ export function InteractiveBubbleBackground({
         </svg>
 
         {/* Ambient Container with Blending */}
-        <div className="absolute inset-0 filter [filter:url(#liquid-card-bubble-warp)]">
+        <div className={cn("absolute inset-0", hasInteracted && "filter [filter:url(#liquid-card-bubble-warp)]")}>
           {/* Bubble 1: Cold Periwinkle / Indigo (Top-Left Floating) */}
           <div className="absolute -top-[20%] -left-[20%] w-[350px] h-[350px] rounded-full bg-[radial-gradient(circle_at_center,rgba(132,146,255,0.4),rgba(92,108,255,0.15)_60%,transparent_100%)] blur-[120px] opacity-35 animate-aurora-1 mix-blend-screen" />
 

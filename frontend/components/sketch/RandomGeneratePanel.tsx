@@ -75,16 +75,16 @@ export default function RandomGeneratePanel({
       </div>
 
       {isCustom ? (
-        <MidiDropZone
-          onAnalysisComplete={(tempAnalysisId) =>
-            onSourceStateChange({ source: "CUSTOM_UPLOAD", tempAnalysisId })
-          }
-          onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
-          onStubStatus={onStubStatus}
-        />
-      ) : (
-        null
-      )}
+        <div className="transition-all duration-300 ease-out animate-fade-in">
+          <MidiDropZone
+            onAnalysisComplete={(tempAnalysisId) =>
+              onSourceStateChange({ source: "CUSTOM_UPLOAD", tempAnalysisId })
+            }
+            onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
+            onStubStatus={onStubStatus}
+          />
+        </div>
+      ) : null}
 
       {/* Hero Generate Trigger CTA Area */}
       <div className="relative flex flex-col items-center justify-center pt-2">

@@ -2,7 +2,7 @@
 
 - Last updated: 2026-07-04
 - Current branch: `dev`
-- Working tree state at update time: UI/UX refinements complete (top-center toast notifications, custom download filenames, feed profile links, guest generator download permissions).
+- Working tree state at update time: Fixed SVG gradient ID collisions in `PianoRollPreview.tsx`, aligned item label key ordering across thumbnail carousel and main preview for 100% color matching, added animated playback playhead line during preview, and removed UNLIMITED badge when logged in. All 9 test suites and production build passing 100%.
 - Latest commits at update time:
   - `23699ed Implement`
   - `2d154e6 Connect`

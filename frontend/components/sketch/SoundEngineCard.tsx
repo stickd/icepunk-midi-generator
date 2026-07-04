@@ -171,12 +171,12 @@ export default function SoundEngineCard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Section 1: Sound Source Switch & Selector */}
           <div className="flex items-center gap-2.5">
-            <div className="flex rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5 text-xs">
+            <div className="flex rounded-lg border border-white/[0.12] bg-white/[0.04] p-1 text-xs">
               <button
-                className={`rounded-md px-2 py-1 text-xs font-medium transition ${
+                className={`rounded-md px-3 py-1 text-xs font-semibold transition-all duration-150 ${
                   soundMode === "stock"
-                    ? "bg-[color:var(--ice-accent)] text-white shadow"
-                    : "text-ice-muted hover:text-ice-primary"
+                    ? "bg-[color:var(--ice-accent)] text-white font-bold shadow-[0_0_14px_rgba(132,146,255,0.45)] scale-[1.02]"
+                    : "bg-transparent text-ice-muted hover:text-white"
                 }`}
                 onClick={() => {
                   setSoundMode("stock");
@@ -187,10 +187,10 @@ export default function SoundEngineCard({
                 Stock
               </button>
               <button
-                className={`rounded-md px-2 py-1 text-xs font-medium transition ${
+                className={`rounded-md px-3 py-1 text-xs font-semibold transition-all duration-150 ${
                   soundMode === "upload"
-                    ? "bg-[color:var(--ice-accent)] text-white shadow"
-                    : "text-ice-muted hover:text-ice-primary"
+                    ? "bg-[color:var(--ice-accent)] text-white font-bold shadow-[0_0_14px_rgba(132,146,255,0.45)] scale-[1.02]"
+                    : "bg-transparent text-ice-muted hover:text-white"
                 }`}
                 onClick={() => setSoundMode("upload")}
                 type="button"

@@ -111,9 +111,9 @@ function MidiThumbnailCarousel({
               <button
                 aria-current={isActive}
                 aria-label={`Select ${item.fileName ?? `MIDI ${index + 1}`}`}
-                className={`group relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border transition-all duration-150 focus:outline-none sm:h-18 sm:w-28 ${
+                className={`group relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none sm:h-18 sm:w-28 ${
                   isActive
-                    ? "scale-[1.02] border-[color:var(--ice-accent-border)] bg-white/[0.04] ring-2 ring-[color:var(--ice-accent-border)] shadow-[0_0_12px_rgba(120,150,255,0.25)]"
+                    ? "scale-[1.04] border-[color:var(--ice-accent-border)] bg-white/[0.04] ring-2 ring-[color:var(--ice-accent-border)] shadow-[0_0_16px_rgba(120,150,255,0.35)]"
                     : "border-white/[0.08] bg-black/20 hover:scale-[1.02] hover:border-white/[0.2]"
                 }`}
                 key={item.id ?? index}
@@ -125,6 +125,7 @@ function MidiThumbnailCarousel({
                   <PianoRollPreview
                     compact
                     durationSeconds={item.durationSeconds}
+                    label={item.fileName ?? (item as { filename?: string })?.filename ?? item.id ?? `item-${index}`}
                     maxPitch={item.maxPitch}
                     minPitch={item.minPitch}
                     notes={item.preview?.notes}

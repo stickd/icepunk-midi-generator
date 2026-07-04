@@ -19,10 +19,13 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   const [customSettings, setCustomSettings] = useState<UserCustomSettings>(() =>
     getProfileSettings(profile.username),
   );
+  const [prevUsername, setPrevUsername] = useState(profile.username);
+  if (prevUsername !== profile.username) {
+    setPrevUsername(profile.username);
+    setCustomSettings(getProfileSettings(profile.username));
+  }
 
   useEffect(() => {
-    setCustomSettings(getProfileSettings(profile.username));
-
     const handleProfileUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<{ username: string; updated: UserCustomSettings }>;
       if (customEvent.detail?.username?.toLowerCase() === profile.username.toLowerCase()) {

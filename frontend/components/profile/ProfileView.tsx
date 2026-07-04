@@ -191,7 +191,8 @@ export default function ProfileView({ username }: ProfileViewProps) {
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         const message = error instanceof Error ? error.message : "";
-        setProfileStatus(message.startsWith("HTTP_404") ? "not-found" : "error");
+        const isNotFound = message.includes("404") || message.includes("not found");
+        setProfileStatus(isNotFound ? "not-found" : "error");
       });
 
     return () => controller.abort();
@@ -308,17 +309,32 @@ export default function ProfileView({ username }: ProfileViewProps) {
   const loadMore = () =>
     activeTab === "favorites" ? fetchFavorites(favorites.page + 1) : fetchMorePacks();
 
-  if (profileStatus === "not-found") {
+  if (username.toLowerCase() === "guest") {
     return (
       <EmptyState
-        className="mx-auto mt-16 max-w-md"
-        title="User not found"
-        description={`Nobody named "${username}" is registered here.`}
         action={
           <Link href="/">
             <Button variant="primary">Back to generator</Button>
           </Link>
         }
+        className="mx-auto mt-16 max-w-md"
+        description="Guest users don't have a public profile page. Create an account or log in to customize your profile!"
+        title="Guest Profile"
+      />
+    );
+  }
+
+  if (profileStatus === "not-found") {
+    return (
+      <EmptyState
+        action={
+          <Link href="/">
+            <Button variant="primary">Back to generator</Button>
+          </Link>
+        }
+        className="mx-auto mt-16 max-w-md"
+        description={`Nobody named "${username}" is registered here.`}
+        title="User not found"
       />
     );
   }
@@ -326,9 +342,14 @@ export default function ProfileView({ username }: ProfileViewProps) {
   if (profileStatus === "error") {
     return (
       <EmptyState
+        action={
+          <Link href="/">
+            <Button variant="primary">Back to generator</Button>
+          </Link>
+        }
         className="mx-auto mt-16 max-w-md"
-        title="Profile unavailable"
         description="The backend is not reachable right now. Try again in a moment."
+        title="Profile unavailable"
       />
     );
   }

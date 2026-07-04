@@ -92,12 +92,12 @@ describe("Home page", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Feed", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Feed" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Factory" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Custom" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Generate" }));
-    const createDialog = screen.getByRole("dialog", { name: "Create pack" });
+    const createDialog = await screen.findByRole("dialog", { name: "Create pack" });
     expect(createDialog).toBeInTheDocument();
 
     fireEvent.click(within(createDialog).getByRole("button", { name: /Next/i }));
@@ -114,7 +114,7 @@ describe("Home page", () => {
     render(<Home />);
 
     fireEvent.click(await screen.findByRole("tab", { name: "Custom" }));
-    const input = screen.getByText("Upload your midis").closest("label")?.querySelector("input[type='file']");
+    const input = (await screen.findByText("Upload your midis")).closest("label")?.querySelector("input[type='file']");
     expect(input).toBeInTheDocument();
 
     const midiFile = new File(["midi"], "custom.mid", { type: "audio/midi" });
