@@ -62,7 +62,6 @@ function FeedShell({ onIntent }: { onIntent: () => void }) {
       aria-labelledby="user-generations-feed-heading"
       className="grid gap-4"
       onFocus={onIntent}
-      onMouseEnter={onIntent}
       onTouchStart={onIntent}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -124,7 +123,6 @@ function SoundEngineShell({
       className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
       onClick={onIntent}
       onFocus={onIntent}
-      onMouseEnter={onIntent}
       onTouchStart={onIntent}
     >
       <div className="w-[calc(100vw-1.5rem)] max-w-4xl rounded-2xl border border-white/[0.08] bg-[#070914]/94 px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(132,146,255,0.05)] backdrop-blur-xl">
@@ -220,59 +218,7 @@ export default function SketchThemeClient() {
     setShowGuestLimitModal(true);
   });
 
-  useEffect(() => {
-    if (isFeedMounted) return;
-
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const mountFeed = () => {
-      setIsFeedMounted(true);
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(mountFeed, { timeout: 1500 });
-    } else {
-      timerId = setTimeout(mountFeed, 1000);
-    }
-
-    return () => {
-      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timerId !== null) {
-        clearTimeout(timerId);
-      }
-    };
-  }, [isFeedMounted]);
-
   const isSoundEngineActive = isSoundEngineMounted || playback.isPlaying;
-
-  useEffect(() => {
-    if (isSoundEngineMounted) return;
-
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const mountSoundEngine = () => {
-      setIsSoundEngineMounted(true);
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(mountSoundEngine, { timeout: 2000 });
-    } else {
-      timerId = setTimeout(mountSoundEngine, 1500);
-    }
-
-    return () => {
-      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timerId !== null) {
-        clearTimeout(timerId);
-      }
-    };
-  }, [isSoundEngineMounted]);
 
   useEffect(() => {
     let isAborted = false;
@@ -430,13 +376,14 @@ export default function SketchThemeClient() {
             <div
               ref={feedScrollRef}
               className="ice-scrollbar grid gap-4 overflow-y-auto pr-1 lg:max-h-[calc(100vh-4.5rem)]"
+              onClick={triggerFeedMount}
               onFocus={triggerFeedMount}
-              onMouseEnter={triggerFeedMount}
               onScroll={(e) => {
                 triggerFeedMount();
                 handleFeedScroll(e);
               }}
               onTouchStart={triggerFeedMount}
+              onWheel={triggerFeedMount}
             >
               {isFeedMounted ? (
                 <UserGenerationsFeed
