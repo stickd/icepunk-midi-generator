@@ -225,10 +225,10 @@ class UserProfileServiceTest {
         when(userRepository.findByEmail("maco@example.com")).thenReturn(Optional.of(owner));
         when(userRepository.save(owner)).thenReturn(owner);
 
-        MeResponse afterBlank = service.updateBio("maco@example.com", "   ");
+        MeResponse afterBlank = service.updateProfile("maco@example.com", "   ", null);
         assertThat(afterBlank.bio()).isNull();
 
-        MeResponse afterText = service.updateBio("maco@example.com", "  cold algorithms  ");
+        MeResponse afterText = service.updateProfile("maco@example.com", "  cold algorithms  ", null);
         assertThat(afterText.bio()).isEqualTo("cold algorithms");
     }
 

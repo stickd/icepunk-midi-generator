@@ -415,6 +415,7 @@ export type UserProfileResponse = {
   id: number;
   username: string;
   bio: string | null;
+  profilePictureUrl: string | null;
   verified: boolean;
   joinedAt: string;
   packCount: number;
@@ -450,6 +451,7 @@ export type MeResponse = {
   username: string;
   email: string;
   bio: string | null;
+  profilePictureUrl: string | null;
   credits: number;
   verified: boolean;
   joinedAt: string;
@@ -510,6 +512,43 @@ export async function getMe(
   signal?: AbortSignal,
 ): Promise<MeResponse> {
   return fetchJson("/users/me", { headers: authHeaders(token), signal });
+}
+
+export async function uploadAvatar(
+  token: string,
+  file: File,
+  signal?: AbortSignal,
+): Promise<MeResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_URL}/users/me/avatar`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: formData,
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function updateProfilePictureUrl(
+  token: string,
+  profilePictureUrl: string,
+  signal?: AbortSignal,
+): Promise<MeResponse> {
+  return fetchJson("/users/me/profile", {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ profilePictureUrl }),
+    signal,
+  });
 }
 
 export async function getFavorites(

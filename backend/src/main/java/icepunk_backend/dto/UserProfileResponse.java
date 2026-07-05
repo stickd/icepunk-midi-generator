@@ -6,6 +6,7 @@ public record UserProfileResponse(
         Long id,
         String username,
         String bio,
+        String profilePictureUrl,
         boolean verified,
         OffsetDateTime joinedAt,
         long packCount,

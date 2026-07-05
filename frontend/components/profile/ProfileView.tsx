@@ -389,7 +389,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
         </div>
       ) : (
         <>
-          <ProfileHeader profile={profile} />
+          <ProfileHeader isOwnProfile={isOwnProfile} profile={profile} token={token} />
           <ProfileStats profile={profile} />
         </>
       )}

@@ -12,10 +12,13 @@ import ProfileSettingsModal from "./ProfileSettingsModal";
 
 type ProfileHeaderProps = {
   profile: UserProfileResponse;
+  isOwnProfile: boolean;
+  token: string | null;
 };
 
-export default function ProfileHeader({ profile }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, isOwnProfile, token }: ProfileHeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(profile.profilePictureUrl);
   const [customSettings, setCustomSettings] = useState<UserCustomSettings>(() =>
     getProfileSettings(profile.username),
   );
@@ -23,6 +26,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   if (prevUsername !== profile.username) {
     setPrevUsername(profile.username);
     setCustomSettings(getProfileSettings(profile.username));
+    setAvatarUrl(profile.profilePictureUrl);
   }
 
   useEffect(() => {
@@ -53,12 +57,12 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
             className={`grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-[color:var(--ice-accent-soft)] text-3xl font-semibold text-[color:var(--ice-accent-text)] ring-2 transition-all duration-300 ${currentRing.shadow}`}
             style={{ borderColor: currentRing.color }}
           >
-            {customSettings.avatarUrl ? (
+            {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt={`${profile.username}'s profile picture`}
                 className="h-full w-full object-cover"
-                src={customSettings.avatarUrl}
+                src={avatarUrl}
               />
             ) : (
               profile.username.slice(0, 1).toUpperCase()
@@ -93,26 +97,33 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
           </div>
         </div>
 
-        <Button
-          onClick={() => setIsSettingsOpen(true)}
-          size="sm"
-          type="button"
-          variant="secondary"
-        >
-          <svg className="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M15 12a3 30 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Settings
-        </Button>
+        {isOwnProfile ? (
+          <Button
+            onClick={() => setIsSettingsOpen(true)}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            <svg className="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M15 12a3 30 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Settings
+          </Button>
+        ) : null}
       </header>
 
-      <ProfileSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onUpdated={(updated) => setCustomSettings(updated)}
-        username={profile.username}
-      />
+      {isOwnProfile ? (
+        <ProfileSettingsModal
+          currentAvatarUrl={avatarUrl}
+          isOpen={isSettingsOpen}
+          onAvatarUpdated={setAvatarUrl}
+          onClose={() => setIsSettingsOpen(false)}
+          onUpdated={(updated) => setCustomSettings(updated)}
+          token={token}
+          username={profile.username}
+        />
+      ) : null}
     </>
   );
 }

@@ -31,7 +31,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <EtherealShadowBackground>
-      <main className="mx-auto w-full max-w-5xl px-6 py-8 min-h-screen">
+      <main className="relative z-10 mx-auto w-full max-w-5xl px-6 py-8 min-h-screen">
         <ProfileView username={safeDecode(username)} />
       </main>
     </EtherealShadowBackground>

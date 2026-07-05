@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 import { Button, FieldLabel, Input, Modal } from "@/components/ui";
+import { updateProfilePictureUrl, uploadAvatar } from "@/lib/api";
 import {
   AVATAR_RING_OPTIONS,
   getProfileSettings,
@@ -13,18 +14,37 @@ type ProfileSettingsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   username: string;
+  token: string | null;
+  currentAvatarUrl: string | null;
+  onAvatarUpdated: (url: string | null) => void;
   onUpdated?: (updated: UserCustomSettings) => void;
 };
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+  const match = error.message.match(/^HTTP_\d+:\s*(.*)$/);
+  if (!match) return fallback;
+  try {
+    const parsed = JSON.parse(match[1]);
+    return typeof parsed?.error === "string" ? parsed.error : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function ProfileSettingsModal({
   isOpen,
   onClose,
   username,
+  token,
+  currentAvatarUrl,
+  onAvatarUpdated,
   onUpdated,
 }: ProfileSettingsModalProps) {
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl ?? "");
   const [selectedRing, setSelectedRing] = useState("periwinkle");
   const [statusMessage, setStatusMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [prevOpenKey, setPrevOpenKey] = useState("");
@@ -32,9 +52,8 @@ export default function ProfileSettingsModal({
   if (prevOpenKey !== openKey) {
     setPrevOpenKey(openKey);
     if (isOpen && username) {
-      const stored = getProfileSettings(username);
-      setAvatarUrl(stored.avatarUrl);
-      setSelectedRing(stored.auraRingId);
+      setAvatarUrl(currentAvatarUrl ?? "");
+      setSelectedRing(getProfileSettings(username).auraRingId);
     }
   }
 
@@ -43,38 +62,49 @@ export default function ProfileSettingsModal({
   const currentOption =
     AVATAR_RING_OPTIONS.find((opt) => opt.id === selectedRing) ?? AVATAR_RING_OPTIONS[0];
 
-  function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setStatusMessage("Image size must be under 2MB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        if (result) {
-          setAvatarUrl(result);
-          setStatusMessage("Avatar image uploaded.");
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file || !token) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setStatusMessage("Image size must be under 2MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    setStatusMessage("Uploading...");
+    try {
+      const me = await uploadAvatar(token, file);
+      setAvatarUrl(me.profilePictureUrl ?? "");
+      onAvatarUpdated(me.profilePictureUrl);
+      setStatusMessage("Avatar image uploaded.");
+    } catch (error) {
+      setStatusMessage(extractErrorMessage(error, "Avatar upload failed. Please try again."));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  function handleSave() {
-    const updated = saveProfileSettings(username, {
-      avatarUrl,
-      auraRingId: selectedRing,
-    });
-    if (onUpdated) {
-      onUpdated(updated);
+  async function handleSave() {
+    if (!token) return;
+
+    saveProfileSettings(username, { auraRingId: selectedRing });
+
+    try {
+      const me = await updateProfilePictureUrl(token, avatarUrl.trim());
+      onAvatarUpdated(me.profilePictureUrl);
+      if (onUpdated) {
+        onUpdated(getProfileSettings(username));
+      }
+      setStatusMessage("Settings updated successfully.");
+      setTimeout(() => {
+        setStatusMessage("");
+        onClose();
+      }, 500);
+    } catch (error) {
+      setStatusMessage(extractErrorMessage(error, "Could not save settings. Please try again."));
     }
-    setStatusMessage("Settings updated successfully.");
-    setTimeout(() => {
-      setStatusMessage("");
-      onClose();
-    }, 500);
   }
 
   return (
@@ -119,16 +149,18 @@ export default function ProfileSettingsModal({
                   ref={fileInputRef}
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   className="hidden"
+                  disabled={isUploading}
                   onChange={handleFileUpload}
                   type="file"
                 />
                 <Button
+                  disabled={isUploading}
                   onClick={() => fileInputRef.current?.click()}
                   size="sm"
                   type="button"
                   variant="secondary"
                 >
-                  Upload Photo
+                  {isUploading ? "Uploading..." : "Upload Photo"}
                 </Button>
                 {avatarUrl && (
                   <button
@@ -191,7 +223,7 @@ export default function ProfileSettingsModal({
           <Button onClick={onClose} size="sm" type="button" variant="secondary">
             Cancel
           </Button>
-          <Button onClick={handleSave} size="sm" type="button" variant="primary">
+          <Button disabled={isUploading} onClick={handleSave} size="sm" type="button" variant="primary">
             Save Changes
           </Button>
         </div>

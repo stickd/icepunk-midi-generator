@@ -6,6 +6,7 @@ import icepunk_backend.dto.UserPackItem;
 import icepunk_backend.dto.UserPackListResponse;
 import icepunk_backend.dto.UserProfileResponse;
 import icepunk_backend.exception.ResourceNotFoundException;
+import icepunk_backend.exception.UploadValidationException;
 import icepunk_backend.model.GeneratedPackVisibility;
 import icepunk_backend.model.ProjectLike;
 import icepunk_backend.model.UploadVisibility;
@@ -19,9 +20,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,6 +33,10 @@ import java.util.Set;
 public class UserProfileService {
 
     private static final int MAX_PAGE_SIZE = 50;
+    private static final long MAX_AVATAR_SIZE_BYTES = 2L * 1024 * 1024;
+    private static final Set<String> ALLOWED_AVATAR_CONTENT_TYPES = Set.of(
+            "image/png", "image/jpeg", "image/webp", "image/gif"
+    );
 
     private final UserRepository userRepository;
     private final UserUploadedProjectRepository projectRepository;
@@ -66,6 +74,7 @@ public class UserProfileService {
                 user.getId(),
                 user.getUsername(),
                 user.getBio(),
+                user.getProfilePictureUrl(),
                 Boolean.TRUE.equals(user.getVerified()),
                 user.getCreatedAt(),
                 packCount,
@@ -107,6 +116,7 @@ public class UserProfileService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getBio(),
+                user.getProfilePictureUrl(),
                 user.getCredits() == null ? 0 : user.getCredits(),
                 Boolean.TRUE.equals(user.getVerified()),
                 user.getCreatedAt()
@@ -114,10 +124,48 @@ public class UserProfileService {
     }
 
     @Transactional
-    public MeResponse updateBio(String email, String bio) {
+    public MeResponse updateProfile(String email, String bio, String profilePictureUrl) {
         User user = findUserByEmail(email);
-        String normalized = bio == null ? null : bio.trim();
-        user.setBio(normalized == null || normalized.isEmpty() ? null : normalized);
+        if (bio != null) {
+            String normalizedBio = bio.trim();
+            user.setBio(normalizedBio.isEmpty() ? null : normalizedBio);
+        }
+
+        if (profilePictureUrl != null) {
+            String normalizedUrl = profilePictureUrl.trim();
+            user.setProfilePictureUrl(normalizedUrl.isEmpty() ? null : normalizedUrl);
+        }
+
+        userRepository.save(user);
+
+        return getMe(email);
+    }
+
+    @Transactional
+    public MeResponse updateAvatar(String email, MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new UploadValidationException("Please select an image to upload.");
+        }
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new UploadValidationException("Image size must be under 2MB.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new UploadValidationException("Image must be PNG, JPEG, WEBP, or GIF.");
+        }
+
+        User user = findUserByEmail(email);
+
+        UserUploadStorageService.StoredUpload upload = storageService.uploadAvatar(
+                user.getId(),
+                file.getOriginalFilename(),
+                contentType,
+                file.getSize(),
+                file.getInputStream()
+        );
+
+        user.setProfilePictureUrl(upload.publicUrl());
         userRepository.save(user);
 
         return getMe(email);

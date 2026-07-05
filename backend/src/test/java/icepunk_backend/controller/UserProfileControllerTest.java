@@ -32,7 +32,7 @@ class UserProfileControllerTest {
     @Test
     void profileDelegatesToService() {
         UserProfileResponse profileResponse = new UserProfileResponse(
-                1L, "maco", "Bio test", true, OffsetDateTime.now(), 5L, 100L, 25L
+                1L, "maco", "Bio test", null, true, OffsetDateTime.now(), 5L, 100L, 25L
         );
         when(userProfileService.getProfile("maco")).thenReturn(profileResponse);
 
@@ -68,7 +68,7 @@ class UserProfileControllerTest {
     @Test
     void meDelegatesToService() {
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken("maco@example.com", null);
-        MeResponse meResponse = new MeResponse(1L, "maco", "maco@example.com", "Bio", 100, true, OffsetDateTime.now());
+        MeResponse meResponse = new MeResponse(1L, "maco", "maco@example.com", "Bio", null, 100, true, OffsetDateTime.now());
         when(userProfileService.getMe("maco@example.com")).thenReturn(meResponse);
 
         MeResponse response = controller.me(auth);
@@ -80,14 +80,14 @@ class UserProfileControllerTest {
     @Test
     void updateProfileDelegatesToService() {
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken("maco@example.com", null);
-        UpdateProfileRequest request = new UpdateProfileRequest("New bio text");
-        MeResponse meResponse = new MeResponse(1L, "maco", "maco@example.com", "New bio text", 100, true, OffsetDateTime.now());
-        when(userProfileService.updateBio("maco@example.com", "New bio text")).thenReturn(meResponse);
+        UpdateProfileRequest request = new UpdateProfileRequest("New bio text", null);
+        MeResponse meResponse = new MeResponse(1L, "maco", "maco@example.com", "New bio text", null, 100, true, OffsetDateTime.now());
+        when(userProfileService.updateProfile("maco@example.com", "New bio text", null)).thenReturn(meResponse);
 
         MeResponse response = controller.updateProfile(auth, request);
 
         assertEquals(meResponse, response);
-        verify(userProfileService).updateBio("maco@example.com", "New bio text");
+        verify(userProfileService).updateProfile("maco@example.com", "New bio text", null);
     }
 
     @Test

@@ -7,6 +7,7 @@ public record MeResponse(
         String username,
         String email,
         String bio,
+        String profilePictureUrl,
         int credits,
         boolean verified,
         OffsetDateTime joinedAt

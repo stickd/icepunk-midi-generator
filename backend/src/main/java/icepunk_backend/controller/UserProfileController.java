@@ -7,6 +7,7 @@ import icepunk_backend.dto.UserPackListResponse;
 import icepunk_backend.dto.UserProfileResponse;
 import icepunk_backend.service.UserProfileService;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 public class UserProfileController {
@@ -51,7 +53,15 @@ public class UserProfileController {
             Authentication authentication,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
-        return userProfileService.updateBio(authentication.getName(), request.bio());
+        return userProfileService.updateProfile(authentication.getName(), request.bio(), request.profilePictureUrl());
+    }
+
+    @PostMapping("/users/me/avatar")
+    public MeResponse updateAvatar(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        return userProfileService.updateAvatar(authentication.getName(), file);
     }
 
     @GetMapping("/users/me/favorites")

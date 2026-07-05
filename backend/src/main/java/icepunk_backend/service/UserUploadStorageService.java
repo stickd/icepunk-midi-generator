@@ -26,6 +26,7 @@ public class UserUploadStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(UserUploadStorageService.class);
     private static final String USER_UPLOAD_PREFIX = "user_uploads/";
+    private static final String AVATAR_PREFIX = "avatars/";
 
     private final S3Client s3Client;
 
@@ -63,6 +64,35 @@ public class UserUploadStorageService {
         } catch (SdkException exception) {
             log.error("S3 user upload failed for bucket={} key={}: {}", bucket, key, exception.getMessage());
             throw new StorageException("File upload failed. Please try again.");
+        }
+
+        return new StoredUpload(key, publicUrl + "/" + key);
+    }
+
+    public StoredUpload uploadAvatar(
+            Long ownerId,
+            String originalFilename,
+            String contentType,
+            long size,
+            InputStream inputStream
+    ) throws IOException {
+        String key = AVATAR_PREFIX + ownerId + "/" + UUID.randomUUID() + extensionFrom(originalFilename);
+
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .contentType(contentType)
+                .contentLength(size)
+                .build();
+
+        try {
+            s3Client.putObject(request, RequestBody.fromInputStream(inputStream, size));
+        } catch (ApiCallTimeoutException | ApiCallAttemptTimeoutException exception) {
+            log.warn("S3 avatar upload timed out for bucket={} key={}: {}", bucket, key, exception.getMessage());
+            throw new StorageTimeoutException("Avatar upload timed out. Please try again.");
+        } catch (SdkException exception) {
+            log.error("S3 avatar upload failed for bucket={} key={}: {}", bucket, key, exception.getMessage());
+            throw new StorageException("Avatar upload failed. Please try again.");
         }
 
         return new StoredUpload(key, publicUrl + "/" + key);
