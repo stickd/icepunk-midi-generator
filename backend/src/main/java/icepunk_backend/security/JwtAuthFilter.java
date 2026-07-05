@@ -52,13 +52,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Continue only if an email was extracted and no user is authenticated yet
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                User user = userRepository.findByEmail(email).orElse(null);
+                User user = userRepository.findByEmail(email)
+                        .or(() -> userRepository.findByEmail(email.trim().toLowerCase(java.util.Locale.ROOT)))
+                        .or(() -> userRepository.findByUsernameIgnoreCase(email))
+                        .orElse(null);
 
                 if (user != null) {
                     // Create an authentication object for the authenticated user
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
-                                    email,
+                                    user.getEmail(),
                                     null,
                                     Collections.emptyList()
                             );

@@ -92,7 +92,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
 
       const body =
         authMode === "login"
-          ? { email, password }
+          ? { identifier: email, password }
           : { username, email, password };
 
       const response = await authUser(authMode, body);

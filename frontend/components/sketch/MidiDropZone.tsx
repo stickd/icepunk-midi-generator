@@ -2,7 +2,7 @@
 
 import { DragEvent, useRef, useState } from "react";
 import { Button, ToastNotification } from "@/components/ui";
-import { useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { analyzeTempMidiFiles } from "@/lib/api";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 
@@ -10,6 +10,8 @@ type MidiDropZoneProps = {
   onAnalysisComplete: (tempAnalysisId: string) => void;
   onAnalysisReset: () => void;
   onStubStatus: (message: string) => void;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
+  soundEngine: SoundEngineSettings;
 };
 
 const MAX_CUSTOM_MIDI_FILES = 100;
@@ -23,6 +25,8 @@ export default function MidiDropZone({
   onAnalysisComplete,
   onAnalysisReset,
   onStubStatus,
+  playback,
+  soundEngine,
 }: MidiDropZoneProps) {
   const midiInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -31,8 +35,14 @@ export default function MidiDropZone({
     "idle" | "analyzing" | "success" | "error"
   >("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
-  const playback = useBrowserMidiPlayback();
   const previewFile = midiFiles[0] ?? null;
+  const previewId = previewFile
+    ? `custom:${previewFile.name}:${previewFile.size}:${previewFile.lastModified}`
+    : null;
+  const isThisSource = playback.activeSourceId === previewId;
+  const isThisLoading = isThisSource && playback.isLoading;
+  const isThisPlaying = isThisSource && playback.isPlaying;
+  const isThisPaused = isThisSource && playback.isPaused;
 
   function handleFiles(fileList: FileList | null) {
     const files = Array.from(fileList ?? [])
@@ -142,18 +152,18 @@ export default function MidiDropZone({
         className="flex flex-wrap justify-center gap-2"
       >
         <Button
-          disabled={playback.isLoading || playback.isPlaying || !previewFile}
-          onClick={() => playback.play(previewFile, null)}
+          disabled={isThisLoading || isThisPlaying || !previewFile}
+          onClick={() => playback.play(previewFile, soundEngine, previewId)}
           size="sm"
           type="button"
         >
-          {playback.isLoading ? "Loading..." : playback.isPaused ? "Resume" : "Play"}
+          {isThisLoading ? "Loading..." : isThisPaused ? "Resume" : "Play"}
         </Button>
-        <Button disabled={!playback.isPlaying} onClick={playback.pause} size="sm" type="button">
+        <Button disabled={!isThisPlaying} onClick={playback.pause} size="sm" type="button">
           Pause
         </Button>
         <Button
-          disabled={playback.status === "idle"}
+          disabled={!isThisSource || playback.status === "idle"}
           onClick={playback.stop}
           size="sm"
           type="button"
@@ -162,7 +172,7 @@ export default function MidiDropZone({
         </Button>
       </div>
 
-      {analysisMessage || playback.message ? (
+      {analysisMessage || (isThisSource && playback.message) ? (
         <ToastNotification
           message={analysisMessage || playback.message}
           onClose={() => setAnalysisMessage("")}
@@ -171,9 +181,9 @@ export default function MidiDropZone({
       ) : null}
 
       <BrowserPianoRoll
-        isPlaying={playback.isPlaying}
+        isPlaying={isThisPlaying}
         midiFile={previewFile}
-        playbackPositionSeconds={playback.positionSeconds}
+        playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
       />
     </div>
   );

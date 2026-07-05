@@ -9,11 +9,13 @@ import {
 
 type UserAvatarProps = {
   username: string;
+  avatarUrl?: string | null;
   sizeClassName?: string;
 };
 
 export default function UserAvatar({
   username,
+  avatarUrl,
   sizeClassName = "h-8 w-8 text-xs",
 }: UserAvatarProps) {
   const [settings, setSettings] = useState<UserCustomSettings>(() =>
@@ -49,18 +51,27 @@ export default function UserAvatar({
 
   const letter = username ? username.slice(0, 1).toUpperCase() : "G";
 
+  const [imgError, setImgError] = useState(false);
+
+  const displayUrl = avatarUrl !== undefined ? avatarUrl : settings.avatarUrl;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [displayUrl]);
+
   return (
     <div
       aria-hidden="true"
       className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-[color:var(--ice-accent-soft)] font-bold text-[color:var(--ice-accent-text)] ring-2 transition-all duration-300 ${sizeClassName} ${currentRing.shadow}`}
       style={{ borderColor: currentRing.color }}
     >
-      {settings.avatarUrl ? (
+      {displayUrl && !imgError ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           alt={`${username}'s avatar`}
           className="h-full w-full object-cover"
-          src={settings.avatarUrl}
+          onError={() => setImgError(true)}
+          src={displayUrl}
         />
       ) : (
         letter

@@ -32,6 +32,9 @@ export default function GeneratedPackVisualizer({
   const playback = externalPlayback ?? localPlayback;
   const items = generation.items;
   const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
+  const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.downloadUrl;
+  const isThisLoading = isThisSource && playback.isLoading;
+  const isThisPlaying = isThisSource && playback.isPlaying;
 
   const title = useMemo(
     () => activeItem?.fileName ?? generation.name,
@@ -44,19 +47,21 @@ export default function GeneratedPackVisualizer({
 
   function selectItem(index: number) {
     if (index === activeIndex) return;
-    playback.stop();
+    if (isThisSource) {
+      playback.stop();
+    }
     setActiveIndex(index);
   }
 
   function togglePreview() {
     if (!activeItem) return;
 
-    if (playback.isPlaying) {
+    if (isThisPlaying) {
       playback.stop();
       return;
     }
 
-    playback.play(activeItem.downloadUrl, soundEngine);
+    playback.play(activeItem.downloadUrl, soundEngine, activeItem.downloadUrl);
   }
 
   return (
@@ -102,10 +107,10 @@ export default function GeneratedPackVisualizer({
 
         {activeItem ? (
           <BrowserPianoRoll
-            isPlaying={playback.isPlaying}
+            isPlaying={isThisPlaying}
             midiFile={null}
             midiUrl={activeItem.downloadUrl}
-            playbackPositionSeconds={playback.positionSeconds}
+            playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
           />
         ) : (
           <div className="grid h-[210px] place-items-center bg-[color:var(--ice-bg-canvas)] p-4 text-center text-xs text-ice-muted">
@@ -134,14 +139,14 @@ export default function GeneratedPackVisualizer({
               onClick={togglePreview}
               size="sm"
               type="button"
-              variant={playback.isPlaying ? "primary" : "secondary"}
+              variant={isThisPlaying ? "primary" : "secondary"}
             >
-              {playback.isLoading ? (
+              {isThisLoading ? (
                 "Loading..."
               ) : (
                 <>
-                  <span aria-hidden="true">{playback.isPlaying ? "■ " : "▶ "}</span>
-                  {playback.isPlaying ? "Stop" : "Preview"}
+                  <span aria-hidden="true">{isThisPlaying ? "■ " : "▶ "}</span>
+                  {isThisPlaying ? "Stop" : "Preview"}
                 </>
               )}
             </Button>
@@ -170,7 +175,7 @@ export default function GeneratedPackVisualizer({
       />
 
       <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
-        {playback.message}
+        {isThisSource ? playback.message : ""}
       </p>
     </div>
   );

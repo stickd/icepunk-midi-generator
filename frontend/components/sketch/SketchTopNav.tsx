@@ -52,7 +52,7 @@ export default function SketchTopNav({
             className="flex items-center gap-2 text-sm font-medium text-ice-primary outline-none transition-colors duration-150 ease-out hover:text-white focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
             href={`/u/${encodeURIComponent(me.username)}`}
           >
-            <UserAvatar sizeClassName="h-7 w-7 text-xs" username={me.username} />
+            <UserAvatar avatarUrl={me.profilePictureUrl} sizeClassName="h-7 w-7 text-xs" username={me.username} />
             {me.username}
           </Link>
         ) : (

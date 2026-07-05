@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { RefObject, UIEvent, useCallback, useState } from "react";
-import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 
 const UserGenerationsFeed = dynamic(() => import("./UserGenerationsFeed"), {
   loading: () => (
@@ -76,6 +76,7 @@ type FeedMountIslandProps = {
   isLoggedIn: boolean;
   onRequireLogin: () => void;
   onStubStatus: (message: string) => void;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
 };
 
@@ -85,6 +86,7 @@ export default function FeedMountIsland({
   isLoggedIn,
   onRequireLogin,
   onStubStatus,
+  playback,
   soundEngine,
 }: FeedMountIslandProps) {
   const [isFeedMounted, setIsFeedMounted] = useState(false);
@@ -112,6 +114,7 @@ export default function FeedMountIsland({
             isLoggedIn={isLoggedIn}
             onRequireLogin={onRequireLogin}
             onStubStatus={onStubStatus}
+            playback={playback}
             soundEngine={soundEngine}
           />
         ) : (

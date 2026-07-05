@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -66,15 +67,15 @@ public class AuthService {
     }
 
     public String login(LoginRequest request) {
-        String email = normalizeEmail(request.getEmail());
-        String maskedEmail = maskEmailForLogs(email);
+        String identifier = request.getIdentifier().trim();
+        String maskedIdentifier = maskEmailForLogs(identifier);
 
-        log.info("Login attempt for email={}", maskedEmail);
+        log.info("Login attempt for identifier={}", maskedIdentifier);
 
-        User user = userRepository.findByEmail(email)
+        User user = resolveUserByIdentifier(identifier)
                 .orElseThrow(() -> {
-                    log.warn("Login rejected: unknown email={}", maskedEmail);
-                    return new InvalidCredentialsException("Invalid email or password");
+                    log.warn("Login rejected: unknown identifier={}", maskedIdentifier);
+                    return new InvalidCredentialsException("Invalid credentials");
                 });
 
         boolean passwordMatches = passwordEncoder.matches(
@@ -83,12 +84,17 @@ public class AuthService {
         );
 
         if (!passwordMatches) {
-            log.warn("Login rejected: bad password for email={}", maskedEmail);
-            throw new InvalidCredentialsException("Invalid email or password");
+            log.warn("Login rejected: bad password for identifier={}", maskedIdentifier);
+            throw new InvalidCredentialsException("Invalid credentials");
         }
 
-        log.info("Login succeeded for email={}", maskedEmail);
+        log.info("Login succeeded for email={}", maskEmailForLogs(user.getEmail()));
         return jwtService.generateToken(user.getEmail());
+    }
+
+    private Optional<User> resolveUserByIdentifier(String identifier) {
+        return userRepository.findByEmail(normalizeEmail(identifier))
+                .or(() -> userRepository.findByUsernameIgnoreCase(identifier));
     }
 
     private String normalizeEmail(String email) {

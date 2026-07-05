@@ -6,13 +6,16 @@ import {
   setProjectLiked,
   UserPackItem,
 } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import BrowserPianoRoll from "@/components/sketch/BrowserPianoRoll";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 
 type PackCardProps = {
   pack: UserPackItem;
   token: string | null;
   onAuthRequired: () => void;
+  playback?: ReturnType<typeof useBrowserMidiPlayback>;
+  soundEngine?: SoundEngineSettings;
 };
 
 function formatCount(value: number) {
@@ -35,11 +38,24 @@ function formatUploadedAt(iso: string) {
   });
 }
 
-export default function PackCard({ pack, token, onAuthRequired }: PackCardProps) {
+export default function PackCard({ pack, token, onAuthRequired, playback, soundEngine }: PackCardProps) {
   const [liked, setLiked] = useState(pack.likedByViewer);
   const [likeCount, setLikeCount] = useState(pack.likeCount);
   const [likePending, setLikePending] = useState(false);
   const [downloads, setDownloads] = useState(pack.downloadCount);
+
+  const isThisSource = Boolean(pack.midiUrl) && playback?.activeSourceId === pack.midiUrl;
+  const isThisLoading = isThisSource && Boolean(playback?.isLoading);
+  const isThisPlaying = Boolean(isThisSource && playback?.isPlaying);
+
+  const togglePreview = () => {
+    if (!pack.midiUrl || !playback) return;
+    if (isThisPlaying) {
+      playback.stop();
+      return;
+    }
+    playback.play(pack.midiUrl, soundEngine ?? null, pack.midiUrl);
+  };
 
   async function toggleLike() {
     if (!token) {
@@ -69,10 +85,10 @@ export default function PackCard({ pack, token, onAuthRequired }: PackCardProps)
     <Card className="group overflow-hidden">
       <div className="border-b border-white/[0.06] transition-[filter] duration-200 ease-out group-hover:brightness-125">
         <BrowserPianoRoll
-          isPlaying={false}
+          isPlaying={isThisPlaying}
           midiFile={null}
           midiUrl={pack.midiUrl}
-          playbackPositionSeconds={0}
+          playbackPositionSeconds={isThisPlaying ? (playback?.positionSeconds ?? 0) : 0}
           size="compact"
         />
       </div>
@@ -122,35 +138,49 @@ export default function PackCard({ pack, token, onAuthRequired }: PackCardProps)
             </button>
           </div>
 
-          <a
-            aria-label={`Download ${pack.title}`}
-            className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/[0.09] bg-white/[0.04] text-white/[0.55] outline-none transition-[background-color,color,transform] duration-150 ease-out after:pointer-events-none after:absolute after:inset-x-[10%] after:top-0 after:h-[40%] after:rounded-full after:bg-gradient-to-b after:from-white/[0.09] after:to-transparent hover:bg-white/[0.08] hover:text-white/[0.85] focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] active:scale-[0.94]"
-            download={`${pack.title.replace(/\s+/g, "_")}_by_creator.mid`}
-            href={getPublicUploadMidiPreviewUrl(pack.id)}
-            onClick={(event) => {
-              if (!token) {
-                event.preventDefault();
-                onAuthRequired();
-                return;
-              }
-              setDownloads((count) => count + 1);
-            }}
-          >
-            <svg
-              aria-hidden="true"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-2">
+            {playback ? (
+              <Button
+                disabled={!pack.midiUrl}
+                onClick={togglePreview}
+                size="sm"
+                type="button"
+                variant={isThisPlaying ? "primary" : "secondary"}
+              >
+                {isThisLoading ? "Loading..." : isThisPlaying ? "Stop" : "Preview"}
+              </Button>
+            ) : null}
+
+            <a
+              aria-label={`Download ${pack.title}`}
+              className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/[0.09] bg-white/[0.04] text-white/[0.55] outline-none transition-[background-color,color,transform] duration-150 ease-out after:pointer-events-none after:absolute after:inset-x-[10%] after:top-0 after:h-[40%] after:rounded-full after:bg-gradient-to-b after:from-white/[0.09] after:to-transparent hover:bg-white/[0.08] hover:text-white/[0.85] focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)] active:scale-[0.94]"
+              download={`${pack.title.replace(/\s+/g, "_")}_by_creator.mid`}
+              href={getPublicUploadMidiPreviewUrl(pack.id)}
+              onClick={(event) => {
+                if (!token) {
+                  event.preventDefault();
+                  onAuthRequired();
+                  return;
+                }
+                setDownloads((count) => count + 1);
+              }}
             >
-              <path
-                d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </a>
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
     </Card>

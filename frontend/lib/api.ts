@@ -31,7 +31,7 @@ function withTimeout(signal?: AbortSignal): AbortSignal {
 type AuthMode = "login" | "register";
 
 type LoginBody = {
-  email: string;
+  identifier: string;
   password: string;
 };
 

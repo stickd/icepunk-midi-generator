@@ -35,7 +35,10 @@ public class UserProfileService {
     private static final int MAX_PAGE_SIZE = 50;
     private static final long MAX_AVATAR_SIZE_BYTES = 2L * 1024 * 1024;
     private static final Set<String> ALLOWED_AVATAR_CONTENT_TYPES = Set.of(
-            "image/png", "image/jpeg", "image/webp", "image/gif"
+            "image/png", "image/jpeg", "image/jpg", "image/pjpeg", "image/webp", "image/gif"
+    );
+    private static final Set<String> ALLOWED_AVATAR_EXTENSIONS = Set.of(
+            ".png", ".jpeg", ".jpg", ".webp", ".gif"
     );
 
     private final UserRepository userRepository;
@@ -151,7 +154,12 @@ public class UserProfileService {
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_AVATAR_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+        boolean validMime = contentType != null && ALLOWED_AVATAR_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT));
+        String filename = file.getOriginalFilename();
+        String ext = filename != null && filename.contains(".") ? filename.substring(filename.lastIndexOf(".")).toLowerCase(Locale.ROOT) : "";
+        boolean validExt = ALLOWED_AVATAR_EXTENSIONS.contains(ext);
+
+        if (!validMime && !validExt) {
             throw new UploadValidationException("Image must be PNG, JPEG, WEBP, or GIF.");
         }
 
@@ -160,9 +168,8 @@ public class UserProfileService {
         UserUploadStorageService.StoredUpload upload = storageService.uploadAvatar(
                 user.getId(),
                 file.getOriginalFilename(),
-                contentType,
-                file.getSize(),
-                file.getInputStream()
+                contentType == null ? "image/jpeg" : contentType,
+                file.getBytes()
         );
 
         user.setProfilePictureUrl(upload.publicUrl());
@@ -249,7 +256,13 @@ public class UserProfileService {
     }
 
     private User findUserByEmail(String email) {
+        if (email == null) {
+            throw new ResourceNotFoundException("User not found");
+        }
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
         return userRepository.findByEmail(email)
+                .or(() -> userRepository.findByEmail(normalized))
+                .or(() -> userRepository.findByUsernameIgnoreCase(email))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 

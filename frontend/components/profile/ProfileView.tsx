@@ -1,7 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   authUser,
   getFavorites,
@@ -15,22 +16,55 @@ import {
   UserPackItem,
   UserProfileResponse,
 } from "@/lib/api";
-import { Button, CreditBadge, EmptyState, Panel, Skeleton, ToastNotification } from "@/components/ui";
+import { Button, CreditBadge, EmptyState, Panel, Skeleton, ToastNotification, UserAvatar } from "@/components/ui";
 import AuthModal from "@/components/AuthModal";
 import GenerationFeedCard from "@/components/sketch/GenerationFeedCard";
 import { toFeedGeneration } from "@/components/sketch/feedTypes";
-import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import PackCard from "./PackCard";
 import ProfileHeader from "./ProfileHeader";
 import ProfileStats from "./ProfileStats";
 
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
 
-const DEFAULT_SOUND_ENGINE: SoundEngineSettings = {
-  preset: "Soft Piano",
-  sampleFile: null,
-  volume: 0.8,
-};
+const SoundEngineCard = dynamic(() => import("@/components/sketch/SoundEngineCard"), {
+  ssr: false,
+});
+
+function SoundEngineShell({
+  settings,
+  onIntent,
+}: {
+  settings: SoundEngineSettings;
+  onIntent: () => void;
+}) {
+  return (
+    <div
+      className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
+      onClick={onIntent}
+      onFocus={onIntent}
+      onTouchStart={onIntent}
+    >
+      <div className="w-[calc(100vw-1.5rem)] max-w-4xl rounded-2xl border border-white/[0.08] bg-[#070914]/94 px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(132,146,255,0.05)] backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-ice-primary">
+              Sound Engine
+            </span>
+            <span className="text-xs font-medium text-ice-secondary">
+              {settings.preset}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs font-medium text-ice-muted">
+            <span>BPM <strong className="text-white">{settings.bpm ?? 146}</strong></span>
+            <span>VOL <strong className="text-white">{Math.round((settings.volume ?? 0.8) * 100)}%</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type ProfileViewProps = {
   username: string;
@@ -88,6 +122,39 @@ export default function ProfileView({ username }: ProfileViewProps) {
     "loading",
   );
   const [meFetch, setMeFetch] = useState<{ token: string; me: MeResponse } | null>(null);
+  const playback = useBrowserMidiPlayback();
+  const [soundEngine, setSoundEngine] = useState<SoundEngineSettings>({
+    preset: "Soft Piano",
+    sampleFile: null,
+    volume: 0.8,
+    bpm: 146,
+    pitch: 0,
+    octaves: 0,
+    isLooping: false,
+  });
+  const [isSoundEngineMounted, setIsSoundEngineMounted] = useState(false);
+
+  const triggerSoundEngineMount = useCallback(() => {
+    setIsSoundEngineMounted(true);
+  }, []);
+
+  const handleSoundEngineChange = useCallback((nextSettings: SoundEngineSettings) => {
+    setSoundEngine(nextSettings);
+    playback.updateSettings(nextSettings);
+  }, [playback]);
+
+  const toggleMasterPlayback = useCallback(() => {
+    if (playback.isPlaying) {
+      playback.pause();
+      return;
+    }
+
+    if (playback.activeSourceId) {
+      playback.play(playback.activeSourceId, soundEngine, playback.activeSourceId);
+    }
+  }, [playback, soundEngine]);
+
+  const isSoundEngineActive = isSoundEngineMounted || playback.isPlaying;
   const [tab, setTab] = useState<TabId>("generated");
   const [generatedPacks, setGeneratedPacks] = useState<GeneratedPackListState>({
     items: [],
@@ -139,7 +206,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
 
       const body =
         authMode === "login"
-          ? { email, password }
+          ? { identifier: email, password }
           : { username: authUsername, email, password };
 
       const response = await authUser(authMode, body);
@@ -366,12 +433,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
         {me ? (
           <div className="flex items-center gap-3">
             <CreditBadge credits={me.credits} />
-            <span
-              aria-hidden="true"
-              className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--ice-accent-soft)] text-sm font-semibold text-[color:var(--ice-accent-text)] ring-1 ring-[color:var(--ice-accent-border)]"
-            >
-              {me.username.slice(0, 1).toUpperCase()}
-            </span>
+            <UserAvatar avatarUrl={me.profilePictureUrl} sizeClassName="h-8 w-8 text-sm" username={me.username} />
           </div>
         ) : null}
       </nav>
@@ -388,10 +450,22 @@ export default function ProfileView({ username }: ProfileViewProps) {
           <Skeleton className="h-24 w-full rounded-[var(--ice-radius-card)]" />
         </div>
       ) : (
-        <>
-          <ProfileHeader isOwnProfile={isOwnProfile} profile={profile} token={token} />
-          <ProfileStats profile={profile} />
-        </>
+          <ProfileHeader
+            isOwnProfile={isOwnProfile}
+            onAvatarUpdated={(url) => {
+              if (meFetch) {
+                setMeFetch({
+                  ...meFetch,
+                  me: { ...meFetch.me, profilePictureUrl: url },
+                });
+              }
+              if (profile) {
+                setProfile({ ...profile, profilePictureUrl: url });
+              }
+            }}
+            profile={profile}
+            token={token}
+          />
       )}
 
       <div className="grid gap-5">
@@ -477,7 +551,8 @@ export default function ProfileView({ username }: ProfileViewProps) {
                     key={item.packId}
                     onRequireLogin={handleRequireLogin}
                     onStubStatus={setToastMessage}
-                    soundEngine={DEFAULT_SOUND_ENGINE}
+                    playback={playback}
+                    soundEngine={soundEngine}
                   />
                 ))}
                 {generatedPacks.status === "loading"
@@ -522,6 +597,8 @@ export default function ProfileView({ username }: ProfileViewProps) {
                     key={`${activeTab}-${pack.id}`}
                     onAuthRequired={handleRequireLogin}
                     pack={pack}
+                    playback={playback}
+                    soundEngine={soundEngine}
                     token={token}
                   />
                 ))}
@@ -546,6 +623,22 @@ export default function ProfileView({ username }: ProfileViewProps) {
           </>
         )}
       </div>
+
+      {/* Floating Master Bottom Sound Engine Dock */}
+      {isSoundEngineActive ? (
+        <SoundEngineCard
+          isPlaying={playback.isPlaying}
+          onChange={handleSoundEngineChange}
+          onPlayToggle={toggleMasterPlayback}
+          onStop={playback.stop}
+          settings={soundEngine}
+        />
+      ) : (
+        <SoundEngineShell
+          onIntent={triggerSoundEngineMount}
+          settings={soundEngine}
+        />
+      )}
 
       {toastMessage ? (
         <div className="fixed top-6 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 px-4 pointer-events-auto">

@@ -18,6 +18,20 @@ const getPublicGeneratedPackFeedMock = getPublicGeneratedPackFeed as jest.Mocked
   typeof getPublicGeneratedPackFeed
 >;
 
+const mockPlayback = {
+  activeSourceId: null,
+  isLoading: false,
+  isPlaying: false,
+  isPaused: false,
+  message: "",
+  pause: jest.fn(),
+  play: jest.fn(),
+  positionSeconds: 0,
+  status: "idle" as const,
+  stop: jest.fn(),
+  updateSettings: jest.fn(),
+};
+
 function feedResponse(items: Awaited<ReturnType<typeof getPublicGeneratedPackFeed>>["items"]) {
   return {
     hasNext: false,
@@ -83,6 +97,7 @@ describe("UserGenerationsFeed", () => {
     render(
       <UserGenerationsFeed
         onStubStatus={jest.fn()}
+        playback={mockPlayback}
         soundEngine={{ preset: "Soft Piano", sampleFile: null, volume: 0.8 }}
       />,
     );
@@ -98,6 +113,7 @@ describe("UserGenerationsFeed", () => {
     render(
       <UserGenerationsFeed
         onStubStatus={jest.fn()}
+        playback={mockPlayback}
         soundEngine={{ preset: "Soft Piano", sampleFile: null, volume: 0.8 }}
       />,
     );
@@ -113,6 +129,7 @@ describe("UserGenerationsFeed", () => {
     render(
       <UserGenerationsFeed
         onStubStatus={jest.fn()}
+        playback={mockPlayback}
         soundEngine={{ preset: "Soft Piano", sampleFile: null, volume: 0.8 }}
       />,
     );

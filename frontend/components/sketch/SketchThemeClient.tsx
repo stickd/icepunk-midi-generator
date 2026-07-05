@@ -215,7 +215,7 @@ export default function SketchThemeClient() {
       return;
     }
 
-    playback.play(activeMidiSource, soundEngine);
+    playback.play(activeMidiSource, soundEngine, activeMidiSource);
   }, [activeMidiSource, playback, soundEngine]);
 
   const openCreatePack = useCallback(() => setActiveModal("create"), []);
@@ -285,6 +285,8 @@ export default function SketchThemeClient() {
                       onOpenCreatePack={openCreatePack}
                       onSourceStateChange={setSourceState}
                       onStubStatus={setStatus}
+                      playback={playback}
+                      soundEngine={soundEngine}
                       sourceState={sourceState}
                       status={generationStatus || status}
                     />
@@ -307,6 +309,7 @@ export default function SketchThemeClient() {
             isLoggedIn={Boolean(token)}
             onRequireLogin={requireLogin}
             onStubStatus={setStatus}
+            playback={playback}
             soundEngine={soundEngine}
           />
         </div>

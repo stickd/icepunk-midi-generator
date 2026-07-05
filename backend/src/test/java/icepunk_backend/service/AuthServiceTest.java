@@ -54,9 +54,9 @@ class AuthServiceTest {
         return request;
     }
 
-    private LoginRequest loginRequest(String email, String password) {
+    private LoginRequest loginRequest(String identifier, String password) {
         LoginRequest request = mock(LoginRequest.class);
-        when(request.getEmail()).thenReturn(email);
+        when(request.getIdentifier()).thenReturn(identifier);
         when(request.getPassword()).thenReturn(password);
         return request;
     }
@@ -124,9 +124,22 @@ class AuthServiceTest {
     @Test
     void loginRejectsUnknownEmail() {
         when(userRepository.findByEmail("foo@bar.com")).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameIgnoreCase("foo@bar.com")).thenReturn(Optional.empty());
 
         assertThrows(InvalidCredentialsException.class,
                 () -> authService.login(loginRequest("foo@bar.com", "secret123")));
+    }
+
+    @Test
+    void loginSucceedsWithUsernameInsteadOfEmail() {
+        User user = new User("bob", "foo@bar.com", passwordEncoder.encode("secret123"));
+        when(userRepository.findByEmail("bob")).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameIgnoreCase("bob")).thenReturn(Optional.of(user));
+        when(jwtService.generateToken("foo@bar.com")).thenReturn("jwt-token");
+
+        String token = authService.login(loginRequest("bob", "secret123"));
+
+        assertEquals("jwt-token", token);
     }
 
     @Test

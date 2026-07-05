@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { cn } from "@/lib/ui";
@@ -12,6 +12,7 @@ import { FeedGeneration } from "./feedTypes";
 type GenerationFeedCardProps = {
   generation: FeedGeneration;
   onStubStatus: (message: string) => void;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
   isLoggedIn?: boolean;
   onRequireLogin?: () => void;
@@ -39,6 +40,7 @@ function formatDuration(value?: number | null) {
 function GenerationFeedCard({
   generation,
   onStubStatus,
+  playback,
   soundEngine,
   isLoggedIn = false,
   onRequireLogin,
@@ -46,31 +48,26 @@ function GenerationFeedCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
-  const playback = useBrowserMidiPlayback();
-  const updatePlaybackSettings = playback.updateSettings;
   const items = useMemo(() => generation.items ?? [], [generation.items]);
   const activeItem = items[activeIndex] ?? null;
   const midiUrl = activeItem?.downloadUrl ?? generation.midiUrl ?? null;
   const hasMultipleItems = items.length > 1;
   const previewNotes = activeItem?.preview?.notes ?? null;
   const hasPreviewNotes = Boolean(previewNotes && previewNotes.length > 0);
-
-
-
-  useEffect(() => {
-    updatePlaybackSettings(soundEngine);
-  }, [soundEngine, updatePlaybackSettings]);
+  const isThisSource = Boolean(midiUrl) && playback.activeSourceId === midiUrl;
+  const isThisLoading = isThisSource && playback.isLoading;
+  const isThisPlaying = isThisSource && playback.isPlaying;
 
   const togglePreview = useCallback(() => {
     if (!midiUrl) return;
 
-    if (playback.isPlaying) {
+    if (isThisPlaying) {
       playback.stop();
       return;
     }
 
-    playback.play(midiUrl, soundEngine);
-  }, [midiUrl, playback, soundEngine]);
+    playback.play(midiUrl, soundEngine, midiUrl);
+  }, [isThisPlaying, midiUrl, playback, soundEngine]);
 
   const handleMidiDownload = useCallback(() => {
     if (!isLoggedIn) {
@@ -98,10 +95,12 @@ function GenerationFeedCard({
 
   const handleSelectItem = useCallback(
     (index: number) => {
-      playback.stop();
+      if (isThisSource) {
+        playback.stop();
+      }
       setActiveIndex(index);
     },
-    [playback],
+    [isThisSource, playback],
   );
 
   const handleDetailsToggle = useCallback(() => {
@@ -207,7 +206,7 @@ function GenerationFeedCard({
                 maxPitch={activeItem?.maxPitch}
                 minPitch={activeItem?.minPitch}
                 notes={previewNotes}
-                playbackPositionSeconds={playback.isPlaying ? playback.positionSeconds : null}
+                playbackPositionSeconds={isThisPlaying ? playback.positionSeconds : null}
               />
             ) : (
               <div className="grid h-[210px] place-items-center bg-[color:var(--ice-bg-canvas)] p-3 text-center text-xs text-ice-muted">
@@ -244,14 +243,14 @@ function GenerationFeedCard({
                   onClick={togglePreview}
                   size="sm"
                   type="button"
-                  variant={playback.isPlaying ? "primary" : "secondary"}
+                  variant={isThisPlaying ? "primary" : "secondary"}
                 >
-                  {playback.isLoading ? (
+                  {isThisLoading ? (
                     "Loading..."
                   ) : (
                     <>
-                      <span aria-hidden="true">{playback.isPlaying ? "■ " : "▶ "}</span>
-                      {playback.isPlaying ? "Stop" : "Preview"}
+                      <span aria-hidden="true">{isThisPlaying ? "■ " : "▶ "}</span>
+                      {isThisPlaying ? "Stop" : "Preview"}
                     </>
                   )}
                 </Button>
@@ -288,7 +287,7 @@ function GenerationFeedCard({
             <div className="mt-2.5 h-16 w-full animate-pulse rounded-lg border border-white/[0.06] bg-black/20" />
           ) : null}
 
-        {playback.message ? (
+        {isThisSource && playback.message ? (
           <p className="mt-1 text-center text-[11px] text-ice-muted" role="status">
             {playback.message}
           </p>

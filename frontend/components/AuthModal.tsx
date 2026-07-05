@@ -72,10 +72,10 @@ export default function AuthModal({
           )}
 
           <FieldLabel>
-            Email
+            {mode === "login" ? "Email or Username" : "Email"}
             <Input
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="Email"
+              placeholder={mode === "login" ? "Email or Username" : "Email"}
               value={email}
             />
           </FieldLabel>

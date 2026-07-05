@@ -67,7 +67,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/generation-usage",
                             "/datasets/analyze-temp",
                             "/uploads/feed",
-                            "/uploads/projects/*/midi"
+                            "/uploads/projects/*/midi",
+                            "/user-uploads/**"
                     ).permitAll()
 
                     // Public reads only — rename/visibility/delete and "my packs" stay authenticated

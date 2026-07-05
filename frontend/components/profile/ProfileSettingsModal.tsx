@@ -22,14 +22,26 @@ type ProfileSettingsModalProps = {
 
 function extractErrorMessage(error: unknown, fallback: string): string {
   if (!(error instanceof Error)) return fallback;
+  if (!error.message) return fallback;
+
   const match = error.message.match(/^HTTP_\d+:\s*(.*)$/);
-  if (!match) return fallback;
-  try {
-    const parsed = JSON.parse(match[1]);
-    return typeof parsed?.error === "string" ? parsed.error : fallback;
-  } catch {
-    return fallback;
+  if (match && match[1]) {
+    const raw = match[1].trim();
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.error === "string" && parsed.error) return parsed.error;
+      if (typeof parsed?.message === "string" && parsed.message) return parsed.message;
+      if (typeof parsed?.details === "string" && parsed.details) return parsed.details;
+    } catch {
+      if (raw && !raw.startsWith("<")) return raw;
+    }
   }
+
+  if (error.message && !error.message.startsWith("HTTP_")) {
+    return error.message;
+  }
+
+  return fallback;
 }
 
 export default function ProfileSettingsModal({
@@ -41,11 +53,13 @@ export default function ProfileSettingsModal({
   onAvatarUpdated,
   onUpdated,
 }: ProfileSettingsModalProps) {
-  const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl ?? "");
-  const [selectedRing, setSelectedRing] = useState("periwinkle");
-  const [statusMessage, setStatusMessage] = useState("");
+  const [selectedRing, setSelectedRing] = useState<string>("periwinkle");
+  const [avatarUrl, setAvatarUrl] = useState<string>(currentAvatarUrl ?? "");
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [statusType, setStatusType] = useState<"success" | "error">("success");
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imgError, setImgError] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [prevOpenKey, setPrevOpenKey] = useState("");
   const openKey = isOpen ? username : "";
@@ -53,6 +67,7 @@ export default function ProfileSettingsModal({
     setPrevOpenKey(openKey);
     if (isOpen && username) {
       setAvatarUrl(currentAvatarUrl ?? "");
+      setImgError(false);
       setSelectedRing(getProfileSettings(username).auraRingId);
     }
   }
@@ -64,21 +79,32 @@ export default function ProfileSettingsModal({
 
   async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file || !token) return;
+    if (!file) return;
+
+    if (!token) {
+      setStatusType("error");
+      setStatusMessage("You must be logged in to upload an avatar.");
+      return;
+    }
 
     if (file.size > 2 * 1024 * 1024) {
+      setStatusType("error");
       setStatusMessage("Image size must be under 2MB.");
       return;
     }
 
     setIsUploading(true);
+    setStatusType("success");
     setStatusMessage("Uploading...");
     try {
       const me = await uploadAvatar(token, file);
       setAvatarUrl(me.profilePictureUrl ?? "");
+      setImgError(false);
       onAvatarUpdated(me.profilePictureUrl);
+      setStatusType("success");
       setStatusMessage("Avatar image uploaded.");
     } catch (error) {
+      setStatusType("error");
       setStatusMessage(extractErrorMessage(error, "Avatar upload failed. Please try again."));
     } finally {
       setIsUploading(false);
@@ -93,16 +119,19 @@ export default function ProfileSettingsModal({
 
     try {
       const me = await updateProfilePictureUrl(token, avatarUrl.trim());
+      setImgError(false);
       onAvatarUpdated(me.profilePictureUrl);
       if (onUpdated) {
         onUpdated(getProfileSettings(username));
       }
+      setStatusType("success");
       setStatusMessage("Settings updated successfully.");
       setTimeout(() => {
         setStatusMessage("");
         onClose();
       }, 500);
     } catch (error) {
+      setStatusType("error");
       setStatusMessage(extractErrorMessage(error, "Could not save settings. Please try again."));
     }
   }
@@ -123,11 +152,12 @@ export default function ProfileSettingsModal({
                 className={`grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-[color:var(--ice-accent-soft)] text-2xl font-bold text-[color:var(--ice-accent-text)] ring-2 transition-all duration-300 ${currentOption.shadow}`}
                 style={{ borderColor: currentOption.color }}
               >
-                {avatarUrl ? (
+                {avatarUrl && !imgError ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     alt={`${username}'s avatar`}
                     className="h-full w-full object-cover"
+                    onError={() => setImgError(true)}
                     src={avatarUrl}
                   />
                 ) : (
@@ -165,7 +195,10 @@ export default function ProfileSettingsModal({
                 {avatarUrl && (
                   <button
                     className="text-xs text-ice-muted hover:text-red-400 transition"
-                    onClick={() => setAvatarUrl("")}
+                    onClick={() => {
+                      setAvatarUrl("");
+                      setImgError(false);
+                    }}
                     type="button"
                   >
                     Remove
@@ -180,7 +213,10 @@ export default function ProfileSettingsModal({
             Image URL (Optional)
             <Input
               id="avatar-url"
-              onChange={(e) => setAvatarUrl(e.target.value)}
+              onChange={(e) => {
+                setAvatarUrl(e.target.value);
+                setImgError(false);
+              }}
               placeholder="https://..."
               value={avatarUrl}
             />
@@ -213,7 +249,7 @@ export default function ProfileSettingsModal({
         </div>
 
         {statusMessage ? (
-          <p className="text-center text-xs font-medium text-emerald-400">
+          <p className={`text-center text-xs font-medium ${statusType === "error" ? "text-red-400" : "text-emerald-400"}`}>
             {statusMessage}
           </p>
         ) : null}

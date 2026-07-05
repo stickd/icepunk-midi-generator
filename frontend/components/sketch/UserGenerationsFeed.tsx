@@ -5,12 +5,13 @@ import { getPublicGeneratedPackFeed } from "@/lib/api";
 import type { PublicGeneratedPackFeedItem } from "@/lib/api";
 import { FEED_REFRESH_EVENT } from "@/lib/events";
 import { Button, EmptyState } from "@/components/ui";
-import { SoundEngineSettings } from "@/hooks/useBrowserMidiPlayback";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import GenerationFeedCard from "./GenerationFeedCard";
 import { toFeedGeneration } from "./feedTypes";
 
 type UserGenerationsFeedProps = {
   onStubStatus: (message: string) => void;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
   isLoggedIn?: boolean;
   onRequireLogin?: () => void;
@@ -47,6 +48,7 @@ function mergeFreshFeedItems(
 
 export default function UserGenerationsFeed({
   onStubStatus,
+  playback,
   soundEngine,
   isLoggedIn = false,
   onRequireLogin,
@@ -327,6 +329,7 @@ export default function UserGenerationsFeed({
                 isLoggedIn={isLoggedIn}
                 onRequireLogin={onRequireLogin}
                 onStubStatus={onStubStatus}
+                playback={playback}
                 soundEngine={soundEngine}
               />
             </div>

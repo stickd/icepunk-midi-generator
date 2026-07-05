@@ -92,7 +92,7 @@ class SecurityConfigTest {
         // Instead it reaches the controller and fails auth with 401 (unknown user).
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"nobody@example.com\",\"password\":\"whatever1\"}"))
+                        .content("{\"identifier\":\"nobody@example.com\",\"password\":\"whatever1\"}"))
                 .andExpect(status().isUnauthorized());
     }
 

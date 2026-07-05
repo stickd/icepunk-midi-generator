@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
+import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 
 export type GenerationSourceState = {
   source: GenerationSource;
@@ -14,6 +15,8 @@ type RandomGeneratePanelProps = {
   onSourceStateChange: (state: GenerationSourceState) => void;
   onOpenCreatePack: () => void;
   onStubStatus: (message: string) => void;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
+  soundEngine: SoundEngineSettings;
   status: string;
 };
 
@@ -39,6 +42,8 @@ export default function RandomGeneratePanel({
   onSourceStateChange,
   onOpenCreatePack,
   onStubStatus,
+  playback,
+  soundEngine,
   status,
 }: RandomGeneratePanelProps) {
   const isCustom = sourceState.source === "CUSTOM_UPLOAD";
@@ -82,6 +87,8 @@ export default function RandomGeneratePanel({
             }
             onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
             onStubStatus={onStubStatus}
+            playback={playback}
+            soundEngine={soundEngine}
           />
         </div>
       ) : null}

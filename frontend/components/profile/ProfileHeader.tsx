@@ -14,11 +14,13 @@ type ProfileHeaderProps = {
   profile: UserProfileResponse;
   isOwnProfile: boolean;
   token: string | null;
+  onAvatarUpdated?: (url: string | null) => void;
 };
 
-export default function ProfileHeader({ profile, isOwnProfile, token }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, isOwnProfile, token, onAvatarUpdated }: ProfileHeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile.profilePictureUrl);
+  const [imgError, setImgError] = useState(false);
   const [customSettings, setCustomSettings] = useState<UserCustomSettings>(() =>
     getProfileSettings(profile.username),
   );
@@ -27,7 +29,13 @@ export default function ProfileHeader({ profile, isOwnProfile, token }: ProfileH
     setPrevUsername(profile.username);
     setCustomSettings(getProfileSettings(profile.username));
     setAvatarUrl(profile.profilePictureUrl);
+    setImgError(false);
   }
+
+  useEffect(() => {
+    setAvatarUrl(profile.profilePictureUrl);
+    setImgError(false);
+  }, [profile.profilePictureUrl]);
 
   useEffect(() => {
     const handleProfileUpdate = (event: Event) => {
@@ -47,6 +55,12 @@ export default function ProfileHeader({ profile, isOwnProfile, token }: ProfileH
     AVATAR_RING_OPTIONS.find((opt) => opt.id === customSettings.auraRingId) ??
     AVATAR_RING_OPTIONS[0];
 
+  function handleAvatarUpdate(newUrl: string | null) {
+    setAvatarUrl(newUrl);
+    setImgError(false);
+    onAvatarUpdated?.(newUrl);
+  }
+
   return (
     <>
       <header className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
@@ -57,11 +71,12 @@ export default function ProfileHeader({ profile, isOwnProfile, token }: ProfileH
             className={`grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-[color:var(--ice-accent-soft)] text-3xl font-semibold text-[color:var(--ice-accent-text)] ring-2 transition-all duration-300 ${currentRing.shadow}`}
             style={{ borderColor: currentRing.color }}
           >
-            {avatarUrl ? (
+            {avatarUrl && !imgError ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt={`${profile.username}'s profile picture`}
                 className="h-full w-full object-cover"
+                onError={() => setImgError(true)}
                 src={avatarUrl}
               />
             ) : (
@@ -117,7 +132,7 @@ export default function ProfileHeader({ profile, isOwnProfile, token }: ProfileH
         <ProfileSettingsModal
           currentAvatarUrl={avatarUrl}
           isOpen={isSettingsOpen}
-          onAvatarUpdated={setAvatarUrl}
+          onAvatarUpdated={handleAvatarUpdate}
           onClose={() => setIsSettingsOpen(false)}
           onUpdated={(updated) => setCustomSettings(updated)}
           token={token}

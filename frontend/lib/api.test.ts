@@ -108,13 +108,13 @@ describe("lib/api", () => {
       const { loginUser } = await import("./api");
       fetchMock.mockResolvedValue(mockResponse());
 
-      await loginUser({ email: "a@b.com", password: "pw" });
+      await loginUser({ identifier: "a@b.com", password: "pw" });
 
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe("http://localhost:8081/auth/login");
       expect(init.method).toBe("POST");
       expect(init.headers).toEqual({ "Content-Type": "application/json" });
-      expect(init.body).toBe(JSON.stringify({ email: "a@b.com", password: "pw" }));
+      expect(init.body).toBe(JSON.stringify({ identifier: "a@b.com", password: "pw" }));
     });
 
     it("authUser dispatches to registerUser in register mode", async () => {
@@ -131,7 +131,7 @@ describe("lib/api", () => {
       const { authUser } = await import("./api");
       fetchMock.mockResolvedValue(mockResponse());
 
-      await authUser("login", { email: "a@b.com", password: "pw" });
+      await authUser("login", { identifier: "a@b.com", password: "pw" });
 
       const [url] = fetchMock.mock.calls[0];
       expect(url).toBe("http://localhost:8081/auth/login");
@@ -241,7 +241,7 @@ describe("lib/api", () => {
       const { loginUser } = await import("./api");
       fetchMock.mockResolvedValue(mockResponse({ ok: false, status: 409 }));
 
-      const response = await loginUser({ email: "a@b.com", password: "pw" });
+      const response = await loginUser({ identifier: "a@b.com", password: "pw" });
 
       expect(response.ok).toBe(false);
       expect(response.status).toBe(409);

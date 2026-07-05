@@ -112,6 +112,7 @@ export function useBrowserMidiPlayback() {
   const [status, setStatus] = useState<PlaybackStatus>("idle");
   const [message, setMessage] = useState("");
   const [positionSeconds, setPositionSeconds] = useState(0);
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const instrumentRef = useRef<Instrument | null>(null);
   const pendingInstrumentRef = useRef<Instrument | null>(null);
   const gainRef = useRef<import("tone").Gain | null>(null);
@@ -247,6 +248,7 @@ export function useBrowserMidiPlayback() {
     setPositionSeconds(0);
     setStatus("stopped");
     setMessage("Playback stopped.");
+    setActiveSourceId(null);
   }, [cleanup]);
 
   const pause = useCallback(() => {
@@ -290,7 +292,11 @@ export function useBrowserMidiPlayback() {
   }, [replaceInstrument]);
 
   const play = useCallback(
-    async (midiSource: BrowserMidiSource, soundEngine: SoundEngineSettings | null = null) => {
+    async (
+      midiSource: BrowserMidiSource,
+      soundEngine: SoundEngineSettings | null = null,
+      sourceId: string | null = null,
+    ) => {
       if (status === "paused" && activeToneRef.current && instrumentRef.current) {
         await activeToneRef.current.start();
         activeToneRef.current.Transport.start();
@@ -309,6 +315,7 @@ export function useBrowserMidiPlayback() {
       try {
         setStatus("loading");
         setMessage("Preparing browser playback...");
+        setActiveSourceId(sourceId);
         cleanup();
         const playbackId = playbackIdRef.current + 1;
         playbackIdRef.current = playbackId;
@@ -459,6 +466,7 @@ export function useBrowserMidiPlayback() {
   );
 
   return {
+    activeSourceId,
     isLoading: status === "loading",
     isPlaying: status === "playing",
     isPaused: status === "paused",
