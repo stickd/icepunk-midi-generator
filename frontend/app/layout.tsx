@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Pixelify_Sans, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const pixelifySans = Pixelify_Sans({
+const geistSans = Geist({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-pixelify",
+  variable: "--font-geist-sans",
   display: "swap",
 });
 
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased ${pixelifySans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`h-full antialiased ${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
