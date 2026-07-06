@@ -19,10 +19,11 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt icepunk_midi_generator.py icepunk_midi_temp_analyzer.py ./
+COPY python python
 COPY analysis_output analysis_output
 
 RUN python3 -m venv /app/venv \
-    && /app/venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && /app/venv/bin/pip install --no-cache-dir -r python/requirements.txt \
     && mkdir -p /app/generated_midi \
     && groupadd --system icepunk \
     && useradd --system --gid icepunk --home-dir /app icepunk \
@@ -35,7 +36,7 @@ RUN chown icepunk:icepunk /app/backend.jar
 ENV SERVER_PORT=8081
 ENV ICEPUNK_GENERATOR_PROJECT_DIR=/app
 ENV ICEPUNK_GENERATOR_PYTHON_PATH=/app/venv/bin/python3
-ENV ICEPUNK_GENERATOR_SCRIPT_NAME=icepunk_midi_generator.py
+ENV ICEPUNK_GENERATOR_SCRIPT_NAME=python/generate_midi.py
 ENV ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=icepunk_midi_temp_analyzer.py
 ENV JAVA_OPTS=""
 

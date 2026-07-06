@@ -5,6 +5,7 @@ import {
   GenerateMidiRequest,
   GenerateMidiResponse,
   generateMidiPack,
+  normalizeAuthToken,
   TOKEN_KEY,
 } from "@/lib/api";
 import { notifyFeedRefresh } from "@/lib/events";
@@ -20,19 +21,16 @@ export function useMidiGeneration(
     useState<GenerateMidiResponse | null>(null);
 
   const handleGenerateMidi = useCallback(async (request: GenerateMidiRequest) => {
+    let token: string | null = null;
+
     try {
       setIsGenerating(true);
       setStatus("Generating frozen MIDI patterns...");
 
-      const savedToken = localStorage.getItem(TOKEN_KEY);
-      const token =
-        savedToken && savedToken !== "undefined" && savedToken !== "null"
-          ? savedToken
-          : null;
+      token = normalizeAuthToken(localStorage.getItem(TOKEN_KEY));
 
-      if (savedToken && !token) {
+      if (localStorage.getItem(TOKEN_KEY) && !token) {
         localStorage.removeItem(TOKEN_KEY);
-        onUnauthorized?.();
       }
 
       const data = await generateMidiPack(request, token);
@@ -63,14 +61,15 @@ export function useMidiGeneration(
           return;
         }
 
-        if (error.message.includes("HTTP_401")) {
+        if (token && error.message.includes("HTTP_401")) {
           localStorage.removeItem(TOKEN_KEY);
           setStatus("Your session expired. Please log in again.");
           onUnauthorized?.();
           return;
         }
 
-        if (error.message.includes("HTTP_403")) {
+        if (token && error.message.includes("HTTP_403")) {
+          localStorage.removeItem(TOKEN_KEY);
           setStatus("Please log in again before generating.");
           onUnauthorized?.();
           return;

@@ -3,6 +3,11 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 export const TOKEN_KEY = "icepunk_token";
 
+export function normalizeAuthToken(value?: string | null) {
+  const token = value?.trim();
+  return token && token !== "undefined" && token !== "null" ? token : null;
+}
+
 function apiUrl(pathOrUrl?: string) {
   if (!pathOrUrl) return "";
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
@@ -262,12 +267,13 @@ export async function generateMidiPack(
   token?: string | null,
   signal?: AbortSignal,
 ): Promise<GenerateMidiResponse> {
+  const normalizedToken = normalizeAuthToken(token);
   const response = await fetch(`${API_URL}/generate`, {
     method: "POST",
-    headers: token
+    headers: normalizedToken
       ? {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${normalizedToken}`,
         }
       : {
           "Content-Type": "application/json",
@@ -464,7 +470,8 @@ export type LikeResponse = {
 };
 
 function authHeaders(token?: string | null): Record<string, string> {
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const normalizedToken = normalizeAuthToken(token);
+  return normalizedToken ? { Authorization: `Bearer ${normalizedToken}` } : {};
 }
 
 async function fetchJson<T>(

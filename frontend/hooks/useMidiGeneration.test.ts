@@ -127,6 +127,37 @@ describe("useMidiGeneration", () => {
     expect(result.current.status).toBe("Your session expired. Please log in again.");
   });
 
+  it("does not trigger logout on a 401 when generation was sent without a token", async () => {
+    mockGenerateMidiPack.mockRejectedValue(new Error("HTTP_401: unauthorized"));
+    const onUnauthorized = jest.fn();
+
+    const { result } = renderHook(() => useMidiGeneration(onUnauthorized));
+
+    await act(async () => {
+      await result.current.handleGenerateMidi(factoryRequest);
+    });
+
+    expect(mockGenerateMidiPack).toHaveBeenCalledWith(factoryRequest, null);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(result.current.status).toBe("Generation failed. Please try again.");
+  });
+
+  it("removes placeholder tokens without triggering logout or sending authorization", async () => {
+    window.localStorage.setItem(TOKEN_KEY, "undefined");
+    mockGenerateMidiPack.mockResolvedValue(generatedResponse({ totalGenerations: 1 }));
+    const onUnauthorized = jest.fn();
+
+    const { result } = renderHook(() => useMidiGeneration(onUnauthorized));
+
+    await act(async () => {
+      await result.current.handleGenerateMidi(factoryRequest);
+    });
+
+    expect(window.localStorage.getItem(TOKEN_KEY)).toBeNull();
+    expect(mockGenerateMidiPack).toHaveBeenCalledWith(factoryRequest, null);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
   it("shows a busy message on a 429 / server-busy response", async () => {
     mockGenerateMidiPack.mockRejectedValue(new Error("HTTP_429: Server is busy"));
 

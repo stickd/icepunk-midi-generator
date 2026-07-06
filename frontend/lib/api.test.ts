@@ -104,6 +104,20 @@ describe("lib/api", () => {
       expect(init.headers).toEqual({ "Content-Type": "application/json" });
     });
 
+    it("omits the authorization header for stale string token placeholders", async () => {
+      const { generateMidiPack } = await import("./api");
+      fetchMock.mockResolvedValue(
+        mockResponse({
+          json: jest.fn().mockResolvedValue({ downloadUrl: "x", totalGenerations: 2 }),
+        }),
+      );
+
+      await generateMidiPack(factoryRequest, "undefined");
+
+      const [, init] = fetchMock.mock.calls[0];
+      expect(init.headers).toEqual({ "Content-Type": "application/json" });
+    });
+
     it("sends JSON content-type and body for loginUser", async () => {
       const { loginUser } = await import("./api");
       fetchMock.mockResolvedValue(mockResponse());

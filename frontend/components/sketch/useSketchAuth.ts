@@ -5,6 +5,7 @@ import {
   authUser,
   getMe,
   MeResponse,
+  normalizeAuthToken,
   TOKEN_KEY,
 } from "@/lib/api";
 
@@ -13,7 +14,7 @@ export type AuthMode = "login" | "register" | null;
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
 
 function normalizeToken(value: string | null) {
-  return value && value !== "undefined" && value !== "null" ? value : null;
+  return normalizeAuthToken(value);
 }
 
 function subscribeToTokenChanges(callback: () => void) {
@@ -66,7 +67,17 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
 
     getMe(token, controller.signal)
       .then((data) => setMeFetch({ token, me: data }))
-      .catch(() => {});
+      .catch((error) => {
+        if (
+          error instanceof Error
+          && (error.message.includes("HTTP_401") || error.message.includes("HTTP_403"))
+          && normalizeToken(localStorage.getItem(TOKEN_KEY)) === token
+        ) {
+          localStorage.removeItem(TOKEN_KEY);
+          setMeFetch(null);
+          notifyTokenChanged();
+        }
+      });
 
     return () => controller.abort();
   }, [token]);
@@ -78,6 +89,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
 
   const clearToken = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    setMeFetch(null);
     notifyTokenChanged();
   }, []);
 

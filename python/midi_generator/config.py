@@ -1,0 +1,51 @@
+from pathlib import Path
+
+
+ANALYSIS_FILE = Path("analysis_output/midi_analysis.json")
+
+DEFAULT_OUTPUT_DIR = Path("generated_midi")
+
+GENERATE_COUNT = 10
+
+DEFAULT_BPM = 146
+DEFAULT_TICKS_PER_BEAT = 480
+
+BEATS_PER_BAR = 4
+BARS = 4
+TOTAL_BEATS = BEATS_PER_BAR * BARS
+
+PATTERN_LENGTH_BEATS = 8.0
+
+GLOBAL_MIN_PITCH = 36
+GLOBAL_MAX_PITCH = 84
+
+NOTE_MUTATION_PROBABILITY = 0.18
+RHYTHM_MUTATION_PROBABILITY = 0.10
+VELOCITY_MUTATION_PROBABILITY = 0.35
+OCTAVE_SHIFT_PROBABILITY = 0.12
+
+TOP_LAYER_PROBABILITY = 0.55
+MID_LAYER_PROBABILITY = 0.85
+BASS_LAYER_PROBABILITY = 0.75
+
+MAX_NOTES_PER_OUTPUT = 80
+
+NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+KEY_TO_ROOT = {
+    "C": 0,
+    "C#": 1,
+    "D": 2,
+    "D#": 3,
+    "E": 4,
+    "F": 5,
+    "F#": 6,
+    "G": 7,
+    "G#": 8,
+    "A": 9,
+    "A#": 10,
+    "B": 11,
+}
+
+MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11]
+MINOR_SCALE = [0, 2, 3, 5, 7, 8, 10]
