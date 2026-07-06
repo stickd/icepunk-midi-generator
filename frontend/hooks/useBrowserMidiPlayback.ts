@@ -29,6 +29,18 @@ const SAMPLE_ROOT_NOTE = "C4";
 const POSITION_FRAME_MS = 33;
 const DEFAULT_BPM = 146;
 
+let toneModulePromise: Promise<ToneModule> | null = null;
+let toneModuleCache: ToneModule | null = null;
+let midiModulePromise: Promise<{ Midi: MidiClass }> | null = null;
+
+export function preloadBrowserMidiPlayback() {
+  toneModulePromise ??= import("tone").then((module) => {
+    toneModuleCache = module;
+    return module;
+  });
+  midiModulePromise ??= import("@tonejs/midi") as Promise<{ Midi: MidiClass }>;
+}
+
 export type BrowserMidiSource = File | string | null;
 
 function isAbortError(error: unknown) {
@@ -108,6 +120,15 @@ function soundSourceKey(settings: NormalizedSoundEngineSettings) {
   return settings.sampleFile ? `sample:${settings.sampleFile.name}:${settings.sampleFile.size}:${settings.sampleFile.lastModified}` : `preset:${settings.preset}`;
 }
 
+async function startTone(Tone: ToneModule) {
+  await Promise.race([
+    Tone.start(),
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error("AUDIO_START_TIMEOUT")), 3000);
+    }),
+  ]);
+}
+
 export function useBrowserMidiPlayback() {
   const [status, setStatus] = useState<PlaybackStatus>("idle");
   const [message, setMessage] = useState("");
@@ -126,6 +147,10 @@ export function useBrowserMidiPlayback() {
   const positionFrameRef = useRef<number | null>(null);
   const playAbortControllerRef = useRef<AbortController | null>(null);
   const lastPositionUpdateRef = useRef(0);
+
+  useEffect(() => {
+    preloadBrowserMidiPlayback();
+  }, []);
 
   const stopPositionLoop = useCallback(() => {
     if (positionFrameRef.current !== null) {
@@ -313,6 +338,7 @@ export function useBrowserMidiPlayback() {
       }
 
       try {
+        const toneStartPromise = toneModuleCache ? startTone(toneModuleCache) : null;
         setStatus("loading");
         setMessage("Preparing browser playback...");
         setActiveSourceId(sourceId);
@@ -324,15 +350,20 @@ export function useBrowserMidiPlayback() {
         const isCurrentPlayback = () => playbackIdRef.current === playbackId && !controller.signal.aborted;
         setPositionSeconds(0);
 
+        preloadBrowserMidiPlayback();
         const [{ Midi }, Tone] = await Promise.all([
-          import("@tonejs/midi") as Promise<{ Midi: MidiClass }>,
-          import("tone") as Promise<ToneModule>,
+          midiModulePromise as Promise<{ Midi: MidiClass }>,
+          toneModulePromise as Promise<ToneModule>,
         ]);
 
         if (!isCurrentPlayback()) return;
 
         activeToneRef.current = Tone;
-        await Tone.start();
+        if (toneStartPromise) {
+          await toneStartPromise;
+        } else {
+          await startTone(Tone);
+        }
         if (!isCurrentPlayback()) return;
 
         const midiBuffer = await readMidiSource(midiSource, controller.signal);

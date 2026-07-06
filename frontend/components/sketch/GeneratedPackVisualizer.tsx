@@ -11,7 +11,7 @@ type GeneratedPackVisualizerProps = {
   generation: GenerateMidiResponse;
   onNewGeneration: () => void;
   onActiveMidiChange?: (midiUrl: string | null) => void;
-  playback?: ReturnType<typeof useBrowserMidiPlayback>;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
 };
 
@@ -24,12 +24,10 @@ export default function GeneratedPackVisualizer({
   generation,
   onActiveMidiChange,
   onNewGeneration,
-  playback: externalPlayback,
+  playback,
   soundEngine,
 }: GeneratedPackVisualizerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const localPlayback = useBrowserMidiPlayback();
-  const playback = externalPlayback ?? localPlayback;
   const items = generation.items;
   const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
   const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.downloadUrl;

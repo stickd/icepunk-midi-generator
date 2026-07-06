@@ -60,7 +60,7 @@ function FeedShell({ onIntent }: { onIntent: () => void }) {
             </div>
             <div className="p-3">
               <div className="flex h-[210px] items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04] p-3">
-                <span className="text-xs text-ice-muted">Loading feed...</span>
+                <span className="text-xs text-ice-muted">Click or scroll to load feed.</span>
               </div>
             </div>
           </div>
