@@ -285,8 +285,6 @@ export default function SketchThemeClient() {
                       onOpenCreatePack={openCreatePack}
                       onSourceStateChange={setSourceState}
                       onStubStatus={setStatus}
-                      playback={playback}
-                      soundEngine={soundEngine}
                       sourceState={sourceState}
                       status={generationStatus || status}
                     />

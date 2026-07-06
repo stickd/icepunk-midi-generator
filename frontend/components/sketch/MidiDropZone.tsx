@@ -2,16 +2,12 @@
 
 import { DragEvent, useRef, useState } from "react";
 import { Button, ToastNotification } from "@/components/ui";
-import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { analyzeTempMidiFiles } from "@/lib/api";
-import BrowserPianoRoll from "./BrowserPianoRoll";
 
 type MidiDropZoneProps = {
   onAnalysisComplete: (tempAnalysisId: string) => void;
   onAnalysisReset: () => void;
   onStubStatus: (message: string) => void;
-  playback: ReturnType<typeof useBrowserMidiPlayback>;
-  soundEngine: SoundEngineSettings;
 };
 
 const MAX_CUSTOM_MIDI_FILES = 100;
@@ -25,8 +21,6 @@ export default function MidiDropZone({
   onAnalysisComplete,
   onAnalysisReset,
   onStubStatus,
-  playback,
-  soundEngine,
 }: MidiDropZoneProps) {
   const midiInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -35,31 +29,38 @@ export default function MidiDropZone({
     "idle" | "analyzing" | "success" | "error"
   >("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
-  const previewFile = midiFiles[0] ?? null;
-  const previewId = previewFile
-    ? `custom:${previewFile.name}:${previewFile.size}:${previewFile.lastModified}`
-    : null;
-  const isThisSource = playback.activeSourceId === previewId;
-  const isThisLoading = isThisSource && playback.isLoading;
-  const isThisPlaying = isThisSource && playback.isPlaying;
-  const isThisPaused = isThisSource && playback.isPaused;
 
   function handleFiles(fileList: FileList | null) {
-    const files = Array.from(fileList ?? [])
-      .filter(isMidiFile)
-      .slice(0, MAX_CUSTOM_MIDI_FILES);
+    const files = Array.from(fileList ?? []);
 
     if (files.length === 0) {
       setAnalysisStatus("error");
-      setAnalysisMessage("Drop 1-100 .mid/.midi files.");
+      setAnalysisMessage("Choose 1-100 .mid/.midi files.");
+      onAnalysisReset();
+      return;
+    }
+
+    if (files.length > MAX_CUSTOM_MIDI_FILES) {
+      setAnalysisStatus("error");
+      setAnalysisMessage("Upload no more than 100 MIDI files.");
+      setMidiFiles([]);
+      onAnalysisReset();
+      return;
+    }
+
+    if (files.some((file) => !isMidiFile(file))) {
+      setAnalysisStatus("error");
+      setAnalysisMessage("Only .mid and .midi files are supported.");
+      setMidiFiles([]);
       onAnalysisReset();
       return;
     }
 
     setMidiFiles(files);
+    setAnalysisStatus("idle");
+    setAnalysisMessage(`${files.length} MIDI file${files.length === 1 ? "" : "s"} ready to analyze.`);
     onAnalysisReset();
-    onStubStatus("Custom MIDI files uploaded. Analyzing automatically...");
-    void analyzeFiles(files);
+    onStubStatus("Custom MIDI files uploaded. Click Analyze to prepare generation.");
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
@@ -69,6 +70,8 @@ export default function MidiDropZone({
   }
 
   async function analyzeFiles(files: File[]) {
+    if (files.length === 0 || analysisStatus === "analyzing") return;
+
     try {
       setAnalysisStatus("analyzing");
       setAnalysisMessage("Analyzing uploaded MIDI structure...");
@@ -112,7 +115,7 @@ export default function MidiDropZone({
         >
           ↧
         </span>
-        <span className="text-sm font-medium text-ice-primary">Upload your midis</span>
+        <span className="text-sm font-medium text-ice-primary">Upload your MIDIs</span>
         <span className="text-xs text-ice-muted">1-100 .mid/.midi files</span>
       </label>
 
@@ -129,6 +132,15 @@ export default function MidiDropZone({
               ? `${midiFiles.length} MIDI selected`
               : "Choose MIDIs"}
         </button>
+        <Button
+          disabled={midiFiles.length === 0 || analysisStatus === "analyzing"}
+          onClick={() => analyzeFiles(midiFiles)}
+          size="sm"
+          type="button"
+          variant="primary"
+        >
+          {analysisStatus === "analyzing" ? "Analyzing..." : "Analyze"}
+        </Button>
       </div>
 
       {midiFiles.length > 0 ? (
@@ -147,44 +159,13 @@ export default function MidiDropZone({
         </ul>
       ) : null}
 
-      <div
-        aria-label="Browser MIDI playback controls"
-        className="flex flex-wrap justify-center gap-2"
-      >
-        <Button
-          disabled={isThisLoading || isThisPlaying || !previewFile}
-          onClick={() => playback.play(previewFile, soundEngine, previewId)}
-          size="sm"
-          type="button"
-        >
-          {isThisLoading ? "Loading..." : isThisPaused ? "Resume" : "Play"}
-        </Button>
-        <Button disabled={!isThisPlaying} onClick={playback.pause} size="sm" type="button">
-          Pause
-        </Button>
-        <Button
-          disabled={!isThisSource || playback.status === "idle"}
-          onClick={playback.stop}
-          size="sm"
-          type="button"
-        >
-          Stop
-        </Button>
-      </div>
-
-      {analysisMessage || (isThisSource && playback.message) ? (
+      {analysisMessage ? (
         <ToastNotification
-          message={analysisMessage || playback.message}
+          message={analysisMessage}
           onClose={() => setAnalysisMessage("")}
           type={analysisStatus === "error" ? "error" : analysisStatus === "success" ? "success" : "info"}
         />
       ) : null}
-
-      <BrowserPianoRoll
-        isPlaying={isThisPlaying}
-        midiFile={previewFile}
-        playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
-      />
     </div>
   );
 }

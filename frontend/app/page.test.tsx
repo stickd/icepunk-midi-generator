@@ -20,6 +20,22 @@ jest.mock("@/lib/api", () => {
   };
 });
 
+jest.mock("@/hooks/useBrowserMidiPlayback", () => ({
+  useBrowserMidiPlayback: jest.fn(() => ({
+    activeSourceId: null,
+    isLoading: false,
+    isPaused: false,
+    isPlaying: false,
+    message: "",
+    pause: jest.fn(),
+    play: jest.fn(),
+    positionSeconds: 0,
+    status: "idle",
+    stop: jest.fn(),
+    updateSettings: jest.fn(),
+  })),
+}));
+
 const mockAnalyzeTempMidiFiles = analyzeTempMidiFiles as jest.Mock;
 const mockGenerateMidiPack = generateMidiPack as jest.Mock;
 const mockGetGenerationStats = getGenerationStats as jest.Mock;
@@ -114,13 +130,27 @@ describe("Home page", () => {
     render(<Home />);
 
     fireEvent.click(await screen.findByRole("tab", { name: "Custom" }));
-    const input = (await screen.findByText("Upload your midis")).closest("label")?.querySelector("input[type='file']");
+    expect(screen.queryByRole("button", { name: "Play" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pause" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Stop" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Choose a MIDI file to render a real piano roll/i)).not.toBeInTheDocument();
+
+    const generateButton = screen.getByRole("button", { name: "Generate" });
+    expect(generateButton).toBeDisabled();
+
+    const input = (await screen.findByText("Upload your MIDIs")).closest("label")?.querySelector("input[type='file']");
     expect(input).toBeInTheDocument();
+
+    const analyzeButton = screen.getByRole("button", { name: "Analyze" });
+    expect(analyzeButton).toBeDisabled();
 
     const midiFile = new File(["midi"], "custom.mid", { type: "audio/midi" });
     fireEvent.change(input as HTMLInputElement, {
       target: { files: [midiFile] },
     });
+    expect(screen.getByRole("button", { name: "Analyze" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Analyze" }));
 
     await waitFor(() => {
       expect(mockAnalyzeTempMidiFiles).toHaveBeenCalledWith([midiFile]);
@@ -151,5 +181,41 @@ describe("Home page", () => {
       "href",
       "/generated-packs/pack-1/items/item-1/download",
     );
+  });
+
+  it("rejects invalid custom MIDI selections before analysis", async () => {
+    render(<Home />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Custom" }));
+    const input = (await screen.findByText("Upload your MIDIs")).closest("label")?.querySelector("input[type='file']");
+
+    fireEvent.change(input as HTMLInputElement, {
+      target: { files: [new File(["text"], "notes.txt", { type: "text/plain" })] },
+    });
+
+    expect(await screen.findByText("Only .mid and .midi files are supported.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Analyze" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
+    expect(mockAnalyzeTempMidiFiles).not.toHaveBeenCalled();
+  });
+
+  it("rejects more than 100 custom MIDI files before analysis", async () => {
+    render(<Home />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Custom" }));
+    const input = (await screen.findByText("Upload your MIDIs")).closest("label")?.querySelector("input[type='file']");
+    const files = Array.from(
+      { length: 101 },
+      (_, index) => new File(["midi"], `custom-${index}.mid`, { type: "audio/midi" }),
+    );
+
+    fireEvent.change(input as HTMLInputElement, {
+      target: { files },
+    });
+
+    expect(await screen.findByText("Upload no more than 100 MIDI files.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Analyze" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
+    expect(mockAnalyzeTempMidiFiles).not.toHaveBeenCalled();
   });
 });

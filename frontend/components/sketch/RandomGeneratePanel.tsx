@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
-import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 
 export type GenerationSourceState = {
   source: GenerationSource;
@@ -15,8 +14,6 @@ type RandomGeneratePanelProps = {
   onSourceStateChange: (state: GenerationSourceState) => void;
   onOpenCreatePack: () => void;
   onStubStatus: (message: string) => void;
-  playback: ReturnType<typeof useBrowserMidiPlayback>;
-  soundEngine: SoundEngineSettings;
   status: string;
 };
 
@@ -32,7 +29,6 @@ const MidiDropZone = dynamic(() => import("./MidiDropZone"), {
         Loading custom MIDI upload...
       </div>
       <div className="mx-auto h-7 w-[120px] rounded-full border border-white/[0.08] bg-white/[0.05]" />
-      <div className="h-[210px] rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)]" />
     </div>
   ),
 });
@@ -42,8 +38,6 @@ export default function RandomGeneratePanel({
   onSourceStateChange,
   onOpenCreatePack,
   onStubStatus,
-  playback,
-  soundEngine,
   status,
 }: RandomGeneratePanelProps) {
   const isCustom = sourceState.source === "CUSTOM_UPLOAD";
@@ -87,8 +81,6 @@ export default function RandomGeneratePanel({
             }
             onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
             onStubStatus={onStubStatus}
-            playback={playback}
-            soundEngine={soundEngine}
           />
         </div>
       ) : null}
