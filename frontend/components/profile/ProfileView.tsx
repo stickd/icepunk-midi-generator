@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   authUser,
+  DatasetPreset,
+  deleteDatasetPreset,
+  getDatasetPresets,
   getFavorites,
   getMe,
   getUserGeneratedPacksFeed,
@@ -70,7 +73,12 @@ type ProfileViewProps = {
   username: string;
 };
 
-type TabId = "generated" | "packs" | "favorites";
+type TabId = "generated" | "datasets" | "packs" | "favorites";
+
+type DatasetListState = {
+  items: DatasetPreset[];
+  status: "idle" | "loading" | "ready" | "error";
+};
 
 type PackListState = {
   items: UserPackItem[];
@@ -174,6 +182,10 @@ export default function ProfileView({ username }: ProfileViewProps) {
     hasNext: false,
     status: "idle",
   });
+  const [datasets, setDatasets] = useState<DatasetListState>({
+    items: [],
+    status: "idle",
+  });
   const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
   const [authStatus, setAuthStatus] = useState("");
   const [email, setEmail] = useState("");
@@ -185,7 +197,8 @@ export default function ProfileView({ username }: ProfileViewProps) {
 
   const me = token && meFetch?.token === token ? meFetch.me : null;
   const isOwnProfile = me !== null && me.username === username;
-  const activeTab: TabId = !isOwnProfile && tab === "favorites" ? "generated" : tab;
+  const activeTab: TabId =
+    !isOwnProfile && (tab === "favorites" || tab === "datasets") ? "generated" : tab;
 
   function handleRequireLogin() {
     setAuthMode("login");
@@ -365,10 +378,37 @@ export default function ProfileView({ username }: ProfileViewProps) {
       .catch(() => setPacks((state) => ({ ...state, status: "error" })));
   }
 
+  function fetchDatasets() {
+    if (!token) return;
+
+    setDatasets((state) => ({ ...state, status: "loading" }));
+    getDatasetPresets(token)
+      .then((items) => setDatasets({ items, status: "ready" }))
+      .catch(() => setDatasets((state) => ({ ...state, status: "error" })));
+  }
+
+  async function handleDeleteDataset(id: string) {
+    if (!token) return;
+    if (!window.confirm("Delete this dataset? This cannot be undone.")) return;
+
+    try {
+      await deleteDatasetPreset(token, id);
+      setDatasets((state) => ({
+        ...state,
+        items: state.items.filter((item) => item.id !== id),
+      }));
+    } catch {
+      setToastMessage("Could not delete dataset. Try again.");
+    }
+  }
+
   function handleTabChange(next: TabId) {
     setTab(next);
     if (next === "favorites" && favorites.status === "idle") {
       fetchFavorites(0);
+    }
+    if (next === "datasets" && datasets.status === "idle") {
+      fetchDatasets();
     }
   }
 
@@ -483,6 +523,12 @@ export default function ProfileView({ username }: ProfileViewProps) {
                 visible: true,
               },
               {
+                id: "datasets" as TabId,
+                label: "Datasets",
+                count: datasets.items.length,
+                visible: isOwnProfile,
+              },
+              {
                 id: "packs" as TabId,
                 label: "Uploads",
                 count: packs.totalItems,
@@ -573,6 +619,56 @@ export default function ProfileView({ username }: ProfileViewProps) {
                 </Button>
               </div>
             ) : null}
+          </>
+        ) : activeTab === "datasets" ? (
+          <>
+            {datasets.status === "error" ? (
+              <EmptyState
+                title="Could not load datasets"
+                description="The backend is not reachable right now."
+              />
+            ) : datasets.status === "ready" && datasets.items.length === 0 ? (
+              <EmptyState
+                title="No saved datasets yet"
+                description="Analyze MIDI files in Custom mode and save the result as a dataset to reuse it here."
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {datasets.items.map((preset) => (
+                  <Panel className="grid gap-3 p-4" key={preset.id}>
+                    <h3 className="truncate text-sm font-medium text-ice-primary">{preset.name}</h3>
+                    <p className="text-xs text-ice-muted">
+                      {preset.sourceMidiCount} MIDI file{preset.sourceMidiCount === 1 ? "" : "s"} &middot;{" "}
+                      {new Date(preset.createdAt).toLocaleDateString(undefined, {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <Link href="/">
+                        <Button size="sm" type="button" variant="secondary">
+                          Go to generator
+                        </Button>
+                      </Link>
+                      <Button
+                        onClick={() => handleDeleteDataset(preset.id)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </Panel>
+                ))}
+                {datasets.status === "loading"
+                  ? Array.from({ length: 3 }).map((_, index) => (
+                      <Skeleton className="h-32 rounded-[var(--ice-radius-card)]" key={`dataset-skeleton-${index}`} />
+                    ))
+                  : null}
+              </div>
+            )}
           </>
         ) : (
           <>

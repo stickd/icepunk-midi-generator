@@ -15,7 +15,10 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "dataset_presets",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"owner_id", "name"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_dataset_presets_owner_name",
+                columnNames = {"owner_id", "name"}
+        )
 )
 public class DatasetPreset {
 

@@ -3,6 +3,7 @@ midi_dataset/
 
 # Generated MIDI
 generated_midi/
+temp_analysis/
 *.mid
 *.zip
 
