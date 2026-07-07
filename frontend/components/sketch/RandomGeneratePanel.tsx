@@ -3,10 +3,13 @@
 import dynamic from "next/dynamic";
 import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
+import CustomDatasetControls from "./CustomDatasetControls";
 
 export type GenerationSourceState = {
   source: GenerationSource;
   tempAnalysisId?: string;
+  datasetIds?: string[];
+  includeFactoryPool?: boolean;
 };
 
 type RandomGeneratePanelProps = {
@@ -15,6 +18,7 @@ type RandomGeneratePanelProps = {
   onOpenCreatePack: () => void;
   onStubStatus: (message: string) => void;
   status: string;
+  token: string | null;
 };
 
 const sourceOptions: Array<{ label: string; value: GenerationSource }> = [
@@ -39,9 +43,12 @@ export default function RandomGeneratePanel({
   onOpenCreatePack,
   onStubStatus,
   status,
+  token,
 }: RandomGeneratePanelProps) {
   const isCustom = sourceState.source === "CUSTOM_UPLOAD";
-  const canGenerate = !isCustom || Boolean(sourceState.tempAnalysisId);
+  const hasDatasetSelection =
+    Boolean(sourceState.datasetIds?.length) || Boolean(sourceState.includeFactoryPool);
+  const canGenerate = !isCustom || Boolean(sourceState.tempAnalysisId) || hasDatasetSelection;
 
   return (
     <div className="grid gap-5">
@@ -74,13 +81,27 @@ export default function RandomGeneratePanel({
       </div>
 
       {isCustom ? (
-        <div className="transition-all duration-300 ease-out animate-fade-in">
+        <div className="grid gap-4 transition-all duration-300 ease-out animate-fade-in">
           <MidiDropZone
             onAnalysisComplete={(tempAnalysisId) =>
               onSourceStateChange({ source: "CUSTOM_UPLOAD", tempAnalysisId })
             }
             onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
             onStubStatus={onStubStatus}
+          />
+          <CustomDatasetControls
+            includeFactoryPool={Boolean(sourceState.includeFactoryPool)}
+            onSelectionChange={(datasetIds, includeFactoryPool) =>
+              onSourceStateChange({
+                ...sourceState,
+                datasetIds,
+                includeFactoryPool,
+              })
+            }
+            onStubStatus={onStubStatus}
+            selectedDatasetIds={sourceState.datasetIds ?? []}
+            tempAnalysisId={sourceState.tempAnalysisId}
+            token={token}
           />
         </div>
       ) : null}
@@ -111,9 +132,9 @@ export default function RandomGeneratePanel({
         </Button>
       </div>
 
-      {isCustom && !sourceState.tempAnalysisId ? (
+      {isCustom && !canGenerate ? (
         <ToastNotification
-          message="Upload and analyze 1-100 MIDI files before generating from Custom."
+          message="Upload and analyze MIDI files, or pick a saved dataset, before generating from Custom."
           type="info"
         />
       ) : status ? (

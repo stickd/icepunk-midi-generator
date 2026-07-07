@@ -190,6 +190,8 @@ export default function SketchThemeClient() {
     return handleGenerateMidi({
       amount: draft.amount,
       bpm: 146,
+      datasetIds: sourceState.datasetIds,
+      includeFactoryPool: sourceState.includeFactoryPool,
       octaves: 1,
       packName: draft.packName,
       pitch: 0,
@@ -198,7 +200,13 @@ export default function SketchThemeClient() {
       tempAnalysisId: sourceState.tempAnalysisId,
       type: draft.type === "drums" ? "DRUMS" : "MELODY",
     });
-  }, [handleGenerateMidi, sourceState.source, sourceState.tempAnalysisId]);
+  }, [
+    handleGenerateMidi,
+    sourceState.datasetIds,
+    sourceState.includeFactoryPool,
+    sourceState.source,
+    sourceState.tempAnalysisId,
+  ]);
 
   const handleActiveMidiChange = useCallback((midiUrl: string | null) => {
     setActiveMidiSource(midiUrl);
@@ -287,6 +295,7 @@ export default function SketchThemeClient() {
                       onStubStatus={setStatus}
                       sourceState={sourceState}
                       status={generationStatus || status}
+                      token={token}
                     />
                   )}
                 </InteractiveBubbleBackground>
