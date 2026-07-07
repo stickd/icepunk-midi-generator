@@ -7,6 +7,7 @@ import icepunk_backend.exception.GenerationRequestException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.ClientIpService;
+import icepunk_backend.service.DatasetPresetService;
 import icepunk_backend.service.GeneratedPackService;
 import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.GenerationStatsService;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.inOrder;
@@ -48,6 +50,7 @@ class GenerateControllerTest {
     private final ClientIpService clientIpService = mock(ClientIpService.class);
     private final TempAnalysisService tempAnalysisService = mock(TempAnalysisService.class);
     private final GeneratedPackService generatedPackService = mock(GeneratedPackService.class);
+    private final DatasetPresetService datasetPresetService = mock(DatasetPresetService.class);
 
     private final GenerateController controller = new GenerateController(
             midiGenerationService,
@@ -56,7 +59,8 @@ class GenerateControllerTest {
             userRepository,
             clientIpService,
             tempAnalysisService,
-            generatedPackService
+            generatedPackService,
+            datasetPresetService
     );
 
     @TempDir
@@ -224,6 +228,49 @@ class GenerateControllerTest {
         verify(generationLimitService).checkGuestLimit("127.0.0.1");
         verify(midiGenerationService, never()).generateFiles(any(), any());
         verify(generationLimitService, never()).incrementGuestUsage("127.0.0.1");
+    }
+
+    @Test
+    void customUploadWithDatasetIdsUsesMergedAnalysisPath() throws Exception {
+        User user = authenticatedUser();
+        Path mergedAnalysisPath = tempDir.resolve("merged-analysis.json");
+        Files.writeString(mergedAnalysisPath, "{}");
+        MidiGenerationService.GeneratedFiles generatedFiles = createGeneratedFiles();
+        GenerationRequest generationRequest = factoryRequest();
+        generationRequest.setSource(GenerationRequest.GenerationSource.CUSTOM_UPLOAD);
+        UUID datasetId = UUID.randomUUID();
+        generationRequest.setDatasetIds(List.of(datasetId));
+        generationRequest.setIncludeFactoryPool(true);
+        when(datasetPresetService.resolveMergedAnalysisFile(List.of(datasetId), true, user))
+                .thenReturn(mergedAnalysisPath);
+        when(midiGenerationService.generateFiles(mergedAnalysisPath, generationRequest)).thenReturn(generatedFiles);
+        when(generatedPackService.persistGeneratedPack(eq(user), eq(generationRequest), eq(generatedFiles)))
+                .thenReturn(packResponse("https://cdn.example/dataset-mix.zip"));
+        when(generationStatsService.incrementTotalGenerations()).thenReturn(9L);
+
+        GenerationResponse response =
+                controller.generate(new MockHttpServletRequest(), generationRequest).getBody();
+
+        assertEquals("https://cdn.example/dataset-mix.zip", response.downloadUrl());
+        verify(datasetPresetService).resolveMergedAnalysisFile(List.of(datasetId), true, user);
+        verify(tempAnalysisService, never()).resolveAnalysisFile(any());
+        verify(midiGenerationService).generateFiles(mergedAnalysisPath, generationRequest);
+    }
+
+    @Test
+    void customUploadWithDatasetIdsIsRejectedForGuests() throws Exception {
+        MockHttpServletRequest request = guestRequest();
+        GenerationRequest generationRequest = factoryRequest();
+        generationRequest.setSource(GenerationRequest.GenerationSource.CUSTOM_UPLOAD);
+        generationRequest.setDatasetIds(List.of(UUID.randomUUID()));
+
+        assertThrows(
+                GenerationRequestException.class,
+                () -> controller.generate(request, generationRequest)
+        );
+
+        verify(datasetPresetService, never()).resolveMergedAnalysisFile(any(), anyBoolean(), any());
+        verify(midiGenerationService, never()).generateFiles(any(), any());
     }
 
     private MockHttpServletRequest guestRequest() {

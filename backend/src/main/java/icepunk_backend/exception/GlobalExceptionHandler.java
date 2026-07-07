@@ -144,6 +144,18 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(DatasetNameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleDatasetNameAlreadyExists(
+            DatasetNameAlreadyExistsException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleResourceNotFound(
             ResourceNotFoundException exception

@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+import java.util.UUID;
+
 public class GenerationRequest {
 
     private GenerationSource source = GenerationSource.FACTORY;
@@ -30,6 +33,8 @@ public class GenerationRequest {
     private int octaves = 1;
 
     private String tempAnalysisId;
+    private List<UUID> datasetIds;
+    private boolean includeFactoryPool = false;
     private PublishMode publishMode = PublishMode.PUBLIC;
 
     public GenerationSource getSource() {
@@ -94,6 +99,22 @@ public class GenerationRequest {
 
     public void setTempAnalysisId(String tempAnalysisId) {
         this.tempAnalysisId = tempAnalysisId;
+    }
+
+    public List<UUID> getDatasetIds() {
+        return datasetIds;
+    }
+
+    public void setDatasetIds(List<UUID> datasetIds) {
+        this.datasetIds = datasetIds;
+    }
+
+    public boolean isIncludeFactoryPool() {
+        return includeFactoryPool;
+    }
+
+    public void setIncludeFactoryPool(boolean includeFactoryPool) {
+        this.includeFactoryPool = includeFactoryPool;
     }
 
     public PublishMode getPublishMode() {

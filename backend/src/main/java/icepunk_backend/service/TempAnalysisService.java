@@ -142,6 +142,12 @@ public class TempAnalysisService {
         }
     }
 
+    public Path allocateAnalysisFile() throws IOException {
+        Path workspace = tempAnalysisDir.resolve(UUID.randomUUID().toString()).normalize();
+        Files.createDirectories(workspace);
+        return workspace.resolve("analysis.json");
+    }
+
     public Path resolveAnalysisFile(String tempAnalysisId) {
         if (tempAnalysisId == null || !tempAnalysisId.matches("[0-9a-fA-F-]{36}")) {
             throw new GenerationRequestException("A valid tempAnalysisId is required for custom upload generation.");

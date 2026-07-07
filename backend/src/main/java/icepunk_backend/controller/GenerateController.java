@@ -6,6 +6,7 @@ import icepunk_backend.dto.GeneratedPackResponse;
 import icepunk_backend.exception.GenerationRequestException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
+import icepunk_backend.service.DatasetPresetService;
 import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.GeneratedPackService;
@@ -39,6 +40,7 @@ public class GenerateController {
     private final ClientIpService clientIpService;
     private final TempAnalysisService tempAnalysisService;
     private final GeneratedPackService generatedPackService;
+    private final DatasetPresetService datasetPresetService;
 
     public GenerateController(
             MidiGenerationService midiGenerationService,
@@ -47,7 +49,8 @@ public class GenerateController {
             UserRepository userRepository,
             ClientIpService clientIpService,
             TempAnalysisService tempAnalysisService,
-            GeneratedPackService generatedPackService
+            GeneratedPackService generatedPackService,
+            DatasetPresetService datasetPresetService
     ) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
@@ -56,6 +59,7 @@ public class GenerateController {
         this.clientIpService = clientIpService;
         this.tempAnalysisService = tempAnalysisService;
         this.generatedPackService = generatedPackService;
+        this.datasetPresetService = datasetPresetService;
     }
 
     public ResponseEntity<GenerationResponse> generate(HttpServletRequest request) throws Exception {
@@ -117,7 +121,10 @@ public class GenerateController {
         MidiGenerationService.GeneratedFiles generatedFiles = null;
 
         try {
-            generatedFiles = midiGenerationService.generateFiles(resolveAnalysisFile(resolvedRequest), resolvedRequest);
+            generatedFiles = midiGenerationService.generateFiles(
+                    resolveAnalysisFile(resolvedRequest, generationActor.user),
+                    resolvedRequest
+            );
             GeneratedPackResponse generatedPack = generatedPackService.persistGeneratedPack(
                     generationActor.user,
                     resolvedRequest,
@@ -160,12 +167,23 @@ public class GenerateController {
         return request;
     }
 
-    private Path resolveAnalysisFile(GenerationRequest request) {
+    private Path resolveAnalysisFile(GenerationRequest request, User user) {
         if (request.getSource() == GenerationRequest.GenerationSource.FACTORY) {
             return null;
         }
 
         if (request.getSource() == GenerationRequest.GenerationSource.CUSTOM_UPLOAD) {
+            boolean hasDatasets = request.getDatasetIds() != null && !request.getDatasetIds().isEmpty();
+            boolean hasFactoryPool = request.isIncludeFactoryPool();
+
+            if (hasDatasets || hasFactoryPool) {
+                if (user == null) {
+                    throw new GenerationRequestException("Sign in to generate from saved datasets.");
+                }
+
+                return datasetPresetService.resolveMergedAnalysisFile(request.getDatasetIds(), hasFactoryPool, user);
+            }
+
             return tempAnalysisService.resolveAnalysisFile(request.getTempAnalysisId());
         }
 
