@@ -124,8 +124,9 @@ public class GeneratedPackService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<GeneratedPackResponse> getPack(UUID packId) {
+    public Optional<GeneratedPackResponse> getPack(UUID packId, User viewer) {
         return packRepository.findWithItemsById(packId)
+                .filter(pack -> isVisibleTo(pack, viewer))
                 .map(pack -> toPackResponse(pack, sortedItems(pack.getItems())));
     }
 
@@ -181,8 +182,9 @@ public class GeneratedPackService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<DownloadObject> getPackDownload(UUID packId) {
+    public Optional<DownloadObject> getPackDownload(UUID packId, User viewer) {
         return packRepository.findById(packId)
+                .filter(pack -> isVisibleTo(pack, viewer))
                 .map(pack -> new DownloadObject(
                         storageService.readObject(pack.getZipObjectKey()),
                         safeFileName(pack.getName(), "icepunk-midi-pack") + ".zip",
@@ -191,13 +193,22 @@ public class GeneratedPackService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<DownloadObject> getItemDownload(UUID packId, UUID itemId) {
+    public Optional<DownloadObject> getItemDownload(UUID packId, UUID itemId, User viewer) {
         return itemRepository.findByIdAndPackId(itemId, packId)
+                .filter(item -> isVisibleTo(item.getPack(), viewer))
                 .map(item -> new DownloadObject(
                         storageService.readObject(item.getMidiObjectKey()),
                         safeFileName(item.getFileName(), "icepunk-midi") + ".mid",
                         "audio/midi"
                 ));
+    }
+
+    private boolean isVisibleTo(GeneratedPack pack, User viewer) {
+        if (pack.getVisibility() == GeneratedPackVisibility.PUBLIC) {
+            return true;
+        }
+
+        return viewer != null && pack.getOwner() != null && pack.getOwner().getId().equals(viewer.getId());
     }
 
     @Transactional(readOnly = true)

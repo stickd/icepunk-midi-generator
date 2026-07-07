@@ -13,6 +13,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,8 +38,8 @@ public class GeneratedPackController {
     }
 
     @GetMapping("/generated-packs/{packId}")
-    public ResponseEntity<GeneratedPackResponse> getPack(@PathVariable UUID packId) {
-        return generatedPackService.getPack(packId)
+    public ResponseEntity<GeneratedPackResponse> getPack(Authentication authentication, @PathVariable UUID packId) {
+        return generatedPackService.getPack(packId, viewerOrNull(authentication))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -61,15 +62,19 @@ public class GeneratedPackController {
     }
 
     @GetMapping("/generated-packs/{packId}/download")
-    public ResponseEntity<ByteArrayResource> downloadPack(@PathVariable UUID packId) {
-        return generatedPackService.getPackDownload(packId)
+    public ResponseEntity<ByteArrayResource> downloadPack(Authentication authentication, @PathVariable UUID packId) {
+        return generatedPackService.getPackDownload(packId, viewerOrNull(authentication))
                 .map(this::downloadResponse)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/generated-packs/{packId}/items/{itemId}/download")
-    public ResponseEntity<ByteArrayResource> downloadItem(@PathVariable UUID packId, @PathVariable UUID itemId) {
-        return generatedPackService.getItemDownload(packId, itemId)
+    public ResponseEntity<ByteArrayResource> downloadItem(
+            Authentication authentication,
+            @PathVariable UUID packId,
+            @PathVariable UUID itemId
+    ) {
+        return generatedPackService.getItemDownload(packId, itemId, viewerOrNull(authentication))
                 .map(this::downloadResponse)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -105,6 +110,16 @@ public class GeneratedPackController {
 
     private User currentUser(Authentication authentication) {
         return userRepository.findByEmail(authentication.getName()).orElseThrow();
+    }
+
+    private User viewerOrNull(Authentication authentication) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+
+        return userRepository.findByEmail(authentication.getName()).orElse(null);
     }
 
     private ResponseEntity<ByteArrayResource> downloadResponse(DownloadObject download) {

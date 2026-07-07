@@ -177,6 +177,87 @@ class GeneratedPackServiceTest {
     }
 
     @Test
+    void getPackReturnsEmptyForPrivatePackWhenViewerIsNotOwner() {
+        User owner = new User("owner", "owner@example.com", "hash");
+        owner.setId(1L);
+        User stranger = new User("stranger", "stranger@example.com", "hash");
+        stranger.setId(2L);
+
+        UUID packId = UUID.randomUUID();
+        GeneratedPack pack = privatePack(packId, owner);
+
+        when(packRepository.findWithItemsById(packId)).thenReturn(Optional.of(pack));
+
+        assertTrue(service.getPack(packId, stranger).isEmpty());
+        assertTrue(service.getPack(packId, null).isEmpty());
+    }
+
+    @Test
+    void getPackReturnsPrivatePackForOwner() {
+        User owner = new User("owner", "owner@example.com", "hash");
+        owner.setId(1L);
+
+        UUID packId = UUID.randomUUID();
+        GeneratedPack pack = privatePack(packId, owner);
+
+        when(packRepository.findWithItemsById(packId)).thenReturn(Optional.of(pack));
+
+        assertTrue(service.getPack(packId, owner).isPresent());
+    }
+
+    @Test
+    void getPackDownloadReturnsEmptyForPrivatePackWhenViewerIsNotOwner() {
+        User owner = new User("owner", "owner@example.com", "hash");
+        owner.setId(1L);
+
+        UUID packId = UUID.randomUUID();
+        GeneratedPack pack = privatePack(packId, owner);
+        pack.setZipObjectKey("generated_midi/private.zip");
+
+        when(packRepository.findById(packId)).thenReturn(Optional.of(pack));
+
+        assertTrue(service.getPackDownload(packId, null).isEmpty());
+        verify(storageService, org.mockito.Mockito.never()).readObject(any());
+    }
+
+    @Test
+    void getItemDownloadReturnsEmptyForPrivatePackWhenViewerIsNotOwner() {
+        User owner = new User("owner", "owner@example.com", "hash");
+        owner.setId(1L);
+
+        UUID packId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        GeneratedPack pack = privatePack(packId, owner);
+
+        GeneratedPackItem item = new GeneratedPackItem();
+        item.setId(itemId);
+        item.setPack(pack);
+        item.setFileName("track.mid");
+        item.setMidiObjectKey("generated_midi_items/private.mid");
+
+        when(itemRepository.findByIdAndPackId(itemId, packId)).thenReturn(Optional.of(item));
+
+        assertTrue(service.getItemDownload(packId, itemId, null).isEmpty());
+        verify(storageService, org.mockito.Mockito.never()).readObject(any());
+    }
+
+    private GeneratedPack privatePack(UUID packId, User owner) {
+        GeneratedPack pack = new GeneratedPack();
+        pack.setId(packId);
+        pack.setOwner(owner);
+        pack.setName("Secret Pack");
+        pack.setSourceType(GenerationSourceType.FACTORY);
+        pack.setGenerationType(GeneratedPackType.MELODY);
+        pack.setBpm(146);
+        pack.setPitch(0);
+        pack.setOctaves(1);
+        pack.setAmount(5);
+        pack.setVisibility(GeneratedPackVisibility.PRIVATE);
+        pack.setCreatedAt(OffsetDateTime.now());
+        return pack;
+    }
+
+    @Test
     void getPublicFeedByUsernameReturnsPacksOwnedByThatUser() {
         User owner = new User("nikul", "nikul@example.com", "hash");
         owner.setId(7L);

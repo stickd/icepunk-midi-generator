@@ -65,9 +65,9 @@ class GeneratedPackControllerTest {
                 "/generated-packs/" + packId + "/download",
                 List.of()
         );
-        when(generatedPackService.getPack(packId)).thenReturn(Optional.of(packResponse));
+        when(generatedPackService.getPack(packId, null)).thenReturn(Optional.of(packResponse));
 
-        ResponseEntity<GeneratedPackResponse> response = controller.getPack(packId);
+        ResponseEntity<GeneratedPackResponse> response = controller.getPack(null, packId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(packResponse, response.getBody());
@@ -75,9 +75,9 @@ class GeneratedPackControllerTest {
 
     @Test
     void getPackReturnsNotFoundWhenMissing() {
-        when(generatedPackService.getPack(packId)).thenReturn(Optional.empty());
+        when(generatedPackService.getPack(packId, null)).thenReturn(Optional.empty());
 
-        ResponseEntity<GeneratedPackResponse> response = controller.getPack(packId);
+        ResponseEntity<GeneratedPackResponse> response = controller.getPack(null, packId);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
@@ -112,9 +112,9 @@ class GeneratedPackControllerTest {
     void downloadPackReturnsOkWithContent() {
         byte[] bytes = new byte[]{1, 2, 3, 4};
         DownloadObject download = new DownloadObject(bytes, "pack.zip", "application/zip");
-        when(generatedPackService.getPackDownload(packId)).thenReturn(Optional.of(download));
+        when(generatedPackService.getPackDownload(packId, null)).thenReturn(Optional.of(download));
 
-        ResponseEntity<ByteArrayResource> response = controller.downloadPack(packId);
+        ResponseEntity<ByteArrayResource> response = controller.downloadPack(null, packId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -126,9 +126,9 @@ class GeneratedPackControllerTest {
         UUID itemId = UUID.randomUUID();
         byte[] bytes = new byte[]{5, 6, 7};
         DownloadObject download = new DownloadObject(bytes, "item.mid", "audio/midi");
-        when(generatedPackService.getItemDownload(packId, itemId)).thenReturn(Optional.of(download));
+        when(generatedPackService.getItemDownload(packId, itemId, null)).thenReturn(Optional.of(download));
 
-        ResponseEntity<ByteArrayResource> response = controller.downloadItem(packId, itemId);
+        ResponseEntity<ByteArrayResource> response = controller.downloadItem(null, packId, itemId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
