@@ -52,8 +52,8 @@ pip install -r requirements.txt
 Usage is **not** incremented on failed generations or failed uploads — the check/increment split is intentional and tested.
 
 ### Generation limits
-- Guest (by IP): 3/day — `GuestUsage` table, tracked in `GenerationLimitService`
-- Registered user: 7/day — `User.generationsToday` + `generationDate`, reset automatically on date change
+- Guest (by IP): 5/day — `GuestUsage` table, enforced with `SELECT ... FOR UPDATE` in `GenerationLimitService`
+- Registered user: unlimited by design — generation is free; `GenerationLimitService.checkUserLimit`/`incrementUserUsage` are intentionally no-ops. `User.generationsToday`/`generationDate` fields exist but are not read by the limit check. Credits (`User.credits`) are reserved for a future "keep private" feature, not generation quota.
 - Concurrent: max 2 simultaneous Python subprocesses (`Semaphore` in `MidiGenerationService`)
 
 ### Auth

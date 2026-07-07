@@ -4,8 +4,8 @@
 
 - Register throttling: 3 attempts per IP per hour.
 - Login throttling: 5 attempts per IP per 15 minutes.
-- Guest generation limit: 3 successful generations per IP per day.
-- Logged-in user generation limit: 7 successful generations per user per day.
+- Guest generation limit: 5 successful generations per IP per day.
+- Logged-in user generation is unlimited by design (free product decision); credits gate a future "keep private" feature, not generation quota.
 - Generation usage is incremented only after successful Python generation and ZIP upload.
 - Global generation counter is incremented only after successful ZIP upload.
 - Duplicate email and username registration returns `409 Conflict`.
