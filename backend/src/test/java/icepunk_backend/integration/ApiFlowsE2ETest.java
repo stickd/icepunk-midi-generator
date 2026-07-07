@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -108,54 +107,32 @@ class ApiFlowsE2ETest {
     void guestGenerateReturnsDownloadUrlAndIncrementsCounter() throws Exception {
         stubSuccessfulGeneration("https://cdn.example/guest-pack.zip");
 
+        // Guest packs are ephemeral by design: never written to the database, so
+        // the response carries direct CDN URLs rather than backend redirect routes,
+        // and there is no persisted row to look up afterwards.
         MvcResult result = mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.packId").exists())
                 .andExpect(jsonPath("$.items[0].fileName").value("track.mid"))
                 .andExpect(jsonPath("$.totalGenerations").value(1))
+                .andExpect(jsonPath("$.downloadUrl").value("https://cdn.example/guest-pack.zip"))
+                .andExpect(jsonPath("$.packDownloadUrl").value("https://cdn.example/guest-pack.zip"))
+                .andExpect(jsonPath("$.items[0].downloadUrl").value("https://cdn.example/item.mid"))
                 .andReturn();
 
         String responseBody = result.getResponse().getContentAsString();
         JsonNode response = objectMapper.readTree(responseBody);
         String packId = response.get("packId").asText();
-        String itemId = response.get("items").get(0).get("id").asText();
-        String packDownloadUrl = "/generated-packs/" + packId + "/download";
-        String itemDownloadUrl = "/generated-packs/" + packId + "/items/" + itemId + "/download";
 
         assertFalse(responseBody.contains("generated_midi/"));
         assertFalse(responseBody.contains("generated_midi_items/"));
         assertFalse(responseBody.contains("/home/"));
         assertFalse(responseBody.contains("\\\\"));
-        assertEquals(packDownloadUrl, response.get("downloadUrl").asText());
-        assertEquals(packDownloadUrl, response.get("packDownloadUrl").asText());
-        assertEquals(itemDownloadUrl, response.get("items").get(0).get("downloadUrl").asText());
 
         entityManager.flush();
         entityManager.clear();
 
         mockMvc.perform(get("/generated-packs/" + packId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.packDownloadUrl").value(packDownloadUrl))
-                .andExpect(jsonPath("$.items[0].downloadUrl").value(itemDownloadUrl));
-
-        mockMvc.perform(get(packDownloadUrl))
-                .andExpect(status().isFound())
-                .andExpect(resultMatcher -> assertEquals(
-                        "https://cdn.example/guest-pack.zip",
-                        resultMatcher.getResponse().getHeader("Location")
-                ));
-
-        mockMvc.perform(get(itemDownloadUrl))
-                .andExpect(status().isFound())
-                .andExpect(resultMatcher -> assertEquals(
-                        "https://cdn.example/item.mid",
-                        resultMatcher.getResponse().getHeader("Location")
-                ));
-
-        mockMvc.perform(get("/generated-packs/" + UUID.randomUUID() + "/download"))
-                .andExpect(status().isNotFound());
-
-        mockMvc.perform(get("/generated-packs/" + UUID.randomUUID() + "/items/" + itemId + "/download"))
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(get("/generation-stats"))
