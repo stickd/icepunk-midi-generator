@@ -55,6 +55,8 @@ class GeneratedPackServiceTest {
 
     @Test
     void persistsPackAndItemsWithBackendDownloadUrls() throws Exception {
+        User owner = new User("nikul", "nikul@example.com", "hash");
+        owner.setId(1L);
         Path outputDir = Files.createDirectories(tempDir.resolve("out"));
         Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
         Path zipPath = Files.writeString(tempDir.resolve("pack.zip"), "zip");
@@ -83,7 +85,7 @@ class GeneratedPackServiceTest {
         when(packRepository.save(any(GeneratedPack.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(itemRepository.save(any(GeneratedPackItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        GeneratedPackResponse response = service.persistGeneratedPack(null, request, generatedFiles);
+        GeneratedPackResponse response = service.persistGeneratedPack(owner, request, generatedFiles);
 
         assertEquals("Test Pack", response.name());
         assertEquals("FACTORY", response.source());
@@ -146,6 +148,8 @@ class GeneratedPackServiceTest {
 
     @Test
     void cleansUploadedObjectsWhenDatabaseFlushFails() throws Exception {
+        User owner = new User("nikul", "nikul@example.com", "hash");
+        owner.setId(1L);
         Path outputDir = Files.createDirectories(tempDir.resolve("out-db-fail"));
         Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
         Path zipPath = Files.writeString(tempDir.resolve("pack-db-fail.zip"), "zip");
@@ -170,7 +174,7 @@ class GeneratedPackServiceTest {
         when(itemRepository.save(any(GeneratedPackItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new RuntimeException("constraint failed")).when(itemRepository).flush();
 
-        assertThrows(RuntimeException.class, () -> service.persistGeneratedPack(null, factoryRequest(), generatedFiles));
+        assertThrows(RuntimeException.class, () -> service.persistGeneratedPack(owner, factoryRequest(), generatedFiles));
 
         verify(storageService).deleteObjectQuietly("generated_midi_items/item.mid");
         verify(storageService).deleteObjectQuietly("generated_midi/pack.zip");
@@ -276,7 +280,7 @@ class GeneratedPackServiceTest {
         pack.setCreatedAt(OffsetDateTime.now());
 
         Pageable pageable = PageRequest.of(0, 10);
-        when(packRepository.findByOwner_UsernameAndVisibilityOrderByCreatedAtDesc(
+        when(packRepository.findPublicAuthenticatedPacksByUsername(
                 eq("nikul"), eq(GeneratedPackVisibility.PUBLIC), any(Pageable.class)
         )).thenReturn(new PageImpl<>(List.of(pack), pageable, 1));
 

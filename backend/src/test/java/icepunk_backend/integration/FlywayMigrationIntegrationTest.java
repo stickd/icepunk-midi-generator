@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
     /** Every versioned migration currently in db/migration. */
-    private static final int EXPECTED_MIGRATION_COUNT = 4;
+    private static final int EXPECTED_MIGRATION_COUNT = 5;
 
     /** Expected table → column set, mirroring the JPA entities. */
     private static final Map<String, Set<String>> EXPECTED_COLUMNS = Map.of(
@@ -59,7 +59,9 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             "generated_pack_items", Set.of(
                     "id", "pack_id", "item_index", "file_name", "midi_object_key",
                     "duration_seconds", "note_count", "track_count", "min_pitch", "max_pitch",
-                    "avg_pitch", "bpm", "metadata", "created_at")
+                    "avg_pitch", "bpm", "metadata", "created_at"),
+            "dataset_presets", Set.of(
+                    "id", "owner_id", "name", "analysis_object_key", "source_midi_count", "created_at")
     );
 
     @Autowired
@@ -187,6 +189,19 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                 "generated item pack lookup index must exist");
         assertTrue(indexExists("idx_generated_pack_items_pack_index"),
                 "generated item pack/index lookup index must exist");
+
+        // V5 — dataset presets.
+        assertNotNullable("dataset_presets", "owner_id");
+        assertNotNullable("dataset_presets", "name");
+        assertNotNullable("dataset_presets", "analysis_object_key");
+        assertNotNullable("dataset_presets", "source_midi_count");
+        assertNotNullable("dataset_presets", "created_at");
+        assertTrue(uniqueColumnExists("dataset_presets", "analysis_object_key"),
+                "dataset_presets.analysis_object_key must be unique");
+        assertTrue(foreignKeyExists("dataset_presets", "owner_id", "users", "id"),
+                "dataset presets must reference their owner user");
+        assertTrue(indexExists("idx_dataset_presets_owner_id"),
+                "dataset preset owner lookup index must exist");
     }
 
     @Test
