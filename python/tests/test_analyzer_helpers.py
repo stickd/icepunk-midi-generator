@@ -1,6 +1,6 @@
 from collections import Counter
 
-import icepunk_midi_analyzer as analyzer
+import midi_analyzer as analyzer
 
 
 def test_pitch_to_name_uses_midi_octaves():

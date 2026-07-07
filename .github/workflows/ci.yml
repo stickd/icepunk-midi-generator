@@ -56,6 +56,9 @@ jobs:
     name: Python engine (pytest)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: python
 
     steps:
       - uses: actions/checkout@v4
@@ -69,13 +72,13 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Syntax check
-        run: python -m py_compile icepunk_midi_generator.py
+        run: python -m py_compile generate_midi.py
 
       - name: Lint
-        run: ruff check icepunk_midi_generator.py tests/
+        run: ruff check generate_midi.py tests/
 
       - name: Type check
-        run: mypy icepunk_midi_generator.py --strict
+        run: mypy generate_midi.py --strict
 
       - name: Unit tests
         run: python -m pytest tests/ -m "not slow" -v --tb=short --junit-xml=unit-results.xml
@@ -89,8 +92,8 @@ jobs:
         with:
           name: python-test-results
           path: |
-            unit-results.xml
-            smoke-results.xml
+            python/unit-results.xml
+            python/smoke-results.xml
 
   frontend:
     name: Frontend (Jest / typecheck / lint)
@@ -169,7 +172,7 @@ jobs:
       - name: Set up the Python venv for the MIDI generator
         run: |
           python3 -m venv venv
-          venv/bin/pip install -r requirements.txt
+          venv/bin/pip install -r python/requirements.txt
 
       - name: Start the backend
         working-directory: backend
@@ -253,7 +256,7 @@ jobs:
       - name: Set up the Python venv for the MIDI generator
         run: |
           python3 -m venv venv
-          venv/bin/pip install -r requirements.txt
+          venv/bin/pip install -r python/requirements.txt
 
       - name: Start the backend
         working-directory: backend

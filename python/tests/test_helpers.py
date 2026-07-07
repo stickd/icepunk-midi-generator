@@ -1,7 +1,7 @@
-"""Unit tests for pure helper functions in icepunk_midi_generator."""
+"""Unit tests for pure helper functions in midi_generator."""
 import mido
 
-import icepunk_midi_generator as gen
+import midi_generator as gen
 
 
 # ─── parse_key ────────────────────────────────────────────────────────────────

@@ -35,7 +35,8 @@ docker build -f backend/Dockerfile -t icepunk-backend .                      # b
 ### Python MIDI engine (run from repo root)
 ```bash
 python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+pip install -r python/requirements.txt
+cd python && python -m pytest tests/ -m "not slow"    # unit tests
 ```
 
 ## Architecture
@@ -82,7 +83,7 @@ Flyway migrations: `backend/src/main/resources/db/migration/V{n}__{description}.
 ### Infrastructure
 - **Local** (`docker-compose.yml`): PostgreSQL on port 5433, MinIO API on 9010, MinIO console on 9011. Backend runs directly via `./mvnw`, not in Docker.
 - **Production** (`docker-compose.production.yml`): All services including backend in Docker. Requires `.env.production`. Postgres has a health check; backend waits on it before starting.
-- Backend image is built from repo root (not `backend/`) because it needs `icepunk_midi_generator.py`, `requirements.txt`, and `analysis_output/`.
+- Backend image is built from repo root (not `backend/`) because it needs `python/` (MIDI engine) and `analysis_output/`.
 
 ### Frontend
 > **Warning:** This project uses Next.js 16, which has breaking API and convention changes relative to older versions. Before writing any Next.js-specific code (routing, data fetching, config), read the relevant guide in `frontend/node_modules/next/dist/docs/`.

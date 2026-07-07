@@ -1,5 +1,5 @@
 """
-Smoke tests for icepunk_midi_generator.py.
+Smoke tests for python/generate_midi.py.
 
 Run the script as a subprocess so that cwd-relative paths (ANALYSIS_FILE,
 OUTPUT_DIR) resolve correctly against the repo root.
@@ -12,7 +12,7 @@ from pathlib import Path
 import mido
 import pytest
 
-GENERATOR = "icepunk_midi_generator.py"
+GENERATOR = "python/generate_midi.py"
 GENERATE_COUNT = 10
 FILENAME_RE = re.compile(r"^generated_pattern_\d+_.+\.mid$")
 

@@ -17,9 +17,10 @@ backend/                  Spring Boot API
 frontend/                 Next.js app
 analysis_output/          Required generator analysis data
 generated_midi/           Generated output, ignored by git
-icepunk_midi_generator.py MIDI generation engine
-icepunk_midi_analyzer.py  Dataset analysis helper
-requirements.txt          Python generator dependencies
+python/                   MIDI generation/analysis engine, tests, and Python tooling config
+python/generate_midi.py   MIDI generation engine entrypoint
+python/analyze_midi.py    Dataset analysis entrypoint
+python/requirements.txt   Python generator dependencies
 ```
 
 ## Local Development
@@ -42,7 +43,7 @@ Install Python dependencies:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 ```
 
 Run backend:
@@ -105,7 +106,7 @@ The sketch generator supports two real generation sources:
 Temporary custom analysis files are stored under `DATASETS_TEMP_DIR`, defaulting to `temp_analysis` inside the generator project directory.
 
 ```env
-ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=icepunk_midi_temp_analyzer.py
+ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=python/temp_analyzer.py
 DATASETS_TEMP_DIR=/app/temp_analysis
 DATASETS_TEMP_MIDI_MAX_SIZE_BYTES=2097152
 DATASETS_TEMP_RETENTION_HOURS=24
@@ -192,9 +193,8 @@ Current limitations: generated packs are public download artifacts; credits, pri
 The production backend image is built from the repository root because it needs:
 
 - `backend/` Spring Boot source
-- `icepunk_midi_generator.py`
+- `python/` MIDI generation/analysis engine
 - `analysis_output/midi_analysis.json`
-- `requirements.txt`
 
 Build manually:
 
@@ -259,7 +259,8 @@ The Docker image already sets:
 ```env
 ICEPUNK_GENERATOR_PROJECT_DIR=/app
 ICEPUNK_GENERATOR_PYTHON_PATH=/app/venv/bin/python3
-ICEPUNK_GENERATOR_SCRIPT_NAME=icepunk_midi_generator.py
+ICEPUNK_GENERATOR_SCRIPT_NAME=python/generate_midi.py
+ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=python/temp_analyzer.py
 ```
 
 Required for frontend production build/runtime:
