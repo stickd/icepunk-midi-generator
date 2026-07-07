@@ -172,6 +172,8 @@ export type GenerateMidiRequest = {
   pitch: number;
   octaves: number;
   tempAnalysisId?: string;
+  datasetIds?: string[];
+  includeFactoryPool?: boolean;
   publishMode?: PublishMode;
 };
 
@@ -179,6 +181,13 @@ export type TempAnalysisResponse = {
   tempAnalysisId: string;
   fileCount: number;
   metadata: Record<string, unknown>;
+};
+
+export type DatasetPreset = {
+  id: string;
+  name: string;
+  sourceMidiCount: number;
+  createdAt: string;
 };
 
 export type UploadVisibility = "PRIVATE" | "UNLISTED" | "PUBLIC";
@@ -311,6 +320,45 @@ export async function analyzeTempMidiFiles(
   }
 
   return response.json();
+}
+
+export async function saveDatasetPreset(
+  token: string,
+  name: string,
+  tempAnalysisId: string,
+  signal?: AbortSignal,
+): Promise<DatasetPreset> {
+  return fetchJson("/datasets", {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name, tempAnalysisId }),
+    signal,
+  });
+}
+
+export async function getDatasetPresets(
+  token: string,
+  signal?: AbortSignal,
+): Promise<DatasetPreset[]> {
+  return fetchJson("/datasets", { headers: authHeaders(token), signal });
+}
+
+export async function deleteDatasetPreset(
+  token: string,
+  id: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await fetch(`${API_URL}/datasets/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
 }
 
 export async function getPublicUploadFeed(
