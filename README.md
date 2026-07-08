@@ -81,29 +81,35 @@ FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
 
 ## API
 
-- `POST /generate` creates a generated pack, uploads the whole ZIP plus each generated `.mid` item, persists pack/item metadata, and returns a structured generated pack response. The response keeps `downloadUrl` as a temporary backward-compatible alias for `packDownloadUrl`.
-- `POST /datasets/analyze-temp` accepts 1-8 `.mid/.midi` files, creates a temporary compatible analysis dataset, and returns `{ "tempAnalysisId": "...", "fileCount": 1, "metadata": {...} }`.
-- `GET /generated-packs/{packId}` returns generated pack metadata and generated MIDI items.
-- `GET /generated-packs/{packId}/items/{itemId}/download` validates that the item belongs to the pack and redirects to the storage download URL.
+Full reference with request/response shapes: [docs/api.md](docs/api.md). Summary:
+
+- `POST /generate` creates a generated pack, uploads the whole ZIP plus each generated `.mid` item, persists pack/item metadata (for authenticated users — guest generations are ephemeral and not persisted), and returns a structured generated pack response. The response keeps `downloadUrl` as a backward-compatible alias for `packDownloadUrl`.
+- `GET /generation-usage` returns `{ "used": 3, "limit": 7 }` for the caller's identity (guest IP or JWT user).
 - `GET /generation-stats` returns `{ "totalGenerations": 123 }`.
-- `POST /auth/register` creates a user account and returns a JWT token.
-- `POST /auth/login` returns a JWT token.
+- `POST /datasets/analyze-temp` accepts 1-100 `.mid/.midi` files, creates a temporary (24h) analysis dataset, and returns `{ "tempAnalysisId": "...", "fileCount": 1, "metadata": {...} }`.
+- `POST /datasets` (JWT) promotes a `tempAnalysisId` into a permanent, named, owned dataset preset. `GET /datasets` lists your saved presets; `DELETE /datasets/{id}` removes one.
+- `GET /generated-packs/feed?page=&size=` returns the paged public community feed. `GET /generated-packs/{packId}` returns one pack's metadata and items.
+- `GET /generated-packs/{packId}/download` and `GET /generated-packs/{packId}/items/{itemId}/download` proxy the pack ZIP / a single MIDI file through the backend with a friendly filename.
+- `GET /users/me/generated-packs` (JWT) lists all of the caller's packs, including private ones ("My Packs"). `PATCH .../name`, `PATCH .../visibility`, and `DELETE` (all JWT, owner-only) manage a pack.
+- `POST /auth/register` / `POST /auth/login` return a JWT token.
 - `POST /uploads/projects` uploads an authenticated user's MIDI project and one-shot sample.
 - `GET /uploads/feed?page=0&size=10` returns newest public uploaded projects for the discovery feed.
-- `GET /uploads/projects/{id}/midi` streams a public uploaded MIDI file through the backend for browser piano-roll visualization.
+- `GET /uploads/projects/{id}/midi` streams a public uploaded MIDI file through the backend for browser piano-roll visualization (and counts as a download).
+- `GET /users/{username}/profile` returns public profile stats; `GET /users/me` returns the same plus email/credits. `POST /users/me/profile` and `POST /users/me/avatar` edit bio/avatar.
+- `GET /users/me/favorites`, `POST`/`DELETE /uploads/projects/{id}/like` implement favorites/likes — for uploaded projects only; Generated Packs have no like mechanism today.
 
 Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation, storage upload, and generated pack persistence.
 
-The sketch feed uses real public uploaded projects only. Empty feeds show an empty state instead of demo cards, and feed MIDI previews are rendered by parsing the backend MIDI preview endpoint in the browser.
+The public feed uses real generated packs and uploaded projects only. Empty feeds show an empty state instead of demo cards, and feed MIDI previews render from note data embedded in the pack response (no MIDI file download needed) via the client-side Tone.js playback engine (`frontend/hooks/useBrowserMidiPlayback.ts`) — the Python engine only writes `.mid` files, it never renders audio itself.
 
 ## Generation Sources
 
-The sketch generator supports two real generation sources:
+The generator supports two real generation sources:
 
 - `FACTORY`: uses the bundled `analysis_output/midi_analysis.json`.
-- `CUSTOM_UPLOAD`: uploads 1-8 MIDI files to `/datasets/analyze-temp`, then sends the returned `tempAnalysisId` to `/generate`.
+- `CUSTOM_UPLOAD`: either (a) uploads 1-100 MIDI files to `/datasets/analyze-temp` and sends the returned `tempAnalysisId` to `/generate`, or (b) for signed-in users, generates from one or more previously saved dataset presets (`datasetIds`, up to 10 combined sources, optionally blended with the factory pool via `includeFactoryPool`).
 
-Temporary custom analysis files are stored under `DATASETS_TEMP_DIR`, defaulting to `temp_analysis` inside the generator project directory.
+Temporary custom analysis files are stored under `DATASETS_TEMP_DIR`, defaulting to `temp_analysis` inside the generator project directory, and expire after `DATASETS_TEMP_RETENTION_HOURS`. Saving one as a dataset preset (`POST /datasets`) copies its analysis into S3 permanently, scoped to the owner.
 
 ```env
 ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=python/temp_analyzer.py
@@ -175,18 +181,25 @@ Architecture:
 
 ```text
 POST /generate
--> selected analysis source (FACTORY or CUSTOM_UPLOAD)
+-> selected analysis source (FACTORY, CUSTOM_UPLOAD temp, or merged dataset presets)
 -> Python generator
 -> local generated MIDI files
 -> MIDI metadata extractor
 -> individual MIDI uploads under generated_midi_items/
 -> ZIP upload under generated_midi/
--> generated_packs row
--> generated_pack_items rows
--> structured response for the frontend modal
+-> generated_packs row + generated_pack_items rows (authenticated callers only)
+-> structured response for the frontend
 ```
 
-Current limitations: generated packs are public download artifacts; credits, private paid downloads, favorites, ratings, social feed ranking, and permanent custom dataset saving are intentionally left for later phases.
+Guest calls skip the DB-persistence step entirely — a guest's pack exists only as S3 objects and is
+never listed in the feed, in "My Packs", or on any profile. Authenticated packs are ownable
+(rename, toggle `PUBLIC`/`PRIVATE`, delete — see [docs/api.md](docs/api.md)) and listable via
+`GET /users/me/generated-packs`.
+
+Current limitations: credits and paid/private-download economy, and likes/ratings/favorites *on
+generated packs specifically* (uploaded projects already have likes/favorites) are intentionally
+left for later phases. Permanent custom dataset saving is implemented (`POST /datasets`) — it is
+no longer a limitation.
 
 ## Production Backend Docker
 
@@ -239,7 +252,26 @@ ICEPUNK_GENERATOR_TIMEOUT_SECONDS=60
 ICEPUNK_GENERATOR_MAX_CONCURRENT=2
 GENERATED_ZIP_RETENTION_DAYS=2
 S3_REGION=eu-central-1
+
+# Custom-upload analysis (defaults shown)
+DATASETS_TEMP_DIR=/app/temp_analysis
+DATASETS_TEMP_MIDI_MAX_SIZE_BYTES=2097152
+DATASETS_TEMP_RETENTION_HOURS=24
+
+# User project uploads (defaults shown)
+UPLOADS_MIDI_MAX_SIZE_BYTES=2097152
+UPLOADS_SAMPLE_MAX_SIZE_BYTES=20971520
+UPLOADS_MULTIPART_MAX_FILE_SIZE=25MB
+UPLOADS_MULTIPART_MAX_REQUEST_SIZE=220MB
+
+# S3 client timeouts (defaults shown, rarely need changing)
+S3_CONNECTION_TIMEOUT_SECONDS=3
+S3_SOCKET_TIMEOUT_SECONDS=15
+S3_API_CALL_TIMEOUT_SECONDS=30
+S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS=20
 ```
+
+Note: `SPRING_JPA_HIBERNATE_DDL_AUTO` is only read on the *default* profile. When `SPRING_PROFILES_ACTIVE=prod` (required for real production, see [Notes](#notes) below), `application-prod.properties` forces `ddl-auto=validate` regardless of this variable — Flyway, not Hibernate, owns schema changes in production. `JWT_SECRET` also has no fallback under `prod`; the backend refuses to start without it.
 
 If you use external PostgreSQL or external S3 instead of the included compose services, set these backend env variables in your hosting/runtime:
 
@@ -328,9 +360,13 @@ npm run start
 - login
 - guest generate
 - logged-in generate
-- ZIP download
+- pack ZIP download and single-item download
+- rename / toggle visibility / delete an owned generated pack
+- custom-upload analyze, then save it as a permanent dataset preset, then generate from it
 - upload a public MIDI project with a one-shot sample
-- public feed shows the uploaded project
+- public feed shows the uploaded project and generated packs
+- like/unlike an uploaded project, confirm it appears under favorites
+- view a profile page (`/u/{username}`), confirm stats and "My Packs"
 - global counter update
 - feedback form
 - backend restart keeps generation counter
