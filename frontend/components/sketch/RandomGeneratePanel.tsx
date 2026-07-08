@@ -100,7 +100,6 @@ export default function RandomGeneratePanel({
             }
             onStubStatus={onStubStatus}
             selectedDatasetIds={sourceState.datasetIds ?? []}
-            tempAnalysisId={sourceState.tempAnalysisId}
             token={token}
           />
         </div>

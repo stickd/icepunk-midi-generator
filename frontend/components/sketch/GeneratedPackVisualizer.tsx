@@ -6,6 +6,7 @@ import { GeneratedMidiItem, GenerateMidiResponse } from "@/lib/api";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
+import SaveDatasetButton from "./SaveDatasetButton";
 
 type GeneratedPackVisualizerProps = {
   generation: GenerateMidiResponse;
@@ -13,6 +14,11 @@ type GeneratedPackVisualizerProps = {
   onActiveMidiChange?: (midiUrl: string | null) => void;
   playback: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
+  tempAnalysisId?: string;
+  token: string | null;
+  onStubStatus: (message: string) => void;
 };
 
 function formatDuration(value: number | null) {
@@ -24,8 +30,13 @@ export default function GeneratedPackVisualizer({
   generation,
   onActiveMidiChange,
   onNewGeneration,
+  onRegenerate,
+  isRegenerating,
   playback,
   soundEngine,
+  tempAnalysisId,
+  token,
+  onStubStatus,
 }: GeneratedPackVisualizerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const items = generation.items;
@@ -65,16 +76,36 @@ export default function GeneratedPackVisualizer({
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition duration-150 ease-out hover:border-white/20 hover:bg-white/[0.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.15)]"
-          onClick={onNewGeneration}
-          type="button"
-        >
-          <svg className="h-3.5 w-3.5 text-ice-accent" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M19 12H5m0 0l6-6m-6 6l6 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>New generation</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition duration-150 ease-out hover:border-white/20 hover:bg-white/[0.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.15)]"
+            onClick={onNewGeneration}
+            type="button"
+          >
+            <svg className="h-3.5 w-3.5 text-ice-accent" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M19 12H5m0 0l6-6m-6 6l6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>New generation</span>
+          </button>
+
+          {onRegenerate ? (
+            <button
+              className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition duration-150 ease-out hover:border-white/20 hover:bg-white/[0.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.15)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isRegenerating}
+              onClick={onRegenerate}
+              type="button"
+            >
+              <svg className="h-3.5 w-3.5 text-ice-accent" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M4 4v5h5M20 20v-5h-5M4.5 15a8 8 0 0013.9 3.4M19.5 9A8 8 0 005.6 5.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>{isRegenerating ? "Regenerating..." : "Regenerate"}</span>
+            </button>
+          ) : null}
+
+          {generation.source === "CUSTOM_UPLOAD" ? (
+            <SaveDatasetButton onStubStatus={onStubStatus} tempAnalysisId={tempAnalysisId} token={token} />
+          ) : null}
+        </div>
 
         <a
           className="inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white"

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import {
+  GenerateMidiRequest,
   getGenerationUsage,
   GenerationUsageResponse,
 } from "@/lib/api";
@@ -138,7 +139,9 @@ export default function SketchThemeClient() {
   const stopPlayback = playback.stop;
   const updatePlaybackSettings = playback.updateSettings;
   const hadGenerationRef = useRef(false);
+  const [lastRequest, setLastRequest] = useState<GenerateMidiRequest | null>(null);
   const {
+    isGenerating,
     lastGeneration,
     resetGeneration,
     status: generationStatus,
@@ -187,7 +190,7 @@ export default function SketchThemeClient() {
   const startGeneration = useCallback((draft: CreatePackDraft) => {
     setActiveModal(null);
 
-    return handleGenerateMidi({
+    const request: GenerateMidiRequest = {
       amount: draft.amount,
       bpm: 146,
       datasetIds: sourceState.datasetIds,
@@ -199,7 +202,10 @@ export default function SketchThemeClient() {
       source: sourceState.source,
       tempAnalysisId: sourceState.tempAnalysisId,
       type: draft.type === "drums" ? "DRUMS" : "MELODY",
-    });
+    };
+    setLastRequest(request);
+
+    return handleGenerateMidi(request);
   }, [
     handleGenerateMidi,
     sourceState.datasetIds,
@@ -207,6 +213,11 @@ export default function SketchThemeClient() {
     sourceState.source,
     sourceState.tempAnalysisId,
   ]);
+
+  const handleRegenerate = useCallback(() => {
+    if (!lastRequest) return;
+    return handleGenerateMidi(lastRequest);
+  }, [handleGenerateMidi, lastRequest]);
 
   const handleActiveMidiChange = useCallback((midiUrl: string | null) => {
     setActiveMidiSource(midiUrl);
@@ -283,10 +294,15 @@ export default function SketchThemeClient() {
                   {lastGeneration ? (
                     <GeneratedPackVisualizer
                       generation={lastGeneration}
+                      isRegenerating={isGenerating}
                       onActiveMidiChange={handleActiveMidiChange}
                       onNewGeneration={resetGeneration}
+                      onRegenerate={handleRegenerate}
+                      onStubStatus={setStatus}
                       playback={playback}
                       soundEngine={soundEngine}
+                      tempAnalysisId={lastRequest?.tempAnalysisId}
+                      token={token}
                     />
                   ) : (
                     <RandomGeneratePanel
