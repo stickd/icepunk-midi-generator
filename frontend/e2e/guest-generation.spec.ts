@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openGeneratedMidiSketchModal } from './helpers'
+import { generateMidiPack } from './helpers'
 
 test('a guest can generate and download a MIDI pack without logging in', async ({ page }) => {
   await page.goto('/')
@@ -9,14 +9,15 @@ test('a guest can generate and download a MIDI pack without logging in', async (
 
   const startedAt = Date.now()
   const downloadPromise = page.waitForEvent('download')
-  await openGeneratedMidiSketchModal(page)
-  await page.getByRole('button', { name: /Download and publish/ }).click()
+  await generateMidiPack(page)
+  await page.getByRole('link', { name: /Download whole pack/ }).click()
   const download = await downloadPromise
   const elapsedMs = Date.now() - startedAt
 
   expect(download.suggestedFilename()).toMatch(/\.zip$/)
-  await expect(page.getByText('MIDI pack downloaded.')).toBeVisible()
-  await expect(page.getByRole('button', { name: /Download and publish/ })).toBeEnabled()
+  // Clicking a `download` link doesn't navigate away — the results view (and its
+  // re-clickable download link) should still be there afterwards.
+  await expect(page.getByRole('link', { name: /Download whole pack/ })).toBeVisible()
 
   // Client-side fetch aborts generation requests after 15s (lib/api.ts), so a
   // healthy generation should complete well inside that budget.

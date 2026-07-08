@@ -99,6 +99,7 @@ export default function FeedMountIsland({
     <div className="min-w-0">
       <div
         ref={feedScrollRef}
+        aria-label="Community feed"
         className="ice-scrollbar grid gap-4 overflow-y-auto pr-1 lg:max-h-[calc(100vh-4.5rem)]"
         onClick={triggerFeedMount}
         onFocus={triggerFeedMount}
@@ -107,6 +108,8 @@ export default function FeedMountIsland({
           handleFeedScroll(event);
         }}
         onTouchStart={triggerFeedMount}
+        role="region"
+        tabIndex={0}
         onWheel={triggerFeedMount}
       >
         {isFeedMounted ? (

@@ -267,8 +267,11 @@ export default function SketchThemeClient() {
           {/* Generator Column */}
           <div
             ref={generatorScrollRef}
+            aria-label="MIDI generator"
             onScroll={handleGenScroll}
             className="ice-scrollbar grid gap-6 pr-1 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto"
+            role="region"
+            tabIndex={0}
           >
             <h1 className="flex items-center gap-3 pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center p-0.5">
@@ -310,7 +313,7 @@ export default function SketchThemeClient() {
                       onSourceStateChange={setSourceState}
                       onStubStatus={setStatus}
                       sourceState={sourceState}
-                      status={generationStatus || status}
+                      status={generationStatus}
                       token={token}
                     />
                   )}

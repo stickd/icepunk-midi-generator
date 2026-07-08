@@ -63,9 +63,23 @@ export async function loginViaUi(page: Page, email: string, password: string) {
   await page.getByText('You are logged in.').waitFor()
 }
 
-export async function openGeneratedMidiSketchModal(page: Page) {
-  await page.getByRole('button', { name: 'Generate' }).click()
+// Generation results render inline (GeneratedPackVisualizer replaces the source-picker
+// panel) rather than in a second modal — there is no "Generated Midis" dialog anymore.
+// The ZIP download link appearing is the signal that generation finished.
+//
+// If a previous generation already left the results view showing (e.g. two tests
+// sharing one page in a `test.describe.serial` block), "New generation" goes back to
+// the source picker first — otherwise `getByRole('button', { name: 'Generate' })` would
+// ambiguously match "Regenerate" and the "Select generated_*.mid" thumbnail buttons too
+// (Playwright role-name matching is substring-by-default).
+export async function generateMidiPack(page: Page) {
+  const newGeneration = page.getByRole('button', { name: 'New generation' })
+  if (await newGeneration.isVisible().catch(() => false)) {
+    await newGeneration.click()
+  }
+
+  await page.getByRole('button', { name: 'Generate', exact: true }).click()
   await page.getByRole('dialog', { name: 'Create pack' }).waitFor()
   await page.getByRole('button', { name: 'Next →' }).click()
-  await page.getByRole('dialog', { name: 'Generated Midis' }).waitFor()
+  await page.getByRole('link', { name: /Download whole pack/ }).waitFor()
 }

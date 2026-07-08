@@ -34,7 +34,7 @@ test('logging in with the wrong password is rejected', async ({ page }) => {
   await modal.getByPlaceholder('Password').fill('definitely-the-wrong-password')
   await modal.getByRole('button', { name: 'Login', exact: true }).click()
 
-  await expect(modal.getByText('Auth failed. Check your data.')).toBeVisible()
+  await expect(modal.getByText('Invalid credentials.')).toBeVisible()
   await expect(modal).toBeVisible()
 })
 

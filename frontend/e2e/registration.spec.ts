@@ -40,7 +40,7 @@ test('registering with an already-used email is rejected', async ({ page }) => {
   await modal.getByRole('button', { name: 'Register' }).click()
 
   await expect(
-    modal.getByText('An account with that email or username already exists.'),
+    modal.getByText('Username or email is already taken.'),
   ).toBeVisible()
   await expect(modal).toBeVisible()
 })
