@@ -135,6 +135,30 @@ jobs:
           path: frontend/coverage/lcov-report
           retention-days: 7
 
+  compose-validate:
+    name: Docker compose validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate local docker-compose.yml
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Validate docker-compose.production.yml (dummy secrets, syntax/schema only)
+        run: |
+          cat > /tmp/compose-validate.env <<'EOF'
+          POSTGRES_PASSWORD=dummy
+          MINIO_ROOT_USER=dummy
+          MINIO_ROOT_PASSWORD=dummy
+          JWT_SECRET=dummy-not-a-real-secret
+          CORS_ALLOWED_ORIGINS=https://example.com
+          S3_PUBLIC_URL=https://example.com
+          NEXT_PUBLIC_API_URL=https://example.com
+          EOF
+          docker compose -f docker-compose.production.yml --env-file /tmp/compose-validate.env config -q
+
   newman:
     name: API smoke test (Newman)
     runs-on: ubuntu-latest

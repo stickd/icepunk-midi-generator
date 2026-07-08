@@ -32,10 +32,12 @@ export default function ProfileHeader({ profile, isOwnProfile, token, onAvatarUp
     setImgError(false);
   }
 
-  useEffect(() => {
+  const [prevPictureUrl, setPrevPictureUrl] = useState(profile.profilePictureUrl);
+  if (prevPictureUrl !== profile.profilePictureUrl) {
+    setPrevPictureUrl(profile.profilePictureUrl);
     setAvatarUrl(profile.profilePictureUrl);
     setImgError(false);
-  }, [profile.profilePictureUrl]);
+  }
 
   useEffect(() => {
     const handleProfileUpdate = (event: Event) => {

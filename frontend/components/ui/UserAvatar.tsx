@@ -55,9 +55,11 @@ export default function UserAvatar({
 
   const displayUrl = avatarUrl !== undefined ? avatarUrl : settings.avatarUrl;
 
-  useEffect(() => {
+  const [prevDisplayUrl, setPrevDisplayUrl] = useState(displayUrl);
+  if (prevDisplayUrl !== displayUrl) {
+    setPrevDisplayUrl(displayUrl);
     setImgError(false);
-  }, [displayUrl]);
+  }
 
   return (
     <div

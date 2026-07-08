@@ -23,15 +23,19 @@ export default function CustomDatasetControls({
   const [presets, setPresets] = useState<DatasetPreset[]>([]);
   const [presetsStatus, setPresetsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
+  const [prevToken, setPrevToken] = useState(token);
+  if (prevToken !== token && !token) {
+    setPrevToken(token);
+    setPresets([]);
+    setPresetsStatus("idle");
+  } else if (prevToken !== token) {
+    setPrevToken(token);
+  }
+
   useEffect(() => {
-    if (!token) {
-      setPresets([]);
-      setPresetsStatus("idle");
-      return;
-    }
+    if (!token) return;
 
     const controller = new AbortController();
-    setPresetsStatus("loading");
 
     getDatasetPresets(token, controller.signal)
       .then((items) => {
