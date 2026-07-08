@@ -16,5 +16,5 @@ please make sure you can reproduce the issue there before reporting.
 
 ## Scope
 
-See [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md) for the application-level hardening already in
+See [SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md) for the application-level hardening already in
 place (rate limiting, generation limits, error handling) and known limitations of the current MVP.
