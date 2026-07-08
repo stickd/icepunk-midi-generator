@@ -3,9 +3,9 @@
 Scope: full-project security review requested against a specific checklist (auth/JWT/session,
 endpoint access control, rate limits, file upload safety, MIDI/ZIP handling, S3/MinIO access,
 CORS, env/secrets, Docker/network exposure, production config, path traversal, dependency
-vulnerabilities). This is an addendum to [`TECHNICAL_AUDIT_REPORT.md`](../TECHNICAL_AUDIT_REPORT.md)
-(prior full audit) — only new findings and explicit checklist verification are detailed here;
-items already documented there and still true are referenced, not repeated in full.
+vulnerabilities). This is an addendum to the project's earlier technical audit — only new
+findings and explicit checklist verification are detailed here; items already documented there
+and still true are referenced, not repeated in full.
 
 Method: 3 parallel read-only research passes (endpoint authorization matrix; file upload / path
 traversal / ZIP / MIDI parsing; S3+CORS+Docker+prod-config+secrets) plus manual verification of
@@ -77,8 +77,8 @@ silently using a public value — e.g. `jwt.secret=${JWT_SECRET}` with no defaul
 
 ## Confirmed still-open from the prior audit (no change, re-verified true)
 
-These were already documented in `TECHNICAL_AUDIT_REPORT.md` and are still accurate as of this
-review — not re-detailed here:
+These were already documented in the project's earlier technical audit and are still accurate as
+of this review — not re-detailed here:
 
 - **HIGH** — MinIO bucket made anonymously downloadable at the bucket level (`mc anonymous set
   download` in `docker-compose.production.yml`). Still broad; still recommend private bucket +
