@@ -10,6 +10,14 @@ import {
   UserCustomSettings,
 } from "@/lib/profileStore";
 
+const THEME_OPTIONS = [
+  { id: "original", label: "IcePunk (Original)", color: "#8492ff", gradient: "linear-gradient(135deg, #8492ff, #6ee7ff, #bf8cff)" },
+  { id: "white-anemone", label: "White Anemone", color: "#ff4e00", gradient: "linear-gradient(135deg, #ff4e00, #ff9100, #ffffff)" },
+  { id: "blue-jay", label: "Blue Jay", color: "#1e88e5", gradient: "linear-gradient(135deg, #1e88e5, #00c8e6, #7c4dff)" },
+  { id: "turquoise-bird", label: "Jade Stone", color: "#12b59d", gradient: "linear-gradient(135deg, #12b59d, #4ade80, #020b0e)" },
+  { id: "bronze", label: "Brass", color: "#d97706", gradient: "linear-gradient(135deg, #d97706, #ffc800, #be2d00)" },
+];
+
 type ProfileSettingsModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -54,6 +62,7 @@ export default function ProfileSettingsModal({
   onUpdated,
 }: ProfileSettingsModalProps) {
   const [selectedRing, setSelectedRing] = useState<string>("periwinkle");
+  const [selectedTheme, setSelectedTheme] = useState<string>("original");
   const [avatarUrl, setAvatarUrl] = useState<string>(currentAvatarUrl ?? "");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [statusType, setStatusType] = useState<"success" | "error">("success");
@@ -68,7 +77,9 @@ export default function ProfileSettingsModal({
     if (isOpen && username) {
       setAvatarUrl(currentAvatarUrl ?? "");
       setImgError(false);
-      setSelectedRing(getProfileSettings(username).auraRingId);
+      const settings = getProfileSettings(username);
+      setSelectedRing(settings.auraRingId);
+      setSelectedTheme(settings.theme || "original");
     }
   }
 
@@ -115,7 +126,9 @@ export default function ProfileSettingsModal({
   async function handleSave() {
     if (!token) return;
 
-    saveProfileSettings(username, { auraRingId: selectedRing });
+    saveProfileSettings(username, { auraRingId: selectedRing, theme: selectedTheme });
+    localStorage.setItem("icepunk_theme", selectedTheme);
+    window.dispatchEvent(new Event("icepunk-theme-change"));
 
     try {
       const me = await updateProfilePictureUrl(token, avatarUrl.trim());
@@ -222,15 +235,40 @@ export default function ProfileSettingsModal({
             />
           </FieldLabel>
 
+          {/* App Color Theme Grid Selection */}
+          <div className="grid gap-2">
+            <span className="text-xs font-semibold text-ice-secondary">App Color Theme</span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {THEME_OPTIONS.map((opt) => (
+                <button
+                  className={`settings-picker-btn flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition duration-150 ease-out ${
+                    selectedTheme === opt.id
+                      ? "border-white/20 bg-white/[0.08] text-ice-primary shadow-[0_0_12px_rgba(255,255,255,0.1)] selected"
+                      : "border-white/[0.06] bg-white/[0.02] text-ice-secondary hover:bg-white/[0.05]"
+                  }`}
+                  key={opt.id}
+                  onClick={() => setSelectedTheme(opt.id as UserCustomSettings["theme"])}
+                  type="button"
+                >
+                  <span
+                    className="h-3.5 w-3.5 rounded-full shrink-0 ring-1 ring-white/20"
+                    style={{ background: opt.gradient, boxShadow: `0 0 10px ${opt.color}` }}
+                  />
+                  <span className="truncate">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Color Ring Picker */}
           <div className="grid gap-2">
             <span className="text-xs font-semibold text-ice-secondary">Aura Ring Color</span>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {AVATAR_RING_OPTIONS.map((opt) => (
                 <button
-                  className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition duration-150 ease-out ${
+                  className={`ring-picker-btn flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition duration-150 ease-out ${
                     selectedRing === opt.id
-                      ? "border-white/20 bg-white/[0.08] text-ice-primary shadow-[0_0_12px_rgba(255,255,255,0.1)]"
+                      ? "border-white/20 bg-white/[0.08] text-ice-primary shadow-[0_0_12px_rgba(255,255,255,0.1)] selected"
                       : "border-white/[0.06] bg-white/[0.02] text-ice-secondary hover:bg-white/[0.05]"
                   }`}
                   key={opt.id}

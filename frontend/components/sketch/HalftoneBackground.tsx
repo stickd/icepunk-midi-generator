@@ -27,9 +27,34 @@ export default function HalftoneBackground() {
 
     window.addEventListener("resize", handleResize);
 
+    const getThemeColors = () => {
+      const style = window.getComputedStyle(document.documentElement);
+      const accent = style.getPropertyValue("--ice-accent").trim() || "rgb(132, 146, 255)";
+      const accent2 = style.getPropertyValue("--ice-accent-2").trim() || "rgb(110, 231, 255)";
+      const accent3 = style.getPropertyValue("--ice-accent-3").trim() || "rgb(191, 140, 255)";
+
+      const toRgba = (colorStr: string, alpha: number) => {
+        if (colorStr.startsWith("rgb")) {
+          const match = colorStr.match(/\d+/g);
+          if (match && match.length >= 3) {
+            return `rgba(${match[0]}, ${match[1]}, ${match[2]}, ${alpha})`;
+          }
+        }
+        return colorStr;
+      };
+
+      return {
+        c1: (alpha: number) => toRgba(accent, alpha),
+        c2: (alpha: number) => toRgba(accent2, alpha),
+        c3: (alpha: number) => toRgba(accent3, alpha),
+      };
+    };
+
     const render = () => {
       time += 0.007;
       ctx.clearRect(0, 0, width, height);
+
+      const colors = getThemeColors();
 
       // 4 Organic moving wave focal points for dynamic random motion
       const p1 = {
@@ -47,22 +72,22 @@ export default function HalftoneBackground() {
 
       // Render fluid liquid marble gradient pools
       const g1 = ctx.createRadialGradient(p1.x, p1.y, 10, p1.x, p1.y, width * 0.38);
-      g1.addColorStop(0, "rgba(132, 146, 255, 0.18)");
-      g1.addColorStop(0.5, "rgba(92, 108, 255, 0.06)");
+      g1.addColorStop(0, colors.c1(0.18));
+      g1.addColorStop(0.5, colors.c1(0.06));
       g1.addColorStop(1, "transparent");
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, width, height);
 
       const g2 = ctx.createRadialGradient(p2.x, p2.y, 10, p2.x, p2.y, width * 0.35);
-      g2.addColorStop(0, "rgba(110, 231, 255, 0.16)");
-      g2.addColorStop(0.5, "rgba(40, 180, 220, 0.05)");
+      g2.addColorStop(0, colors.c2(0.16));
+      g2.addColorStop(0.5, colors.c2(0.05));
       g2.addColorStop(1, "transparent");
       ctx.fillStyle = g2;
       ctx.fillRect(0, 0, width, height);
 
       const g3 = ctx.createRadialGradient(p3.x, p3.y, 10, p3.x, p3.y, width * 0.35);
-      g3.addColorStop(0, "rgba(191, 140, 255, 0.14)");
-      g3.addColorStop(0.5, "rgba(130, 80, 230, 0.04)");
+      g3.addColorStop(0, colors.c3(0.14));
+      g3.addColorStop(0.5, colors.c3(0.04));
       g3.addColorStop(1, "transparent");
       ctx.fillStyle = g3;
       ctx.fillRect(0, 0, width, height);
@@ -96,11 +121,11 @@ export default function HalftoneBackground() {
           ctx.arc(x, y, radius, 0, Math.PI * 2);
 
           if (inf1 >= inf2 && inf1 >= inf3) {
-            ctx.fillStyle = `rgba(132, 146, 255, ${opacity})`;
+            ctx.fillStyle = colors.c1(opacity);
           } else if (inf2 >= inf1 && inf2 >= inf3) {
-            ctx.fillStyle = `rgba(110, 231, 255, ${opacity})`;
+            ctx.fillStyle = colors.c2(opacity);
           } else {
-            ctx.fillStyle = `rgba(191, 140, 255, ${opacity})`;
+            ctx.fillStyle = colors.c3(opacity);
           }
           ctx.fill();
         }
@@ -126,8 +151,14 @@ export default function HalftoneBackground() {
       />
 
       {/* Ambient Radial Aurora Glow */}
-      <div className="absolute -left-[10%] -top-[10%] h-[55vw] w-[55vw] max-w-[800px] animate-aurora-1 rounded-full bg-[radial-gradient(circle,rgba(132,146,255,0.22)_0%,transparent_70%)] blur-[105px] transform-gpu" />
-      <div className="absolute -right-[5%] top-[20%] h-[50vw] w-[50vw] max-w-[700px] animate-aurora-2 rounded-full bg-[radial-gradient(circle,rgba(110,231,255,0.18)_0%,transparent_70%)] blur-[115px] transform-gpu" />
+      <div
+        className="absolute -left-[10%] -top-[10%] h-[55vw] w-[55vw] max-w-[800px] animate-aurora-1 rounded-full blur-[105px] transform-gpu"
+        style={{ background: "radial-gradient(circle, var(--theme-card-glow-1) 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute -right-[5%] top-[20%] h-[50vw] w-[50vw] max-w-[700px] animate-aurora-2 rounded-full blur-[115px] transform-gpu"
+        style={{ background: "radial-gradient(circle, var(--theme-card-glow-3) 0%, transparent 70%)" }}
+      />
 
       {/* High-Impact Tactile Film Grain Noise Overlay */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg_xmlns=%22http://www.w3.org/2000/svg%22><filter_id=%22n%22><feTurbulence_type=%22fractalNoise%22_baseFrequency=%220.9%22_numOctaves=%224%22_stitchTiles=%22stitch%22/></filter><rect_width=%22100%25%22_height=%22100%25%22_filter=%22url(%23n)%22/></svg>')] opacity-[0.16] mix-blend-overlay" />

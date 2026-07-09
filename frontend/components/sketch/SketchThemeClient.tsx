@@ -358,10 +358,11 @@ export default function SketchThemeClient() {
       </div>
 
       {status ? (() => {
-        const isSuccessToast = status.includes("generated") || status.includes("ready") || status.includes("logged in");
+        const isSuccessToast = status.includes("generated") || status.includes("ready") || status.includes("logged in") || status.includes("saved");
         const isErrorToast = status.includes("failed") || status.includes("expired") || status.includes("busy");
+        const isAccountToast = status.includes("log in") || status.includes("Log in") || status.includes("sign up") || status.includes("Sign up");
         const toastType = isSuccessToast ? "success" : isErrorToast ? "error" : "info";
-        const toastTitle = isSuccessToast ? "Success" : isErrorToast ? "Notice" : "Account Required";
+        const toastTitle = isSuccessToast ? "Success" : isErrorToast ? "Notice" : isAccountToast ? "Account Required" : "Notice";
 
         return (
           <div className="fixed top-6 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 px-4 pointer-events-auto">

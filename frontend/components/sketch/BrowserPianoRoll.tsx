@@ -75,7 +75,32 @@ function draw(
   }
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  context.fillStyle = "#07070e";
+  // Retrieve active CSS variable theme colors dynamically from document element
+  const style = window.getComputedStyle(document.documentElement);
+  const isLight = style.getPropertyValue("color-scheme").trim() === "light";
+  const canvasBg = style.getPropertyValue("--ice-bg-canvas").trim() || "#07070e";
+  
+  const accent1 = style.getPropertyValue("--ice-accent").trim() || "rgb(132, 146, 255)";
+  const accent2 = style.getPropertyValue("--ice-accent-2").trim() || "rgb(110, 231, 255)";
+  const accent3 = style.getPropertyValue("--ice-accent-3").trim() || "rgb(191, 140, 255)";
+
+  const toRgba = (colorStr: string, alpha: number) => {
+    if (colorStr.startsWith("rgb")) {
+      const match = colorStr.match(/\d+/g);
+      if (match && match.length >= 3) {
+        return `rgba(${match[0]}, ${match[1]}, ${match[2]}, ${alpha})`;
+      }
+    }
+    return colorStr;
+  };
+
+  const getNoteColor = (midi: number, alpha: number) => {
+    if (midi < BASS_CEILING) return toRgba(accent2, alpha);
+    if (midi < MELODY_CEILING) return toRgba(accent1, alpha);
+    return toRgba(accent3, alpha);
+  };
+
+  context.fillStyle = canvasBg;
   context.fillRect(0, 0, width, height);
 
   const pitchRange = Math.max(1, data.maxMidi - data.minMidi);
@@ -83,11 +108,13 @@ function draw(
 
   for (let midi = data.minMidi; midi <= data.maxMidi; midi += 1) {
     const y = height - (midi - data.minMidi + 1) * rowHeight;
-    context.fillStyle = isBlackKey(midi) ? "rgba(0, 0, 0, 0.25)" : "rgba(255, 255, 255, 0.02)";
+    context.fillStyle = isBlackKey(midi)
+      ? (isLight ? "rgba(0, 0, 0, 0.05)" : "rgba(0, 0, 0, 0.25)")
+      : (isLight ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.02)");
     context.fillRect(0, y, width, rowHeight);
 
     if (midi % 12 === 0) {
-      context.strokeStyle = "rgba(255, 255, 255, 0.07)";
+      context.strokeStyle = isLight ? "rgba(0, 0, 0, 0.06)" : "rgba(255, 255, 255, 0.07)";
       context.lineWidth = 0.5;
       context.beginPath();
       context.moveTo(0, y);
@@ -100,7 +127,9 @@ function draw(
   for (let mark = 0; mark <= markCount; mark += 1) {
     const x = (mark / markCount) * width;
     const isHeavy = mark % 4 === 0;
-    context.strokeStyle = isHeavy ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)";
+    context.strokeStyle = isHeavy
+      ? (isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.1)")
+      : (isLight ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)");
     context.lineWidth = isHeavy ? 1 : 0.5;
     context.beginPath();
     context.moveTo(x, 0);
@@ -116,19 +145,19 @@ function draw(
       playbackPositionSeconds <= note.time + note.duration;
     const alpha = 0.4 + note.velocity * 0.6;
 
-    context.fillStyle = noteColor(note.midi, isCurrentNote ? Math.min(1, alpha + 0.3) : alpha);
+    context.fillStyle = getNoteColor(note.midi, isCurrentNote ? Math.min(1, alpha + 0.3) : alpha);
     context.beginPath();
     context.roundRect(box.x, box.y + 0.5, box.width, box.height, 2);
     context.fill();
 
     const gloss = context.createLinearGradient(box.x, box.y, box.x, box.y + box.height / 2);
-    gloss.addColorStop(0, "rgba(255, 255, 255, 0.18)");
+    gloss.addColorStop(0, isLight ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.18)");
     gloss.addColorStop(1, "rgba(255, 255, 255, 0)");
     context.fillStyle = gloss;
     context.fill();
 
     if (isCurrentNote) {
-      context.strokeStyle = "rgba(255, 255, 255, 0.85)";
+      context.strokeStyle = isLight ? "rgba(0, 0, 0, 0.85)" : "rgba(255, 255, 255, 0.85)";
       context.lineWidth = 1.5;
       context.beginPath();
       context.roundRect(box.x, box.y + 0.5, box.width, box.height, 2);
@@ -138,7 +167,7 @@ function draw(
 
   if (showPlayhead) {
     const playheadX = (Math.min(data.duration, playbackPositionSeconds) / Math.max(0.1, data.duration)) * width;
-    context.strokeStyle = "rgb(100, 120, 255)";
+    context.strokeStyle = toRgba(accent1, 1.0);
     context.lineWidth = 2;
     context.beginPath();
     context.moveTo(playheadX, 0);
@@ -150,7 +179,7 @@ function draw(
     const shimX = (shimmerT % 1) * (width + 80) - 40;
     const shimmer = context.createLinearGradient(shimX, 0, shimX + 40, 0);
     shimmer.addColorStop(0, "rgba(255, 255, 255, 0)");
-    shimmer.addColorStop(0.5, "rgba(255, 255, 255, 0.025)");
+    shimmer.addColorStop(0.5, isLight ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.025)");
     shimmer.addColorStop(1, "rgba(255, 255, 255, 0)");
     context.fillStyle = shimmer;
     context.fillRect(0, 0, width, height);

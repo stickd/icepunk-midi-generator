@@ -41,13 +41,14 @@ export const AVATAR_RING_OPTIONS: ProfileAuraRing[] = [
 export type UserCustomSettings = {
   avatarUrl: string;
   auraRingId: string;
+  theme: string;
 };
 
 const PROFILE_SETTINGS_PREFIX = "icepunk_profile_settings_";
 
 export function getProfileSettings(username: string): UserCustomSettings {
   if (typeof window === "undefined") {
-    return { avatarUrl: "", auraRingId: "periwinkle" };
+    return { avatarUrl: "", auraRingId: "periwinkle", theme: "original" };
   }
   try {
     const raw = localStorage.getItem(`${PROFILE_SETTINGS_PREFIX}${username.toLowerCase()}`);
@@ -56,12 +57,13 @@ export function getProfileSettings(username: string): UserCustomSettings {
       return {
         avatarUrl: parsed.avatarUrl ?? "",
         auraRingId: parsed.auraRingId ?? "periwinkle",
+        theme: parsed.theme ?? "original",
       };
     }
   } catch {
     // Fallback on error
   }
-  return { avatarUrl: "", auraRingId: "periwinkle" };
+  return { avatarUrl: "", auraRingId: "periwinkle", theme: "original" };
 }
 
 export function saveProfileSettings(
@@ -72,6 +74,7 @@ export function saveProfileSettings(
   const updated: UserCustomSettings = {
     avatarUrl: settings.avatarUrl !== undefined ? settings.avatarUrl : current.avatarUrl,
     auraRingId: settings.auraRingId !== undefined ? settings.auraRingId : current.auraRingId,
+    theme: settings.theme !== undefined ? settings.theme : current.theme,
   };
 
   if (typeof window !== "undefined") {

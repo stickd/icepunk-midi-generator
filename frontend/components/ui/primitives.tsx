@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ButtonHTMLAttributes,
   HTMLAttributes,
@@ -6,8 +8,22 @@ import {
   ReactNode,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
+  useSyncExternalStore,
 } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/ui";
+
+function subscribeNever() {
+  return () => {};
+}
+
+function getMountedSnapshot() {
+  return true;
+}
+
+function getServerMountedSnapshot() {
+  return false;
+}
 
 type Tone =
   | "neutral"
@@ -353,9 +369,15 @@ export function Modal({
   children: ReactNode;
   className?: string;
 }) {
-  if (!isOpen) return null;
+  const mounted = useSyncExternalStore(
+    subscribeNever,
+    getMountedSnapshot,
+    getServerMountedSnapshot,
+  );
 
-  return (
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-xl">
       <section
         aria-labelledby="modal-title"
@@ -381,6 +403,7 @@ export function Modal({
         </div>
         <div className="p-5">{children}</div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

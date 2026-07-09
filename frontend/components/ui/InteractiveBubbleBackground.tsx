@@ -21,7 +21,13 @@ export function InteractiveBubbleBackground({
     >
       {/* Background Layer inside Card */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-inherit">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(132,146,255,0.18),transparent_34%),radial-gradient(circle_at_90%_18%,rgba(191,140,255,0.14),transparent_32%),radial-gradient(circle_at_48%_100%,rgba(110,231,255,0.12),transparent_38%)] opacity-90 mix-blend-screen" />
+        <div
+          className="absolute inset-0 opacity-90 mix-blend-screen panel-glow-drift"
+          style={{
+            background:
+              "radial-gradient(circle at 12% 8%, var(--theme-card-glow-1), transparent 34%), radial-gradient(circle at 90% 18%, var(--theme-card-glow-2), transparent 32%), radial-gradient(circle at 48% 100%, var(--theme-card-glow-3), transparent 38%)",
+          }}
+        />
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.035),transparent_36%,rgba(110,231,255,0.035))]" />
       </div>
 

@@ -19,7 +19,7 @@ import {
   UserPackItem,
   UserProfileResponse,
 } from "@/lib/api";
-import { Button, CreditBadge, EmptyState, Panel, Skeleton, ToastNotification, UserAvatar } from "@/components/ui";
+import { Badge, Button, CreditBadge, EmptyState, Panel, Skeleton, ToastNotification, UserAvatar } from "@/components/ui";
 import AuthModal from "@/components/AuthModal";
 import GenerationFeedCard from "@/components/sketch/GenerationFeedCard";
 import { toFeedGeneration } from "@/components/sketch/feedTypes";
@@ -479,7 +479,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
       </nav>
 
       {profileStatus === "loading" || !profile ? (
-        <div className="grid gap-8">
+        <Panel className="grid gap-8 p-6">
           <div className="flex items-center gap-6">
             <Skeleton className="h-20 w-20 rounded-full" />
             <div className="grid gap-2">
@@ -488,24 +488,26 @@ export default function ProfileView({ username }: ProfileViewProps) {
             </div>
           </div>
           <Skeleton className="h-24 w-full rounded-[var(--ice-radius-card)]" />
-        </div>
+        </Panel>
       ) : (
-          <ProfileHeader
-            isOwnProfile={isOwnProfile}
-            onAvatarUpdated={(url) => {
-              if (meFetch) {
-                setMeFetch({
-                  ...meFetch,
-                  me: { ...meFetch.me, profilePictureUrl: url },
-                });
-              }
-              if (profile) {
-                setProfile({ ...profile, profilePictureUrl: url });
-              }
-            }}
-            profile={profile}
-            token={token}
-          />
+          <Panel className="p-6">
+            <ProfileHeader
+              isOwnProfile={isOwnProfile}
+              onAvatarUpdated={(url) => {
+                if (meFetch) {
+                  setMeFetch({
+                    ...meFetch,
+                    me: { ...meFetch.me, profilePictureUrl: url },
+                  });
+                }
+                if (profile) {
+                  setProfile({ ...profile, profilePictureUrl: url });
+                }
+              }}
+              profile={profile}
+              token={token}
+            />
+          </Panel>
       )}
 
       <div className="grid gap-5">
@@ -558,9 +560,9 @@ export default function ProfileView({ username }: ProfileViewProps) {
               >
                 <span>{item.label}</span>
                 {typeof item.count === "number" ? (
-                  <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-xs font-semibold text-ice-muted">
+                  <Badge tone={activeTab === item.id ? "accent" : "neutral"}>
                     {item.count}
-                  </span>
+                  </Badge>
                 ) : null}
               </button>
             ))}

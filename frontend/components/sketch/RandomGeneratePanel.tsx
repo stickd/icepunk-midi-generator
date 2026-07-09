@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
+import { useEffect } from "react";
+import { Button, SegmentedControl } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
 import CustomDatasetControls from "./CustomDatasetControls";
 
@@ -49,6 +50,18 @@ export default function RandomGeneratePanel({
   const hasDatasetSelection =
     Boolean(sourceState.datasetIds?.length) || Boolean(sourceState.includeFactoryPool);
   const canGenerate = !isCustom || Boolean(sourceState.tempAnalysisId) || hasDatasetSelection;
+
+  useEffect(() => {
+    if (isCustom && !canGenerate) {
+      onStubStatus("Upload and analyze MIDI files, or pick a saved dataset, before generating from Custom.");
+    }
+  }, [isCustom, canGenerate, onStubStatus]);
+
+  useEffect(() => {
+    if (status) {
+      onStubStatus(status);
+    }
+  }, [status, onStubStatus]);
 
   return (
     <div className="grid gap-5">
@@ -130,18 +143,6 @@ export default function RandomGeneratePanel({
           <span>Generate</span>
         </Button>
       </div>
-
-      {isCustom && !canGenerate ? (
-        <ToastNotification
-          message="Upload and analyze MIDI files, or pick a saved dataset, before generating from Custom."
-          type="info"
-        />
-      ) : status ? (
-        <ToastNotification
-          message={status}
-          type={status.toLowerCase().includes("failed") || status.toLowerCase().includes("error") ? "error" : "success"}
-        />
-      ) : null}
     </div>
   );
 }

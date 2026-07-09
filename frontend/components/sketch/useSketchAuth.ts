@@ -8,6 +8,7 @@ import {
   normalizeAuthToken,
   TOKEN_KEY,
 } from "@/lib/api";
+import { getProfileSettings } from "@/lib/profileStore";
 
 export type AuthMode = "login" | "register" | null;
 
@@ -70,7 +71,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
       .catch((error) => {
         if (
           error instanceof Error
-          && (error.message.includes("HTTP_401") || error.message.includes("HTTP_403"))
+          && (error.message.includes("HTTP_401") || error.message.includes("HTTP_403") || error.message.includes("HTTP_404"))
           && normalizeToken(localStorage.getItem(TOKEN_KEY)) === token
         ) {
           localStorage.removeItem(TOKEN_KEY);
@@ -146,6 +147,8 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
 
   const handleLogout = useCallback(() => {
     clearToken();
+    localStorage.setItem("icepunk_theme", "original");
+    window.dispatchEvent(new Event("icepunk-theme-change"));
     setStatus("You are logged out.");
   }, [clearToken, setStatus]);
 
@@ -155,6 +158,16 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
   }, []);
 
   const me = token && meFetch?.token === token ? meFetch.me : null;
+
+  useEffect(() => {
+    if (me?.username) {
+      const settings = getProfileSettings(me.username);
+      if (settings.theme) {
+        localStorage.setItem("icepunk_theme", settings.theme);
+        window.dispatchEvent(new Event("icepunk-theme-change"));
+      }
+    }
+  }, [me]);
 
   return {
     authMode,

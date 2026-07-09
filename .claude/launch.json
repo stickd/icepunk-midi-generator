@@ -14,11 +14,12 @@
       "runtimeExecutable": "C:\\Users\\macot\\icepunk-midi-generator\\backend\\mvnw.cmd",
       "runtimeArgs": ["spring-boot:run"],
       "cwd": "backend",
-      "port": 8090,
+      "port": 8081,
       "autoPort": false,
       "env": {
         "SPRING_PROFILES_ACTIVE": "local",
-        "SERVER_PORT": "8090"
+        "SERVER_PORT": "8081",
+        "ICEPUNK_GENERATOR_PYTHON_PATH": "C:\\Python314\\python.exe"
       }
     }
   ]

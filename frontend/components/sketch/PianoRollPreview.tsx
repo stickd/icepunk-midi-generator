@@ -158,7 +158,9 @@ function PianoRollPreview({
           height="10"
           key={`${note.pitch}-${note.start}-${index}`}
           opacity={opacity}
-          rx="5"
+          rx="2"
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth="0.75"
           width={width}
           x={x}
           y={y}
@@ -188,12 +190,22 @@ function PianoRollPreview({
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
     >
       <defs>
-        {notePalette.map((g, i) => (
-          <linearGradient id={`note-grad-${selectedPaletteId}-${i}`} key={i} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={g.from} />
-            <stop offset="100%" stopColor={g.to} />
-          </linearGradient>
-        ))}
+        <linearGradient id={`note-grad-${selectedPaletteId}-0`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--ice-accent-2)" />
+          <stop offset="100%" stopColor="var(--ice-accent)" />
+        </linearGradient>
+        <linearGradient id={`note-grad-${selectedPaletteId}-1`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--ice-accent)" />
+          <stop offset="100%" stopColor="var(--ice-accent-3)" />
+        </linearGradient>
+        <linearGradient id={`note-grad-${selectedPaletteId}-2`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--ice-accent-3)" />
+          <stop offset="100%" stopColor="var(--ice-accent-2)" />
+        </linearGradient>
+        <linearGradient id={`note-grad-${selectedPaletteId}-3`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--ice-accent-2)" />
+          <stop offset="100%" stopColor="var(--ice-accent-3)" />
+        </linearGradient>
       </defs>
       {Array.from({ length: 12 }, (_, index) => (
         <line
@@ -210,19 +222,19 @@ function PianoRollPreview({
       {playheadX !== null ? (
         <g aria-hidden="true">
           <line
-            className="stroke-[#6ee7ff] stroke-[2.5]"
-            style={{ filter: "drop-shadow(0 0 6px rgba(110,231,255,0.85))" }}
+            className="stroke-[color:var(--ice-accent-2)] stroke-[2.5]"
+            style={{ filter: "drop-shadow(0 0 6px var(--ice-accent-2))" }}
             x1={playheadX}
             x2={playheadX}
             y1="0"
             y2={VIEWBOX_HEIGHT}
           />
           <circle
-            className="fill-[#6ee7ff]"
+            className="fill-[color:var(--ice-accent-2)]"
             cx={playheadX}
             cy="5"
             r="4"
-            style={{ filter: "drop-shadow(0 0 8px rgba(110,231,255,0.95))" }}
+            style={{ filter: "drop-shadow(0 0 8px var(--ice-accent-2))" }}
           />
         </g>
       ) : null}

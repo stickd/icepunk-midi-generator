@@ -1,7 +1,7 @@
 "use client";
 
 import { DragEvent, useRef, useState } from "react";
-import { Button, ToastNotification } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { analyzeTempMidiFiles } from "@/lib/api";
 
 type MidiDropZoneProps = {
@@ -28,21 +28,20 @@ export default function MidiDropZone({
   const [analysisStatus, setAnalysisStatus] = useState<
     "idle" | "analyzing" | "success" | "error"
   >("idle");
-  const [analysisMessage, setAnalysisMessage] = useState("");
 
   function handleFiles(fileList: FileList | null) {
     const files = Array.from(fileList ?? []);
 
     if (files.length === 0) {
       setAnalysisStatus("error");
-      setAnalysisMessage("Choose 1-100 .mid/.midi files.");
+      onStubStatus("Choose 1-100 .mid/.midi files.");
       onAnalysisReset();
       return;
     }
 
     if (files.length > MAX_CUSTOM_MIDI_FILES) {
       setAnalysisStatus("error");
-      setAnalysisMessage("Upload no more than 100 MIDI files.");
+      onStubStatus("Upload no more than 100 MIDI files.");
       setMidiFiles([]);
       onAnalysisReset();
       return;
@@ -50,7 +49,7 @@ export default function MidiDropZone({
 
     if (files.some((file) => !isMidiFile(file))) {
       setAnalysisStatus("error");
-      setAnalysisMessage("Only .mid and .midi files are supported.");
+      onStubStatus("Only .mid and .midi files are supported.");
       setMidiFiles([]);
       onAnalysisReset();
       return;
@@ -58,7 +57,6 @@ export default function MidiDropZone({
 
     setMidiFiles(files);
     setAnalysisStatus("idle");
-    setAnalysisMessage(`${files.length} MIDI file${files.length === 1 ? "" : "s"} ready to analyze.`);
     onAnalysisReset();
     onStubStatus("Custom MIDI files uploaded. Click Analyze to prepare generation.");
   }
@@ -74,16 +72,16 @@ export default function MidiDropZone({
 
     try {
       setAnalysisStatus("analyzing");
-      setAnalysisMessage("Analyzing uploaded MIDI structure...");
+      onStubStatus("Analyzing uploaded MIDI structure...");
       const response = await analyzeTempMidiFiles(files);
       setAnalysisStatus("success");
-      setAnalysisMessage(
+      onStubStatus(
         `${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`,
       );
       onAnalysisComplete(response.tempAnalysisId);
     } catch {
       setAnalysisStatus("error");
-      setAnalysisMessage("Custom analysis failed. Check the MIDI files and try again.");
+      onStubStatus("Custom analysis failed. Check the MIDI files and try again.");
       onAnalysisReset();
     }
   }
@@ -157,14 +155,6 @@ export default function MidiDropZone({
             </li>
           ))}
         </ul>
-      ) : null}
-
-      {analysisMessage ? (
-        <ToastNotification
-          message={analysisMessage}
-          onClose={() => setAnalysisMessage("")}
-          type={analysisStatus === "error" ? "error" : analysisStatus === "success" ? "success" : "info"}
-        />
       ) : null}
     </div>
   );
