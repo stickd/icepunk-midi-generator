@@ -244,7 +244,7 @@
   color: #6d28d9 !important;
 }
 
-/* Blue Jay Theme (Deep Royal Blue) */
+/* Blue Jay Theme (azure-blue plumage, white chest/wing-bars, soft charcoal barring) */
 [data-theme="blue-jay"] {
   color-scheme: dark;
 
@@ -254,54 +254,54 @@
   --ice-bg: #030816;
   --ice-bg-canvas: #06112a;
 
-  --ice-surface: rgba(255, 255, 255, 0.045);
-  --ice-surface-strong: rgba(255, 255, 255, 0.075);
+  --ice-surface: rgba(255, 255, 255, 0.05);
+  --ice-surface-strong: rgba(255, 255, 255, 0.09);
   --ice-surface-band: rgba(2, 6, 20, 0.76);
 
-  --ice-text-primary: rgba(240, 245, 255, 0.96);
-  --ice-text-secondary: rgba(180, 200, 255, 0.85);
+  --ice-text-primary: rgba(245, 249, 255, 0.97);
+  --ice-text-secondary: rgba(212, 226, 255, 0.88);
   --ice-text-muted: rgba(150, 170, 210, 0.65);
 
-  --ice-accent: rgb(30, 136, 229); /* royal blue */
-  --ice-accent-2: rgb(0, 200, 230); /* turquoise/cyan jay */
-  --ice-accent-3: rgb(124, 77, 255); /* violet/purple jay */
+  --ice-accent: rgb(37, 120, 226); /* true jay blue */
+  --ice-accent-2: rgb(232, 240, 252); /* white chest / face / wing-bars */
+  --ice-accent-3: rgb(148, 163, 184); /* soft slate: stands in for the black necklace/barring */
 
-  --ice-accent-text: rgba(220, 240, 255, 0.96);
-  --ice-accent-soft: rgba(30, 136, 229, 0.16);
-  --ice-accent-border: rgba(30, 136, 229, 0.36);
+  --ice-accent-text: rgba(226, 238, 255, 0.97);
+  --ice-accent-soft: rgba(37, 120, 226, 0.16);
+  --ice-accent-border: rgba(255, 255, 255, 0.32);
 
   --ice-shadow-accent:
-    0 0 42px rgba(30, 136, 229, 0.22), 0 0 80px rgba(0, 200, 230, 0.08);
+    0 0 42px rgba(37, 120, 226, 0.24), 0 0 80px rgba(255, 255, 255, 0.1);
 
   --ice-success: #4caf50;
   --ice-warning: #ffb74d;
   --ice-error: #f44336;
 
-  --ice-border: rgba(200, 220, 255, 0.09);
-  --ice-border-strong: rgba(200, 220, 255, 0.16);
+  --ice-border: rgba(255, 255, 255, 0.1);
+  --ice-border-strong: rgba(255, 255, 255, 0.2);
 
-  --theme-glow-1: rgba(30, 136, 229, 0.28);
-  --theme-glow-2: rgba(144, 202, 249, 0.22);
-  --theme-glow-3: rgba(255, 255, 255, 0.12);
+  --theme-glow-1: rgba(37, 120, 226, 0.28);
+  --theme-glow-2: rgba(255, 255, 255, 0.18);
+  --theme-glow-3: rgba(255, 255, 255, 0.14);
   --theme-glow-4: rgba(10, 25, 50, 0.4);
   --theme-glow-5: rgba(100, 149, 237, 0.18);
 
-  --theme-card-glow-1: rgba(30, 136, 229, 0.15);
-  --theme-card-glow-2: rgba(255, 255, 255, 0.08);
+  --theme-card-glow-1: rgba(37, 120, 226, 0.15);
+  --theme-card-glow-2: rgba(255, 255, 255, 0.12);
   --theme-card-glow-3: rgba(144, 202, 249, 0.1);
 
   --theme-btn-primary-bg: linear-gradient(180deg, rgba(33, 150, 243, 0.45), rgba(21, 101, 192, 0.25));
-  --theme-btn-primary-border: rgba(144, 202, 249, 0.55);
+  --theme-btn-primary-border: rgba(232, 240, 252, 0.55);
   --theme-btn-primary-shadow: rgba(33, 150, 243, 0.25);
-  --theme-btn-primary-inset: rgba(255, 255, 255, 0.28);
-  --theme-btn-primary-hover-border: rgba(144, 202, 249, 0.75);
+  --theme-btn-primary-inset: rgba(255, 255, 255, 0.3);
+  --theme-btn-primary-hover-border: rgba(255, 255, 255, 0.8);
   --theme-btn-primary-hover-bg: linear-gradient(180deg, rgba(33, 150, 243, 0.55), rgba(21, 101, 192, 0.35));
   --theme-btn-primary-shadow-hover: rgba(33, 150, 243, 0.35);
-  --theme-btn-primary-glow-hover: rgba(144, 202, 249, 0.15);
-  --theme-btn-primary-inset-hover: rgba(255, 255, 255, 0.35);
+  --theme-btn-primary-glow-hover: rgba(255, 255, 255, 0.18);
+  --theme-btn-primary-inset-hover: rgba(255, 255, 255, 0.4);
 
   --theme-segmented-selected-bg: linear-gradient(180deg, rgba(33, 150, 243, 0.8), rgba(21, 101, 192, 0.6));
-  --theme-segmented-selected-border: rgba(144, 202, 249, 0.8);
+  --theme-segmented-selected-border: rgba(255, 255, 255, 0.85);
   --theme-segmented-selected-shadow: rgba(33, 150, 243, 0.35);
 }
 
