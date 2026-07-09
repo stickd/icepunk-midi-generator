@@ -11,11 +11,11 @@ import {
 } from "@/lib/profileStore";
 
 const THEME_OPTIONS = [
-  { id: "original", label: "IcePunk (Original)", color: "#8492ff", gradient: "linear-gradient(135deg, #8492ff, #6ee7ff, #bf8cff)" },
+  { id: "original", label: "Numbing Twilight", color: "#8492ff", gradient: "linear-gradient(135deg, #8492ff, #6ee7ff, #bf8cff)" },
   { id: "white-anemone", label: "White Anemone", color: "#ff4e00", gradient: "linear-gradient(135deg, #ff4e00, #ff9100, #ffffff)" },
   { id: "blue-jay", label: "Blue Jay", color: "#2578e2", gradient: "linear-gradient(135deg, #2578e2, #e8f0fc, #94a3b8)" },
-  { id: "turquoise-bird", label: "Jade Stone", color: "#12b59d", gradient: "linear-gradient(135deg, #12b59d, #4ade80, #020b0e)" },
-  { id: "bronze", label: "Brass", color: "#d97706", gradient: "linear-gradient(135deg, #d97706, #ffc800, #be2d00)" },
+  { id: "turquoise-bird", label: "Jade Stone", color: "#2d8a69", gradient: "linear-gradient(135deg, #2d8a69, #a8c7ae, #5e7d80)" },
+  { id: "bronze", label: "Trap Brass", color: "#d97706", gradient: "linear-gradient(135deg, #d97706, #ffc800, #be2d00)" },
 ];
 
 type ProfileSettingsModalProps = {
