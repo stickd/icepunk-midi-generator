@@ -1,6 +1,7 @@
 package icepunk_backend.dto;
 
 import icepunk_backend.model.UploadVisibility;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -54,6 +55,7 @@ public class UserUploadResponse {
         return title;
     }
 
+    @JsonIgnore
     public String getMidiObjectKey() {
         return midiObjectKey;
     }
@@ -62,6 +64,7 @@ public class UserUploadResponse {
         return midiUrl;
     }
 
+    @JsonIgnore
     public String getSampleObjectKey() {
         return sampleObjectKey;
     }

@@ -3,7 +3,6 @@ package icepunk_backend.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.dto.DatasetPresetResponse;
 import icepunk_backend.exception.DatasetNameAlreadyExistsException;
-import icepunk_backend.exception.ForbiddenActionException;
 import icepunk_backend.exception.GenerationRequestException;
 import icepunk_backend.exception.ResourceNotFoundException;
 import icepunk_backend.model.DatasetPreset;
@@ -158,13 +157,13 @@ class DatasetPresetServiceTest {
     }
 
     @Test
-    void deleteThrowsForbiddenWhenCallerDoesNotOwnPreset() {
+    void deleteConcealsPresetWhenCallerDoesNotOwnIt() {
         User someoneElse = new User("other", "other@example.com", "hash");
         someoneElse.setId(99L);
         DatasetPreset preset = presetFor(someoneElse, "Not Yours");
         when(repository.findById(preset.getId())).thenReturn(Optional.of(preset));
 
-        assertThrows(ForbiddenActionException.class, () -> service.delete(preset.getId(), owner));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete(preset.getId(), owner));
         verify(repository, never()).delete(any());
     }
 
@@ -197,12 +196,12 @@ class DatasetPresetServiceTest {
         UUID requestedId = UUID.randomUUID();
         when(repository.findByIdInAndOwner_Id(List.of(requestedId), 10L)).thenReturn(List.of());
 
-        GenerationRequestException thrown = assertThrows(
-                GenerationRequestException.class,
+        ResourceNotFoundException thrown = assertThrows(
+                ResourceNotFoundException.class,
                 () -> service.resolveMergedAnalysisFile(List.of(requestedId), false, owner)
         );
 
-        assertEquals("One or more selected datasets were not found.", thrown.getMessage());
+        assertEquals("Dataset not found.", thrown.getMessage());
     }
 
     @Test

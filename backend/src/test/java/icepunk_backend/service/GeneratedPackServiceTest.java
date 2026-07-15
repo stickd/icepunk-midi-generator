@@ -242,6 +242,16 @@ class GeneratedPackServiceTest {
         verify(storageService, org.mockito.Mockito.never()).readObject(any());
     }
 
+    @Test
+    void legacyItemDownloadDoesNotReadStorageWhenItemBelongsToAnotherPack() {
+        UUID requestedPackId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        when(itemRepository.findByIdAndPackId(itemId, requestedPackId)).thenReturn(Optional.empty());
+
+        assertTrue(service.getItemDownload(requestedPackId, itemId, null).isEmpty());
+        verify(storageService, org.mockito.Mockito.never()).readObject(any());
+    }
+
     private GeneratedPack privatePack(UUID packId, User owner) {
         GeneratedPack pack = new GeneratedPack();
         pack.setId(packId);

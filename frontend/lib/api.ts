@@ -187,6 +187,7 @@ export type GenerateMidiRequest = {
   pitch: number;
   octaves: number;
   tempAnalysisId?: string;
+  tempAnalysisAccessToken?: string;
   datasetIds?: string[];
   includeFactoryPool?: boolean;
   publishMode?: PublishMode;
@@ -194,6 +195,7 @@ export type GenerateMidiRequest = {
 
 export type TempAnalysisResponse = {
   tempAnalysisId: string;
+  accessToken: string;
   fileCount: number;
   metadata: Record<string, unknown>;
 };
@@ -341,12 +343,13 @@ export async function saveDatasetPreset(
   token: string,
   name: string,
   tempAnalysisId: string,
+  tempAnalysisAccessToken?: string,
   signal?: AbortSignal,
 ): Promise<DatasetPreset> {
   return fetchJson("/datasets", {
     method: "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ name, tempAnalysisId }),
+    body: JSON.stringify({ name, tempAnalysisId, tempAnalysisAccessToken }),
     signal,
   });
 }

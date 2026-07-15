@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.dto.TempAnalysisResponse;
 import icepunk_backend.exception.GenerationRequestException;
+import icepunk_backend.exception.ResourceNotFoundException;
+import icepunk_backend.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -95,12 +98,13 @@ public class TempAnalysisService {
         this.clock = clock;
     }
 
-    public TempAnalysisResponse analyzeTemp(List<MultipartFile> files) throws IOException {
+    public TempAnalysisResponse analyzeTemp(List<MultipartFile> files, User owner) throws IOException {
         List<MultipartFile> validFiles = validateFiles(files);
         String analysisId = UUID.randomUUID().toString();
         Path workspace = tempAnalysisDir.resolve(analysisId).normalize();
         Path inputDir = workspace.resolve("input");
         Path analysisFile = workspace.resolve("analysis.json");
+        String accessToken = UUID.randomUUID() + "-" + UUID.randomUUID();
 
         Files.createDirectories(inputDir);
 
@@ -114,15 +118,14 @@ public class TempAnalysisService {
             runAnalyzer(inputDir, analysisFile);
             Map<String, Object> analysis = readAnalysis(analysisFile);
             ensureAnalysisCanGenerate(analysis);
+            writeAccess(workspace, owner, accessToken);
 
             Map<String, Object> metadata = new LinkedHashMap<>();
             Object summary = analysis.get("dataset_summary");
             if (summary instanceof Map<?, ?> summaryMap) {
                 metadata.put("summary", summaryMap);
             }
-            metadata.put("analysisFile", tempAnalysisDir.relativize(analysisFile).toString());
-
-            return new TempAnalysisResponse(analysisId, validFiles.size(), metadata);
+            return new TempAnalysisResponse(analysisId, accessToken, validFiles.size(), metadata);
         } finally {
             deleteDirectoryIfExists(inputDir);
         }
@@ -134,17 +137,61 @@ public class TempAnalysisService {
         return workspace.resolve("analysis.json");
     }
 
-    public Path resolveAnalysisFile(String tempAnalysisId) {
+    public Path resolveAnalysisFile(String tempAnalysisId, User requester, String accessToken) {
         if (tempAnalysisId == null || !tempAnalysisId.matches("[0-9a-fA-F-]{36}")) {
-            throw new GenerationRequestException("A valid tempAnalysisId is required for custom upload generation.");
+            throw new ResourceNotFoundException("Temporary analysis not found.");
         }
 
         Path analysisFile = tempAnalysisDir.resolve(tempAnalysisId).resolve("analysis.json").normalize();
         if (!analysisFile.startsWith(tempAnalysisDir) || !Files.isRegularFile(analysisFile)) {
-            throw new GenerationRequestException("Custom upload analysis was not found. Analyze MIDI files again.");
+            throw new ResourceNotFoundException("Temporary analysis not found.");
+        }
+
+        if (!hasAccess(tempAnalysisDir.resolve(tempAnalysisId), requester, accessToken)) {
+            throw new ResourceNotFoundException("Temporary analysis not found.");
         }
 
         return analysisFile;
+    }
+
+    public TempAnalysisResponse analyzeTemp(List<MultipartFile> files) throws IOException {
+        return analyzeTemp(files, null);
+    }
+
+    /** Compatibility helper for internal tests only; production callers must supply a requester. */
+    public Path resolveAnalysisFile(String tempAnalysisId) {
+        if (tempAnalysisId == null || !tempAnalysisId.matches("[0-9a-fA-F-]{36}")) {
+            throw new ResourceNotFoundException("Temporary analysis not found.");
+        }
+        Path analysisFile = tempAnalysisDir.resolve(tempAnalysisId).resolve("analysis.json").normalize();
+        if (!analysisFile.startsWith(tempAnalysisDir) || !Files.isRegularFile(analysisFile)) {
+            throw new ResourceNotFoundException("Temporary analysis not found.");
+        }
+        return analysisFile;
+    }
+
+    private void writeAccess(Path workspace, User owner, String accessToken) throws IOException {
+        Map<String, Object> access = new LinkedHashMap<>();
+        access.put("ownerId", owner == null ? null : owner.getId());
+        access.put("guestToken", owner == null ? accessToken : null);
+        objectMapper.writeValue(workspace.resolve("access.json").toFile(), access);
+    }
+
+    private boolean hasAccess(Path workspace, User requester, String accessToken) {
+        Path accessFile = workspace.resolve("access.json");
+        if (!Files.isRegularFile(accessFile)) return false;
+        try {
+            Map<String, Object> access = objectMapper.readValue(accessFile.toFile(), new TypeReference<>() {});
+            Object ownerId = access.get("ownerId");
+            if (ownerId instanceof Number number) {
+                return requester != null && requester.getId().equals(number.longValue());
+            }
+            Object guestToken = access.get("guestToken");
+            return requester == null && guestToken instanceof String stored && accessToken != null
+                    && MessageDigest.isEqual(stored.getBytes(java.nio.charset.StandardCharsets.UTF_8), accessToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (IOException exception) {
+            return false;
+        }
     }
 
     @Scheduled(

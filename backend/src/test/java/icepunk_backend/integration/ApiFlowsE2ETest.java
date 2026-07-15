@@ -104,7 +104,7 @@ class ApiFlowsE2ETest {
     // --- Generation success flows ----------------------------------------
 
     @Test
-    void guestGenerateReturnsDownloadUrlAndIncrementsCounter() throws Exception {
+    void guestGenerateDoesNotExposeDownloadUrlsAndIncrementsCounter() throws Exception {
         stubSuccessfulGeneration();
 
         MvcResult result = mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.10"))
@@ -112,9 +112,9 @@ class ApiFlowsE2ETest {
                 .andExpect(jsonPath("$.packId").exists())
                 .andExpect(jsonPath("$.items[0].fileName").value("track.mid"))
                 .andExpect(jsonPath("$.totalGenerations").value(1))
-                .andExpect(jsonPath("$.downloadUrl", matchesPattern("/generated-packs/.+/download")))
-                .andExpect(jsonPath("$.packDownloadUrl", matchesPattern("/generated-packs/.+/download")))
-                .andExpect(jsonPath("$.items[0].downloadUrl", matchesPattern("/generated-packs/.+/items/.+/download")))
+                .andExpect(jsonPath("$.downloadUrl").doesNotExist())
+                .andExpect(jsonPath("$.packDownloadUrl").doesNotExist())
+                .andExpect(jsonPath("$.items[0].downloadUrl").doesNotExist())
                 .andReturn();
 
         String responseBody = result.getResponse().getContentAsString();
@@ -138,7 +138,7 @@ class ApiFlowsE2ETest {
     }
 
     @Test
-    void authenticatedUserGenerateReturnsDownloadUrlAndIncrementsCounter() throws Exception {
+    void authenticatedUserGenerateDoesNotExposeDownloadUrlAndIncrementsCounter() throws Exception {
         stubSuccessfulGeneration();
         String token = register("carol", "carol@example.com", "secret123", "198.51.100.11");
 
@@ -146,7 +146,7 @@ class ApiFlowsE2ETest {
                         .header("Authorization", "Bearer " + token)
                         .header("X-Forwarded-For", "198.51.100.11"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.downloadUrl", matchesPattern("/generated-packs/.+/download")))
+                .andExpect(jsonPath("$.downloadUrl").doesNotExist())
                 .andExpect(jsonPath("$.items[0].fileName").value("track.mid"))
                 .andExpect(jsonPath("$.totalGenerations").value(1));
 

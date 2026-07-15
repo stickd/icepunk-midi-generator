@@ -50,7 +50,7 @@ class DatasetPresetControllerTest {
         DatasetPresetResponse serviceResponse = new DatasetPresetResponse(
                 UUID.randomUUID(), "My Loops", 4, OffsetDateTime.now()
         );
-        when(datasetPresetService.save(testUser, "My Loops", "temp-id")).thenReturn(serviceResponse);
+        when(datasetPresetService.save(testUser, "My Loops", "temp-id", null)).thenReturn(serviceResponse);
 
         ResponseEntity<DatasetPresetResponse> response = controller.save(auth, request);
 

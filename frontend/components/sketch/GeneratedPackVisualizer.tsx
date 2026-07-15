@@ -23,6 +23,7 @@ type GeneratedPackVisualizerProps = {
   onRegenerate?: () => void;
   isRegenerating?: boolean;
   tempAnalysisId?: string;
+  tempAnalysisAccessToken?: string;
   token: string | null;
   onStubStatus: (message: string) => void;
 };
@@ -41,6 +42,7 @@ export default function GeneratedPackVisualizer({
   playback,
   soundEngine,
   tempAnalysisId,
+  tempAnalysisAccessToken,
   token,
   onStubStatus,
 }: GeneratedPackVisualizerProps) {
@@ -140,7 +142,7 @@ export default function GeneratedPackVisualizer({
           ) : null}
 
           {generation.source === "CUSTOM_UPLOAD" ? (
-            <SaveDatasetButton onStubStatus={onStubStatus} tempAnalysisId={tempAnalysisId} token={token} />
+            <SaveDatasetButton onStubStatus={onStubStatus} tempAnalysisId={tempAnalysisId} tempAnalysisAccessToken={tempAnalysisAccessToken} token={token} />
           ) : null}
         </div>
 

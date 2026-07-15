@@ -53,9 +53,13 @@ public class DatasetPresetService {
     }
 
     @Transactional
-    public DatasetPresetResponse save(User owner, String name, String tempAnalysisId) {
+    public DatasetPresetResponse save(User owner, String name, String tempAnalysisId, String tempAnalysisAccessToken) {
         String normalizedName = name.trim();
-        Path analysisFile = tempAnalysisService.resolveAnalysisFile(tempAnalysisId);
+        Path analysisFile = tempAnalysisService.resolveAnalysisFile(tempAnalysisId, owner, tempAnalysisAccessToken);
+        return saveAnalysis(owner, normalizedName, analysisFile);
+    }
+
+    private DatasetPresetResponse saveAnalysis(User owner, String normalizedName, Path analysisFile) {
         Map<String, Object> analysis = readAnalysis(analysisFile);
         int sourceMidiCount = filesFrom(analysis).size();
 
@@ -86,6 +90,12 @@ public class DatasetPresetService {
             storageService.deleteObjectQuietly(objectKey);
             throw exception;
         }
+    }
+
+    public DatasetPresetResponse save(User owner, String name, String tempAnalysisId) {
+        String normalizedName = name.trim();
+        Path analysisFile = tempAnalysisService.resolveAnalysisFile(tempAnalysisId);
+        return saveAnalysis(owner, normalizedName, analysisFile);
     }
 
     @Transactional(readOnly = true)
@@ -122,7 +132,7 @@ public class DatasetPresetService {
                 : presetRepository.findByIdInAndOwner_Id(ids, owner.getId());
 
         if (presets.size() != ids.size()) {
-            throw new GenerationRequestException("One or more selected datasets were not found.");
+            throw new ResourceNotFoundException("Dataset not found.");
         }
 
         List<Object> mergedFiles = new ArrayList<>();
@@ -152,12 +162,10 @@ public class DatasetPresetService {
 
     private DatasetPreset requireOwnedPreset(UUID presetId, User requester) {
         DatasetPreset preset = presetRepository.findById(presetId)
-                .orElseThrow(() -> new ResourceNotFoundException("Dataset not found: " + presetId));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Dataset not found."));
         if (!preset.getOwner().getId().equals(requester.getId())) {
-            throw new ForbiddenActionException("You do not own this dataset.");
+            throw new ResourceNotFoundException("Dataset not found.");
         }
-
         return preset;
     }
 

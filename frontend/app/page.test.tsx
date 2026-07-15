@@ -173,14 +173,8 @@ describe("Home page", () => {
       );
     });
     expect(await screen.findByText("icepunk_001.mid")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download whole pack (ZIP)" })).toHaveAttribute(
-      "href",
-      "/generated-packs/pack-1/download",
-    );
-    expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute(
-      "href",
-      "/generated-packs/pack-1/items/item-1/download",
-    );
+    expect(screen.getByRole("button", { name: "Download whole pack (ZIP)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download" })).toBeInTheDocument();
   });
 
   it("rejects invalid custom MIDI selections before analysis", async () => {

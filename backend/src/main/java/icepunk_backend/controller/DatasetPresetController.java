@@ -38,7 +38,8 @@ public class DatasetPresetController {
         DatasetPresetResponse response = datasetPresetService.save(
                 currentUser(authentication),
                 request.name(),
-                request.tempAnalysisId()
+                request.tempAnalysisId(),
+                request.tempAnalysisAccessToken()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

@@ -8,6 +8,7 @@ import CustomDatasetControls from "./CustomDatasetControls";
 export type GenerationSourceState = {
   source: GenerationSource;
   tempAnalysisId?: string;
+  tempAnalysisAccessToken?: string;
   datasetIds?: string[];
   includeFactoryPool?: boolean;
 };
@@ -83,8 +84,8 @@ export default function RandomGeneratePanel({
       {isCustom ? (
         <div className="grid gap-4 transition-all duration-300 ease-out animate-fade-in">
           <MidiDropZone
-            onAnalysisComplete={(tempAnalysisId) =>
-              onSourceStateChange({ source: "CUSTOM_UPLOAD", tempAnalysisId })
+            onAnalysisComplete={(tempAnalysisId, tempAnalysisAccessToken) =>
+              onSourceStateChange({ source: "CUSTOM_UPLOAD", tempAnalysisId, tempAnalysisAccessToken })
             }
             onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
             onStubStatus={onStubStatus}

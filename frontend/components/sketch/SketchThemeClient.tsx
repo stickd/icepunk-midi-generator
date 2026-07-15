@@ -201,6 +201,7 @@ export default function SketchThemeClient() {
       publishMode: "PUBLIC",
       source: sourceState.source,
       tempAnalysisId: sourceState.tempAnalysisId,
+      tempAnalysisAccessToken: sourceState.tempAnalysisAccessToken,
       type: draft.type === "drums" ? "DRUMS" : "MELODY",
     };
     setLastRequest(request);
@@ -212,6 +213,7 @@ export default function SketchThemeClient() {
     sourceState.includeFactoryPool,
     sourceState.source,
     sourceState.tempAnalysisId,
+    sourceState.tempAnalysisAccessToken,
   ]);
 
   const handleRegenerate = useCallback(() => {
@@ -305,6 +307,7 @@ export default function SketchThemeClient() {
                       playback={playback}
                       soundEngine={soundEngine}
                       tempAnalysisId={lastRequest?.tempAnalysisId}
+                      tempAnalysisAccessToken={lastRequest?.tempAnalysisAccessToken}
                       token={token}
                     />
                   ) : (

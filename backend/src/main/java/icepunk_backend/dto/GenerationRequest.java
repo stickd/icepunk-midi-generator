@@ -33,6 +33,7 @@ public class GenerationRequest {
     private int octaves = 1;
 
     private String tempAnalysisId;
+    private String tempAnalysisAccessToken;
     private List<UUID> datasetIds;
     private boolean includeFactoryPool = false;
     private PublishMode publishMode = PublishMode.PUBLIC;
@@ -100,6 +101,10 @@ public class GenerationRequest {
     public void setTempAnalysisId(String tempAnalysisId) {
         this.tempAnalysisId = tempAnalysisId;
     }
+
+    public String getTempAnalysisAccessToken() { return tempAnalysisAccessToken; }
+
+    public void setTempAnalysisAccessToken(String tempAnalysisAccessToken) { this.tempAnalysisAccessToken = tempAnalysisAccessToken; }
 
     public List<UUID> getDatasetIds() {
         return datasetIds;

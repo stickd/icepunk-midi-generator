@@ -9,6 +9,11 @@ public record SaveDatasetPresetRequest(
         String name,
 
         @NotBlank(message = "tempAnalysisId is required")
-        String tempAnalysisId
+        String tempAnalysisId,
+
+        String tempAnalysisAccessToken
 ) {
+    public SaveDatasetPresetRequest(String name, String tempAnalysisId) {
+        this(name, tempAnalysisId, null);
+    }
 }

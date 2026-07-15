@@ -184,7 +184,11 @@ public class GenerateController {
                 return datasetPresetService.resolveMergedAnalysisFile(request.getDatasetIds(), hasFactoryPool, user);
             }
 
-            return tempAnalysisService.resolveAnalysisFile(request.getTempAnalysisId());
+            if (request.getTempAnalysisId() == null || request.getTempAnalysisId().isBlank()) {
+                throw new GenerationRequestException("A valid tempAnalysisId is required for custom upload generation.");
+            }
+
+            return tempAnalysisService.resolveAnalysisFile(request.getTempAnalysisId(), user, request.getTempAnalysisAccessToken());
         }
 
         throw new GenerationRequestException("Unsupported generation source.");

@@ -29,8 +29,8 @@ public class GeneratedFileAccessService {
             GeneratedPackRepository packRepository,
             GeneratedPackItemRepository itemRepository,
             GeneratedPackStorageService storageService,
-            @Value("${storage.presigned.preview-ttl-seconds}") long previewTtlSeconds,
-            @Value("${storage.presigned.download-ttl-seconds}") long downloadTtlSeconds
+            @Value("${storage.presigned.preview-ttl-seconds:600}") long previewTtlSeconds,
+            @Value("${storage.presigned.download-ttl-seconds:180}") long downloadTtlSeconds
     ) {
         this.packRepository = packRepository;
         this.itemRepository = itemRepository;

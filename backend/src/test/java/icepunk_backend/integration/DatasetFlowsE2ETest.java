@@ -83,7 +83,8 @@ class DatasetFlowsE2ETest {
         Path analysisFile = Files.writeString(
                 tempDir.resolve("analysis.json"), TWO_FILE_ANALYSIS, StandardCharsets.UTF_8
         );
-        when(tempAnalysisService.resolveAnalysisFile("temp-abc")).thenReturn(analysisFile);
+        when(tempAnalysisService.resolveAnalysisFile(org.mockito.ArgumentMatchers.eq("temp-abc"), any(), any()))
+                .thenReturn(analysisFile);
         when(datasetPresetStorageService.uploadAnalysis(analysisFile))
                 .thenReturn("dataset_presets/mock-key.json");
 
@@ -127,7 +128,7 @@ class DatasetFlowsE2ETest {
                         .content(generateBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.source").value("CUSTOM_UPLOAD"))
-                .andExpect(jsonPath("$.downloadUrl", org.hamcrest.Matchers.matchesPattern("/generated-packs/.+/download")));
+                .andExpect(jsonPath("$.downloadUrl").doesNotExist());
 
         // The merge step actually happened: the merged analysis file was written
         // with both source files' content, not just re-used the raw preset file.
@@ -160,7 +161,8 @@ class DatasetFlowsE2ETest {
         Path analysisFile = Files.writeString(
                 tempDir.resolve("analysis.json"), TWO_FILE_ANALYSIS, StandardCharsets.UTF_8
         );
-        when(tempAnalysisService.resolveAnalysisFile("temp-owner")).thenReturn(analysisFile);
+        when(tempAnalysisService.resolveAnalysisFile(org.mockito.ArgumentMatchers.eq("temp-owner"), any(), any()))
+                .thenReturn(analysisFile);
         when(datasetPresetStorageService.uploadAnalysis(analysisFile))
                 .thenReturn("dataset_presets/owner-key.json");
 
@@ -187,11 +189,11 @@ class DatasetFlowsE2ETest {
                         .header("X-Forwarded-For", "198.51.100.32")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(generateBody))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
 
-        // And deleting someone else's preset is forbidden, not silently ignored.
+        // Deletion uses the same concealment rule as generation.
         mockMvc.perform(delete("/datasets/" + presetId).header("Authorization", "Bearer " + intruderToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     private void stubSuccessfulGeneration(String downloadUrl) throws Exception {

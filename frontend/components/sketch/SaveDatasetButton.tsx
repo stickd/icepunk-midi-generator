@@ -7,12 +7,14 @@ import { saveDatasetPreset } from "@/lib/api";
 type SaveDatasetButtonProps = {
   token: string | null;
   tempAnalysisId?: string;
+  tempAnalysisAccessToken?: string;
   onStubStatus: (message: string) => void;
 };
 
 export default function SaveDatasetButton({
   token,
   tempAnalysisId,
+  tempAnalysisAccessToken,
   onStubStatus,
 }: SaveDatasetButtonProps) {
   const [isSaveOpen, setIsSaveOpen] = useState(false);
@@ -26,7 +28,7 @@ export default function SaveDatasetButton({
 
     try {
       setIsSaving(true);
-      const saved = await saveDatasetPreset(token, saveName.trim(), tempAnalysisId);
+      const saved = await saveDatasetPreset(token, saveName.trim(), tempAnalysisId, tempAnalysisAccessToken);
       setIsSaveOpen(false);
       setSaveName("");
       onStubStatus(`Dataset "${saved.name}" saved.`);

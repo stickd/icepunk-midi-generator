@@ -5,7 +5,7 @@ import { Button, ToastNotification } from "@/components/ui";
 import { analyzeTempMidiFiles } from "@/lib/api";
 
 type MidiDropZoneProps = {
-  onAnalysisComplete: (tempAnalysisId: string) => void;
+  onAnalysisComplete: (tempAnalysisId: string, accessToken: string) => void;
   onAnalysisReset: () => void;
   onStubStatus: (message: string) => void;
 };
@@ -80,7 +80,7 @@ export default function MidiDropZone({
       setAnalysisMessage(
         `${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`,
       );
-      onAnalysisComplete(response.tempAnalysisId);
+      onAnalysisComplete(response.tempAnalysisId, response.accessToken);
     } catch {
       setAnalysisStatus("error");
       setAnalysisMessage("Custom analysis failed. Check the MIDI files and try again.");

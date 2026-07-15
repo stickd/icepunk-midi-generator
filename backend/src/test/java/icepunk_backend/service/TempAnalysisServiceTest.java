@@ -3,6 +3,8 @@ package icepunk_backend.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.dto.TempAnalysisResponse;
 import icepunk_backend.exception.GenerationRequestException;
+import icepunk_backend.exception.ResourceNotFoundException;
+import icepunk_backend.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
@@ -87,6 +89,31 @@ class TempAnalysisServiceTest {
         Path analysisFile = service.resolveAnalysisFile(response.tempAnalysisId());
         assertTrue(Files.isRegularFile(analysisFile));
         assertFalse(Files.exists(analysisFile.getParent().resolve("input")));
+    }
+
+    @Test
+    void guestAnalysisRequiresItsCapabilityToken() throws Exception {
+        TempAnalysisService service = serviceWithAnalyzer(true);
+        TempAnalysisResponse response = service.analyzeTemp(List.of(file("loop.mid", "audio/midi")), null);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.resolveAnalysisFile(response.tempAnalysisId(), null, "wrong-token"));
+        assertTrue(Files.isRegularFile(service.resolveAnalysisFile(
+                response.tempAnalysisId(), null, response.accessToken())));
+    }
+
+    @Test
+    void authenticatedAnalysisCannotBeUsedByAnotherUser() throws Exception {
+        TempAnalysisService service = serviceWithAnalyzer(true);
+        User owner = new User("owner", "owner@example.com", "hash");
+        owner.setId(1L);
+        User stranger = new User("stranger", "stranger@example.com", "hash");
+        stranger.setId(2L);
+        TempAnalysisResponse response = service.analyzeTemp(List.of(file("loop.mid", "audio/midi")), owner);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.resolveAnalysisFile(response.tempAnalysisId(), stranger, null));
+        assertTrue(Files.isRegularFile(service.resolveAnalysisFile(response.tempAnalysisId(), owner, null)));
     }
 
     @Test

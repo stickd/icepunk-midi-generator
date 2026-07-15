@@ -77,9 +77,10 @@ public class GeneratedPackController {
     }
 
     @GetMapping("/generated-packs/{packId}/download")
+    @Deprecated(since = "2026-07", forRemoval = false)
     public ResponseEntity<ByteArrayResource> downloadPack(Authentication authentication, @PathVariable UUID packId) {
         return generatedPackService.getPackDownload(packId, viewerOrNull(authentication))
-                .map(this::downloadResponse)
+                .map(download -> legacyDownloadResponse(download))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -89,13 +90,14 @@ public class GeneratedPackController {
     }
 
     @GetMapping("/generated-packs/{packId}/items/{itemId}/download")
+    @Deprecated(since = "2026-07", forRemoval = false)
     public ResponseEntity<ByteArrayResource> downloadItem(
             Authentication authentication,
             @PathVariable UUID packId,
             @PathVariable UUID itemId
     ) {
         return generatedPackService.getItemDownload(packId, itemId, viewerOrNull(authentication))
-                .map(this::downloadResponse)
+                .map(download -> legacyDownloadResponse(download))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -164,10 +166,20 @@ public class GeneratedPackController {
                 .body(new ByteArrayResource(download.bytes()));
     }
 
+    private ResponseEntity<ByteArrayResource> legacyDownloadResponse(DownloadObject download) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(download.contentType()))
+                .contentLength(download.bytes().length)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + download.fileName() + "\"")
+                .header("Deprecation", "true")
+                .body(new ByteArrayResource(download.bytes()));
+    }
+
     private ResponseEntity<PresignedUrlResponse> signedUrl(java.util.function.Supplier<PresignedUrlResponse> supplier) {
         try {
             return ResponseEntity.ok()
                     .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
                     .body(supplier.get());
         } catch (GeneratedFileAccessService.GeneratedFileNotFoundException exception) {
             return ResponseEntity.notFound().build();

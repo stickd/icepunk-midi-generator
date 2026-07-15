@@ -104,6 +104,20 @@ URL only after user action:
 Each returns `{ "url": "...", "expiresAt": "..." }` and `Cache-Control: no-store`. The backend
 authorizes `packId`/`itemId` before signing; clients never send an object key.
 
+The legacy proxy endpoints `GET /generated-packs/{packId}/download` and
+`GET /generated-packs/{packId}/items/{itemId}/download` remain temporarily for older clients.
+They use the same ownership and pack/item relation checks, return `404` for foreign private
+resources, and send `Deprecation: true`. New clients must use the signed URL endpoints above;
+the proxy routes will be removed in the next breaking API release.
+
+### Temporary custom analysis access
+
+`POST /datasets/analyze-temp` returns `tempAnalysisId` and an opaque `accessToken`. Send that
+token as `tempAnalysisAccessToken` with a guest `POST /generate` request that uses the analysis.
+For an authenticated analysis, the server verifies the JWT owner instead. The same optional token
+may be supplied when saving the analysis as a dataset. Temporary IDs, object keys, and workspace
+paths are not download APIs; an unknown, expired, or foreign analysis is reported as `404`.
+
 ## Datasets
 
 Two distinct mechanisms coexist: an ephemeral, unauthenticated temp-analysis workspace (24h TTL),

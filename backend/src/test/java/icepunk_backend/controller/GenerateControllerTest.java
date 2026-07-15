@@ -197,7 +197,7 @@ class GenerateControllerTest {
         GenerationRequest generationRequest = factoryRequest();
         generationRequest.setSource(GenerationRequest.GenerationSource.CUSTOM_UPLOAD);
         generationRequest.setTempAnalysisId("11111111-1111-1111-1111-111111111111");
-        when(tempAnalysisService.resolveAnalysisFile("11111111-1111-1111-1111-111111111111"))
+        when(tempAnalysisService.resolveAnalysisFile("11111111-1111-1111-1111-111111111111", null, null))
                 .thenReturn(analysisPath);
         when(midiGenerationService.generateFiles(analysisPath, generationRequest)).thenReturn(generatedFiles);
         when(generatedPackService.persistGeneratedPack(isNull(), eq(generationRequest), eq(generatedFiles)))
@@ -207,7 +207,7 @@ class GenerateControllerTest {
         GenerationResponse response = controller.generate(request, generationRequest).getBody();
 
         assertEquals("https://cdn.example/custom.zip", response.downloadUrl());
-        verify(tempAnalysisService).resolveAnalysisFile("11111111-1111-1111-1111-111111111111");
+        verify(tempAnalysisService).resolveAnalysisFile("11111111-1111-1111-1111-111111111111", null, null);
         verify(midiGenerationService).generateFiles(analysisPath, generationRequest);
     }
 
@@ -217,9 +217,6 @@ class GenerateControllerTest {
         GenerationRequest generationRequest = factoryRequest();
         generationRequest.setSource(GenerationRequest.GenerationSource.CUSTOM_UPLOAD);
         generationRequest.setTempAnalysisId(null);
-        when(tempAnalysisService.resolveAnalysisFile(null))
-                .thenThrow(new GenerationRequestException("A valid tempAnalysisId is required for custom upload generation."));
-
         assertThrows(
                 GenerationRequestException.class,
                 () -> controller.generate(request, generationRequest)
