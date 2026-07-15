@@ -42,9 +42,9 @@ class UserUploadControllerTest {
                 42L,
                 "Frozen Lead",
                 "user_uploads/42/lead.mid",
-                "https://cdn.example/user_uploads/42/lead.mid",
+                "/uploads/projects/7/midi",
                 "user_uploads/42/kick.wav",
-                "https://cdn.example/user_uploads/42/kick.wav",
+                null,
                 OffsetDateTime.parse("2026-07-02T21:00:00Z"),
                 UploadVisibility.PUBLIC,
                 Map.of("midiSizeBytes", 3L)
@@ -93,9 +93,9 @@ class UserUploadControllerTest {
                 "audio/midi",
                 "lead.mid"
         );
-        when(userUploadService.getPublicMidiFile(7L)).thenReturn(Optional.of(midiFile));
+        when(userUploadService.getMidiFile(7L, null)).thenReturn(Optional.of(midiFile));
 
-        ResponseEntity<byte[]> response = controller.publicProjectMidi(7L);
+        ResponseEntity<byte[]> response = controller.projectMidi(null, 7L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("audio/midi", response.getHeaders().getContentType().toString());
@@ -105,9 +105,9 @@ class UserUploadControllerTest {
 
     @Test
     void publicProjectMidiReturnsNotFoundForMissingOrPrivateProject() {
-        when(userUploadService.getPublicMidiFile(7L)).thenReturn(Optional.empty());
+        when(userUploadService.getMidiFile(7L, null)).thenReturn(Optional.empty());
 
-        ResponseEntity<byte[]> response = controller.publicProjectMidi(7L);
+        ResponseEntity<byte[]> response = controller.projectMidi(null, 7L);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }

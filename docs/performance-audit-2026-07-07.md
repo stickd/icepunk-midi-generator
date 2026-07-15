@@ -13,7 +13,7 @@ Methodology: three parallel research passes (frontend, backend, infra) over the 
 5. Feed queries lack indexes on `visibility`/`username`; `guest_usage` row lock serializes same-IP concurrent requests (MEDIUM, backend)
 6. No pagination on `/users/me/generated-packs`; profile pack/favorites grids unvirtualized (LOW–MEDIUM, backend+frontend)
 7. HikariCP pool size left at default (10) despite connections being held across S3 I/O (MEDIUM, backend)
-8. MinIO bucket policy re-applied via external `mc` process on every deploy (LOW, infra — one-time cost, not per-request)
+8. MinIO bucket init via external `mc` process on every deploy (LOW, infra, one-time cost, not per-request)
 
 ---
 
@@ -41,7 +41,7 @@ Confirmed in `GeneratedPackController.java:65-77,125-131` and `GeneratedPackServ
 
 **S3 client setup is good** — `S3Config.java` creates one shared `S3Client` bean with sane connect/socket/API timeouts; uploads (`UserUploadStorageService.upload()`) already stream via `RequestBody.fromInputStream`. The problem is specifically the *read* path for pack/item downloads, not the client configuration.
 
-**MinIO bucket policy via `mc` on every deploy (LOW)** — `docker-compose.production.yml:32-48` spins up a separate `mc` container that polls MinIO readiness then runs `mc anonymous set download`. Adds ~5-10s to deploy time, but it's a one-time startup cost, not per-request — low urgency, tracked here mainly because it's tied to the wildcard-bucket-policy item carried over from the security audit.
+**MinIO bucket init via `mc` on every deploy (LOW, resolved)** - production no longer sets anonymous bucket read policy. The `mc` init container only creates the bucket; generated object downloads go through backend endpoints.
 
 ## 4. Docker startup/runtime
 

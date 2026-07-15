@@ -80,20 +80,6 @@ public class UserUploadService {
     }
 
     @Transactional
-    public Optional<PublicMidiFile> getPublicMidiFile(Long projectId) {
-        return projectRepository.findByIdAndVisibility(projectId, UploadVisibility.PUBLIC)
-                .map(project -> {
-                    byte[] bytes = storageService.readObjectBytes(project.getMidiObjectKey());
-                    projectRepository.incrementDownloadCount(project.getId());
-                    return new PublicMidiFile(
-                            bytes,
-                            metadataString(project.getMetadata(), "midiContentType", "audio/midi"),
-                            metadataString(project.getMetadata(), "midiOriginalFilename", "project.mid")
-                    );
-                });
-    }
-
-    @Transactional
     public UserUploadResponse uploadProject(
             User owner,
             String title,
@@ -134,7 +120,7 @@ public class UserUploadService {
 
         UserUploadedProject saved = projectRepository.save(project);
 
-        return toResponse(saved, midiUpload.publicUrl(), sampleUpload.publicUrl());
+        return toResponse(saved);
     }
 
     private String validateTitle(String title) {
@@ -237,19 +223,15 @@ public class UserUploadService {
         return fallback;
     }
 
-    private UserUploadResponse toResponse(
-            UserUploadedProject project,
-            String midiUrl,
-            String sampleUrl
-    ) {
+    private UserUploadResponse toResponse(UserUploadedProject project) {
         return new UserUploadResponse(
                 project.getId(),
                 project.getOwner().getId(),
                 project.getTitle(),
                 project.getMidiObjectKey(),
-                midiUrl,
+                midiUrl(project.getId()),
                 project.getSampleObjectKey(),
-                sampleUrl,
+                null,
                 project.getUploadedAt(),
                 project.getVisibility(),
                 project.getMetadata()
@@ -264,12 +246,34 @@ public class UserUploadService {
                 owner.getId(),
                 owner.getUsername(),
                 project.getTitle(),
-                storageService.publicUrlForObjectKey(project.getMidiObjectKey()),
-                storageService.publicUrlForObjectKey(project.getSampleObjectKey()),
+                midiUrl(project.getId()),
+                null,
                 project.getUploadedAt(),
                 project.getVisibility(),
                 project.getMetadata()
         );
+    }
+
+    @Transactional
+    public Optional<PublicMidiFile> getMidiFile(Long projectId, User viewer) {
+        return projectRepository.findById(projectId)
+                .filter(project -> project.getVisibility() == UploadVisibility.PUBLIC
+                        || viewer != null && project.getOwner().getId().equals(viewer.getId()))
+                .map(project -> {
+                    byte[] bytes = storageService.readObjectBytes(project.getMidiObjectKey());
+                    if (project.getVisibility() == UploadVisibility.PUBLIC) {
+                        projectRepository.incrementDownloadCount(project.getId());
+                    }
+                    return new PublicMidiFile(
+                            bytes,
+                            metadataString(project.getMetadata(), "midiContentType", "audio/midi"),
+                            metadataString(project.getMetadata(), "midiOriginalFilename", "project.mid")
+                    );
+                });
+    }
+
+    private String midiUrl(Long projectId) {
+        return "/uploads/projects/" + projectId + "/midi";
     }
 
     public record PublicMidiFile(byte[] bytes, String contentType, String filename) {

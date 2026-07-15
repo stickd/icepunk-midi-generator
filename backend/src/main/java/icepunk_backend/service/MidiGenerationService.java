@@ -28,7 +28,7 @@ import java.util.zip.ZipOutputStream;
 public class MidiGenerationService {
 
     private final Path projectDir;
-    private final String pythonPath;
+    private final Path pythonPath;
     private final String scriptName;
     private final long timeoutSeconds;
     private final Semaphore semaphore;
@@ -41,24 +41,10 @@ public class MidiGenerationService {
             @Value("${icepunk.generator.max-concurrent}") int maxConcurrentGenerations
     ) {
         this.projectDir = Paths.get(projectDir).toAbsolutePath().normalize();
-        this.pythonPath = resolvePythonPath(pythonPath, this.projectDir);
+        this.pythonPath = PythonExecutableResolver.resolve(pythonPath, this.projectDir);
         this.scriptName = scriptName;
         this.timeoutSeconds = timeoutSeconds;
         this.semaphore = new Semaphore(maxConcurrentGenerations);
-    }
-
-    private String resolvePythonPath(String configuredPythonPath, Path projectDir) {
-        Path projectVenvPython = projectDir.resolve("venv").resolve("bin").resolve("python3");
-
-        if (configuredPythonPath == null || configuredPythonPath.isBlank()) {
-            return projectVenvPython.toString();
-        }
-
-        if ("python3".equals(configuredPythonPath) && Files.exists(projectVenvPython)) {
-            return projectVenvPython.toString();
-        }
-
-        return configuredPythonPath;
     }
 
     public Path generateZip() throws Exception {
@@ -159,7 +145,8 @@ public class MidiGenerationService {
             Integer bpm
     ) throws IOException {
         java.util.List<String> command = new java.util.ArrayList<>();
-        command.add(pythonPath);
+        ensurePythonExecutableExists();
+        command.add(pythonPath.toString());
         command.add(scriptName);
         command.add(outputDir.toString());
 
@@ -186,6 +173,17 @@ public class MidiGenerationService {
         processBuilder.redirectErrorStream(true);
 
         return processBuilder.start();
+    }
+
+    private void ensurePythonExecutableExists() {
+        if (Files.isRegularFile(pythonPath)) {
+            return;
+        }
+
+        throw new IllegalStateException(
+                "Python generator executable not found: " + pythonPath
+                        + ". Configure ICEPUNK_GENERATOR_PYTHON_PATH or create the project venv."
+        );
     }
 
     private String readProcessOutput(Process process) {

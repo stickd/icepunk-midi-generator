@@ -41,6 +41,50 @@ class MidiGenerationServiceTest {
     Path projectDir;
 
     @Test
+    void resolverPrefersExplicitConfiguredPythonPath() throws Exception {
+        Path configuredPython = Files.createFile(projectDir.resolve("custom-python.exe"));
+
+        Path resolved = PythonExecutableResolver.resolve(
+                configuredPython.toString(),
+                projectDir,
+                "Windows 11"
+        );
+
+        assertEquals(configuredPython.toAbsolutePath().normalize(), resolved);
+    }
+
+    @Test
+    void resolverUsesWindowsVenvScriptsPythonWhenPathIsNotConfigured() {
+        Path resolved = PythonExecutableResolver.resolve("", projectDir, "Windows 11");
+
+        assertEquals(projectDir.resolve("venv").resolve("Scripts").resolve("python.exe"), resolved);
+    }
+
+    @Test
+    void resolverUsesUnixVenvBinPythonWhenPathIsNotConfigured() {
+        Path resolved = PythonExecutableResolver.resolve(null, projectDir, "Linux");
+
+        assertEquals(projectDir.resolve("venv").resolve("bin").resolve("python3"), resolved);
+    }
+
+    @Test
+    void generateZipFailsClearlyWhenPythonExecutableIsMissing() {
+        Path missingPython = projectDir.resolve("missing-python");
+        MidiGenerationService service = new MidiGenerationService(
+                projectDir.toString(),
+                missingPython.toString(),
+                "icepunk_midi_generator.py",
+                60L,
+                2
+        );
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, service::generateZip);
+
+        assertTrue(thrown.getMessage().contains("Python generator executable not found"));
+        assertTrue(thrown.getMessage().contains(missingPython.toAbsolutePath().normalize().toString()));
+    }
+
+    @Test
     void generateZipThrowsServerBusyWhenNoPermitsAvailable() {
         // maxConcurrent = 0 → the semaphore has no permits, so tryAcquire() fails
         // immediately and no OS process is ever forked.

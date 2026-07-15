@@ -25,8 +25,6 @@ import static org.mockito.Mockito.verify;
 class UserUploadStorageServiceTest {
 
     private static final String BUCKET = "icepunk-zips";
-    private static final String PUBLIC_URL = "https://cdn.example.com";
-
     private final S3Client s3Client = mock(S3Client.class);
     private UserUploadStorageService service;
 
@@ -34,11 +32,10 @@ class UserUploadStorageServiceTest {
     void setUp() {
         service = new UserUploadStorageService(s3Client);
         ReflectionTestUtils.setField(service, "bucket", BUCKET);
-        ReflectionTestUtils.setField(service, "publicUrl", PUBLIC_URL);
     }
 
     @Test
-    void uploadStoresObjectUnderUserUploadPrefixAndReturnsPublicUrl() throws Exception {
+    void uploadStoresObjectUnderUserUploadPrefixAndReturnsObjectKey() throws Exception {
         UserUploadStorageService.StoredUpload upload = service.upload(
                 42L,
                 "lead.mid",
@@ -57,7 +54,6 @@ class UserUploadStorageServiceTest {
         assertTrue(request.key().matches("user_uploads/42/[0-9a-f-]{36}\\.mid"),
                 "key should be user_uploads/{ownerId}/{uuid}.mid but was " + request.key());
         assertEquals(request.key(), upload.objectKey());
-        assertEquals(PUBLIC_URL + "/" + request.key(), upload.publicUrl());
     }
 
     @Test

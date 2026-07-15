@@ -71,6 +71,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/user-uploads/**"
                     ).permitAll()
 
+                    .requestMatchers("/error").permitAll()
+
+                    .requestMatchers(HttpMethod.GET, "/users/*/avatar").permitAll()
+
                     // Public reads only — rename/visibility/delete and "my packs" stay authenticated
                     .requestMatchers(HttpMethod.GET, "/generated-packs/**").permitAll()
 

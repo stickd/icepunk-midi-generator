@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,8 +38,8 @@ public class UserUploadController {
     }
 
     @GetMapping("/uploads/projects/{id}/midi")
-    public ResponseEntity<byte[]> publicProjectMidi(@PathVariable("id") Long id) {
-        return userUploadService.getPublicMidiFile(id)
+    public ResponseEntity<byte[]> projectMidi(Authentication authentication, @PathVariable("id") Long id) {
+        return userUploadService.getMidiFile(id, viewerOrNull(authentication))
                 .map(file -> ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.filename() + "\"")
                         .contentType(MediaType.parseMediaType(file.contentType()))
@@ -64,5 +65,15 @@ public class UserUploadController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    private User viewerOrNull(Authentication authentication) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+
+        return userRepository.findByEmail(authentication.getName()).orElse(null);
     }
 }

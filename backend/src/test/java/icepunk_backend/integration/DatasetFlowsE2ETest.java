@@ -198,13 +198,9 @@ class DatasetFlowsE2ETest {
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
         when(generatedPackStorageService.uploadMidi(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn.example/item.mid"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
         when(generatedPackStorageService.uploadZip(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip", downloadUrl));
-        when(generatedPackStorageService.publicUrlForObjectKey("generated_midi_items/item.mid"))
-                .thenReturn("https://cdn.example/item.mid");
-        when(generatedPackStorageService.publicUrlForObjectKey("generated_midi/pack.zip"))
-                .thenReturn(downloadUrl);
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip"));
     }
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {

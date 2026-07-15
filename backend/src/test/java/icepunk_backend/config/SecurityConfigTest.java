@@ -1,13 +1,16 @@
 package icepunk_backend.config;
 
+import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,6 +72,34 @@ class SecurityConfigTest {
     }
 
     @Test
+    void publicAvatarReadIsReachableWithoutToken() throws Exception {
+        mockMvc.perform(get("/users/123/avatar"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void anonymousAvatarUploadRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/users/me/avatar"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void authenticatedAvatarUploadPassesSecurity() throws Exception {
+        MvcResult register = mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"avataruser\",\"email\":\"avataruser@example.com\",\"password\":\"secret123\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String token = register.getResponse().getContentAsString()
+                .replaceFirst(".*\"token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+        mockMvc.perform(multipart("/users/me/avatar")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void ownGeneratedPacksListRequiresAuthenticationDespiteUsersWildcard() throws Exception {
         // "/users/me/generated-packs" must NOT be swallowed by the public
         // "/users/*/generated-packs" wildcard below it.
@@ -84,6 +115,14 @@ class SecurityConfigTest {
         mockMvc.perform(get("/internal/secret")
                         .header("Authorization", "Bearer not-a-real-jwt"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void errorEndpointIsReachableWithoutTokenSoInternalErrorsAreNotMaskedAsForbidden() throws Exception {
+        mockMvc.perform(get("/error")
+                        .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 500)
+                        .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/generate"))
+                .andExpect(status().isInternalServerError());
     }
 
     @Test

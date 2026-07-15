@@ -79,9 +79,9 @@ class GeneratedPackServiceTest {
                 preview
         ));
         when(storageService.uploadMidi(midiPath))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn/item.mid"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
         when(storageService.uploadZip(zipPath))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip", "https://cdn/pack.zip"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip"));
         when(packRepository.save(any(GeneratedPack.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(itemRepository.save(any(GeneratedPackItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -110,13 +110,10 @@ class GeneratedPackServiceTest {
         pack.setZipObjectKey("generated_midi/pack.zip");
 
         when(packRepository.findById(packId)).thenReturn(Optional.of(pack));
-        when(storageService.publicUrlForObjectKey("generated_midi/pack.zip"))
-                .thenReturn("https://cdn/pack.zip");
-
         Optional<String> url = service.getPackDownloadUrl(packId);
 
         assertTrue(url.isPresent());
-        assertEquals("https://cdn/pack.zip", url.get());
+        assertEquals("/generated-packs/" + packId + "/download", url.get());
     }
 
     @Test
@@ -138,7 +135,7 @@ class GeneratedPackServiceTest {
                 new MidiPreviewResponse(List.of(), false)
         ));
         when(storageService.uploadMidi(midiPath))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn/item.mid"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
         doThrow(new RuntimeException("S3 failed")).when(storageService).uploadZip(zipPath);
 
         assertThrows(RuntimeException.class, () -> service.persistGeneratedPack(null, factoryRequest(), generatedFiles));
@@ -167,9 +164,9 @@ class GeneratedPackServiceTest {
                 new MidiPreviewResponse(List.of(), false)
         ));
         when(storageService.uploadMidi(midiPath))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn/item.mid"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
         when(storageService.uploadZip(zipPath))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip", "https://cdn/pack.zip"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip"));
         when(packRepository.save(any(GeneratedPack.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(itemRepository.save(any(GeneratedPackItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new RuntimeException("constraint failed")).when(itemRepository).flush();

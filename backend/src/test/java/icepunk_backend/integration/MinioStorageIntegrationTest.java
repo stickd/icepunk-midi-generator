@@ -21,13 +21,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,7 +63,6 @@ class MinioStorageIntegrationTest {
         registry.add("s3.bucket", () -> BUCKET);
         registry.add("s3.access-key", MINIO::getUserName);
         registry.add("s3.secret-key", MINIO::getPassword);
-        registry.add("s3.public-url", () -> MINIO.getS3URL() + "/" + BUCKET);
         registry.add("s3.connection-timeout-seconds", () -> "3");
         registry.add("s3.socket-timeout-seconds", () -> "15");
         registry.add("s3.api-call-timeout-seconds", () -> "30");
@@ -98,16 +95,13 @@ class MinioStorageIntegrationTest {
     }
 
     @Test
-    void uploadZipStoresObjectUnderGeneratedMidiPrefixAndReturnsPublicUrl() throws Exception {
+    void uploadZipStoresObjectUnderGeneratedMidiPrefixAndReturnsObjectKey() throws Exception {
         Path zip = newTempFile("pack", ".zip", "midi-pack-bytes");
 
         StoredObject stored = storageService.uploadZip(zip);
 
         assertTrue(stored.objectKey().startsWith("generated_midi/"), () -> "unexpected key: " + stored.objectKey());
         assertTrue(stored.objectKey().endsWith(".zip"), () -> "unexpected key: " + stored.objectKey());
-
-        String expectedPrefix = MINIO.getS3URL() + "/" + BUCKET + "/generated_midi/";
-        assertTrue(stored.publicUrl().startsWith(expectedPrefix), () -> "unexpected url: " + stored.publicUrl());
 
         // The object actually landed in storage under the generated_midi/ prefix.
         List<S3Object> objects = listObjects(BUCKET);
@@ -130,12 +124,12 @@ class MinioStorageIntegrationTest {
     }
 
     @Test
-    void uploadedObjectIsAnonymouslyReadableViaPublicUrl() throws Exception {
+    void uploadedObjectIsNotAnonymouslyReadable() throws Exception {
         // Grant public, unauthenticated read on the bucket — this is what makes the
         // returned download URL usable by a browser with no credentials.
-        allowAnonymousReads(BUCKET);
+        // Bucket has no anonymous policy; object reads must go through backend credentials.
 
-        byte[] payload = "anonymous-download-test".getBytes(StandardCharsets.UTF_8);
+        byte[] payload = "anonymous-download-test".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         Path zip = Files.createTempFile("pack", ".zip");
         Files.write(zip, payload);
 
@@ -143,11 +137,15 @@ class MinioStorageIntegrationTest {
         Files.deleteIfExists(zip);
 
         HttpResponse<byte[]> response = HttpClient.newHttpClient().send(
-                HttpRequest.newBuilder(URI.create(stored.publicUrl())).GET().build(),
+                HttpRequest.newBuilder(URI.create(MINIO.getS3URL() + "/" + BUCKET + "/" + stored.objectKey())).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray());
 
-        assertEquals(200, response.statusCode(), "public URL must be reachable without credentials");
-        assertArrayEquals(payload, response.body(), "downloaded bytes must match the uploaded zip");
+        assertTrue(response.statusCode() == 401 || response.statusCode() == 403,
+                "anonymous object read must be denied but was " + response.statusCode());
+        assertEquals(
+                "anonymous-download-test",
+                new String(storageService.readObject(stored.objectKey()), java.nio.charset.StandardCharsets.UTF_8)
+        );
     }
 
     @Test
@@ -172,7 +170,7 @@ class MinioStorageIntegrationTest {
         // Point a throwaway service at a bucket that does not exist: the upload must
         // fail outright and leave the real bucket untouched — no orphaned object.
         GeneratedPackStorageService failing =
-                new GeneratedPackStorageService(s3Client, "missing-bucket-" + UUID.randomUUID(), "http://unused");
+                new GeneratedPackStorageService(s3Client, "missing-bucket-" + UUID.randomUUID());
 
         Path zip = newTempFile("pack", ".zip", "doomed");
 
@@ -213,17 +211,4 @@ class MinioStorageIntegrationTest {
         }
     }
 
-    private void allowAnonymousReads(String bucket) {
-        String policy = """
-                {
-                  "Version": "2012-10-17",
-                  "Statement": [{
-                    "Effect": "Allow",
-                    "Principal": "*",
-                    "Action": "s3:GetObject",
-                    "Resource": "arn:aws:s3:::%s/*"
-                  }]
-                }""".formatted(bucket);
-        s3Client.putBucketPolicy(b -> b.bucket(bucket).policy(policy));
-    }
 }

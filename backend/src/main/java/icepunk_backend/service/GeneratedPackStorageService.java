@@ -29,16 +29,13 @@ public class GeneratedPackStorageService {
 
     private final S3Client s3Client;
     private final String bucket;
-    private final String publicUrl;
 
     public GeneratedPackStorageService(
             S3Client s3Client,
-            @Value("${s3.bucket}") String bucket,
-            @Value("${s3.public-url}") String publicUrl
+            @Value("${s3.bucket}") String bucket
     ) {
         this.s3Client = s3Client;
         this.bucket = bucket;
-        this.publicUrl = publicUrl;
     }
 
     public StoredObject uploadZip(Path zipPath) {
@@ -47,10 +44,6 @@ public class GeneratedPackStorageService {
 
     public StoredObject uploadMidi(Path midiPath) {
         return upload(midiPath, GENERATED_ITEM_PREFIX + UUID.randomUUID() + ".mid", "audio/midi");
-    }
-
-    public String publicUrlForObjectKey(String objectKey) {
-        return publicUrl + "/" + objectKey;
     }
 
     public byte[] readObject(String objectKey) {
@@ -101,9 +94,9 @@ public class GeneratedPackStorageService {
             throw new StorageException("Generated MIDI upload failed. Please try again.");
         }
 
-        return new StoredObject(key, publicUrlForObjectKey(key));
+        return new StoredObject(key);
     }
 
-    public record StoredObject(String objectKey, String publicUrl) {
+    public record StoredObject(String objectKey) {
     }
 }

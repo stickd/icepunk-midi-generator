@@ -41,7 +41,7 @@ public class TempAnalysisService {
 
     private final Path projectDir;
     private final Path tempAnalysisDir;
-    private final String pythonPath;
+    private final Path pythonPath;
     private final String analyzerScriptName;
     private final long timeoutSeconds;
     private final long maxMidiSizeBytes;
@@ -85,7 +85,7 @@ public class TempAnalysisService {
             Clock clock
     ) {
         this.projectDir = Paths.get(projectDir).toAbsolutePath().normalize();
-        this.pythonPath = resolvePythonPath(pythonPath, this.projectDir);
+        this.pythonPath = PythonExecutableResolver.resolve(pythonPath, this.projectDir);
         this.analyzerScriptName = analyzerScriptName;
         this.timeoutSeconds = timeoutSeconds;
         this.tempAnalysisDir = Paths.get(tempAnalysisDir).toAbsolutePath().normalize();
@@ -93,20 +93,6 @@ public class TempAnalysisService {
         this.retentionHours = retentionHours > 0 ? retentionHours : DEFAULT_RETENTION_HOURS;
         this.objectMapper = objectMapper;
         this.clock = clock;
-    }
-
-    private String resolvePythonPath(String configuredPythonPath, Path projectDir) {
-        Path projectVenvPython = projectDir.resolve("venv").resolve("bin").resolve("python3");
-
-        if (configuredPythonPath == null || configuredPythonPath.isBlank()) {
-            return projectVenvPython.toString();
-        }
-
-        if ("python3".equals(configuredPythonPath) && Files.exists(projectVenvPython)) {
-            return projectVenvPython.toString();
-        }
-
-        return configuredPythonPath;
     }
 
     public TempAnalysisResponse analyzeTemp(List<MultipartFile> files) throws IOException {
@@ -304,8 +290,9 @@ public class TempAnalysisService {
     }
 
     Process startAnalyzerProcess(Path inputDir, Path analysisFile) throws IOException {
+        ensurePythonExecutableExists();
         ProcessBuilder processBuilder = new ProcessBuilder(
-                pythonPath,
+                pythonPath.toString(),
                 analyzerScriptName,
                 inputDir.toString(),
                 analysisFile.toString()
@@ -314,6 +301,17 @@ public class TempAnalysisService {
         processBuilder.directory(projectDir.toFile());
         processBuilder.redirectErrorStream(true);
         return processBuilder.start();
+    }
+
+    private void ensurePythonExecutableExists() {
+        if (Files.isRegularFile(pythonPath)) {
+            return;
+        }
+
+        throw new IllegalStateException(
+                "Python generator executable not found: " + pythonPath
+                        + ". Configure ICEPUNK_GENERATOR_PYTHON_PATH or create the project venv."
+        );
     }
 
     private Map<String, Object> readAnalysis(Path analysisFile) throws IOException {

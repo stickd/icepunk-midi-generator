@@ -33,9 +33,6 @@ public class UserUploadStorageService {
     @Value("${s3.bucket}")
     private String bucket;
 
-    @Value("${s3.public-url}")
-    private String publicUrl;
-
     public UserUploadStorageService(S3Client s3Client) {
         this.s3Client = s3Client;
     }
@@ -47,7 +44,6 @@ public class UserUploadStorageService {
             long size,
             InputStream inputStream
     ) throws IOException {
-        ensureBucketExists();
         String key = USER_UPLOAD_PREFIX + ownerId + "/" + UUID.randomUUID() + extensionFrom(originalFilename);
 
         PutObjectRequest request = PutObjectRequest.builder()
@@ -67,7 +63,7 @@ public class UserUploadStorageService {
             throw new StorageException("File upload failed. Please try again.");
         }
 
-        return new StoredUpload(key, publicUrl + "/" + key);
+        return new StoredUpload(key);
     }
 
     public StoredUpload uploadAvatar(
@@ -79,7 +75,6 @@ public class UserUploadStorageService {
         String key = AVATAR_PREFIX + ownerId + "/" + UUID.randomUUID() + extensionFrom(originalFilename);
 
         try {
-            ensureBucketExists();
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
@@ -88,7 +83,7 @@ public class UserUploadStorageService {
                     .build();
 
             s3Client.putObject(request, RequestBody.fromBytes(bytes));
-            return new StoredUpload(key, publicUrl + "/" + key);
+            return new StoredUpload(key);
         } catch (Exception exception) {
             log.warn("S3 avatar upload failed, falling back to local disk storage for key={}: {}", key, exception.getMessage());
             return storeLocally(key, bytes);
@@ -103,45 +98,11 @@ public class UserUploadStorageService {
 
             String localPublicUrl = "http://localhost:8081/user-uploads/" + key;
             log.info("Stored upload locally for key={}, publicUrl={}", key, localPublicUrl);
-            return new StoredUpload(key, localPublicUrl);
+            return new StoredUpload(localPublicUrl);
         } catch (IOException e) {
             log.error("Failed to store upload locally for key={}: {}", key, e.getMessage());
             throw new StorageException("Avatar upload failed. Please try again.");
         }
-    }
-
-    private void ensureBucketExists() {
-        try {
-            s3Client.headBucket(b -> b.bucket(bucket));
-        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
-            try {
-                s3Client.createBucket(b -> b.bucket(bucket));
-                String policy = """
-                        {
-                          "Version": "2012-10-17",
-                          "Statement": [{
-                            "Effect": "Allow",
-                            "Principal": "*",
-                            "Action": "s3:GetObject",
-                            "Resource": "arn:aws:s3:::%s/*"
-                          }]
-                        }""".formatted(bucket);
-                s3Client.putBucketPolicy(b -> b.bucket(bucket).policy(policy));
-                log.info("Auto-created S3 bucket={}", bucket);
-            } catch (Exception createException) {
-                log.warn("Could not auto-create S3 bucket={}: {}", bucket, createException.getMessage());
-            }
-        } catch (Exception e) {
-            log.warn("Could not check S3 bucket={}: {}", bucket, e.getMessage());
-        }
-    }
-
-    public String publicUrlForObjectKey(String objectKey) {
-        if (objectKey == null || objectKey.isBlank()) {
-            return null;
-        }
-
-        return publicUrl + "/" + objectKey;
     }
 
     public byte[] readObjectBytes(String objectKey) {
@@ -175,6 +136,6 @@ public class UserUploadStorageService {
         return filename.substring(dot).toLowerCase(Locale.ROOT);
     }
 
-    public record StoredUpload(String objectKey, String publicUrl) {
+    public record StoredUpload(String objectKey) {
     }
 }

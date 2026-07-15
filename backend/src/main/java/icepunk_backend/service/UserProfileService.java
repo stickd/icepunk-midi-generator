@@ -77,7 +77,7 @@ public class UserProfileService {
                 user.getId(),
                 user.getUsername(),
                 user.getBio(),
-                user.getProfilePictureUrl(),
+                avatarUrl(user),
                 Boolean.TRUE.equals(user.getVerified()),
                 user.getCreatedAt(),
                 packCount,
@@ -119,7 +119,7 @@ public class UserProfileService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getBio(),
-                user.getProfilePictureUrl(),
+                avatarUrl(user),
                 user.getCredits() == null ? 0 : user.getCredits(),
                 Boolean.TRUE.equals(user.getVerified()),
                 user.getCreatedAt()
@@ -172,10 +172,23 @@ public class UserProfileService {
                 file.getBytes()
         );
 
-        user.setProfilePictureUrl(upload.publicUrl());
+        user.setProfilePictureUrl(upload.objectKey());
         userRepository.save(user);
 
         return getMe(email);
+    }
+
+    @Transactional(readOnly = true)
+    public AvatarFile getAvatar(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        String stored = user.getProfilePictureUrl();
+        if (stored == null || stored.isBlank() || !isAvatarObjectKey(stored)) {
+            throw new ResourceNotFoundException("Avatar not found");
+        }
+
+        byte[] bytes = storageService.readObjectBytes(stored);
+        return new AvatarFile(bytes, contentTypeForAvatar(stored));
     }
 
     @Transactional
@@ -220,8 +233,8 @@ public class UserProfileService {
                         project.getOwner().getId(),
                         project.getOwner().getUsername(),
                         project.getTitle(),
-                        storageService.publicUrlForObjectKey(project.getMidiObjectKey()),
-                        storageService.publicUrlForObjectKey(project.getSampleObjectKey()),
+                        "/uploads/projects/" + project.getId() + "/midi",
+                        null,
                         project.getUploadedAt(),
                         project.getMetadata(),
                         project.getDownloadCount() == null ? 0L : project.getDownloadCount(),
@@ -271,11 +284,43 @@ public class UserProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
     }
 
+    private String avatarUrl(User user) {
+        String stored = user.getProfilePictureUrl();
+        if (stored == null || stored.isBlank()) {
+            return null;
+        }
+        if (isAvatarObjectKey(stored) || stored.contains("/avatars/")) {
+            return "/users/" + user.getId() + "/avatar";
+        }
+        return stored;
+    }
+
+    private boolean isAvatarObjectKey(String value) {
+        return value.startsWith("avatars/");
+    }
+
+    private String contentTypeForAvatar(String objectKey) {
+        String lower = objectKey.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".png")) {
+            return "image/png";
+        }
+        if (lower.endsWith(".webp")) {
+            return "image/webp";
+        }
+        if (lower.endsWith(".gif")) {
+            return "image/gif";
+        }
+        return "image/jpeg";
+    }
+
     private int normalizePage(int page) {
         return Math.max(0, page);
     }
 
     private int normalizeSize(int size) {
         return Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+    }
+
+    public record AvatarFile(byte[] bytes, String contentType) {
     }
 }

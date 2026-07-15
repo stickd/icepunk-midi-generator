@@ -172,13 +172,13 @@ public class GeneratedPackService {
     @Transactional(readOnly = true)
     public Optional<String> getItemDownloadUrl(UUID packId, UUID itemId) {
         return itemRepository.findByIdAndPackId(itemId, packId)
-                .map(item -> storageService.publicUrlForObjectKey(item.getMidiObjectKey()));
+                .map(item -> itemDownloadPath(packId, itemId));
     }
 
     @Transactional(readOnly = true)
     public Optional<String> getPackDownloadUrl(UUID packId) {
         return packRepository.findById(packId)
-                .map(pack -> storageService.publicUrlForObjectKey(pack.getZipObjectKey()));
+                .map(pack -> packDownloadPath(packId));
     }
 
     @Transactional(readOnly = true)
@@ -270,33 +270,48 @@ public class GeneratedPackService {
         List<String> uploadedKeys = new ArrayList<>();
 
         try {
-            List<GeneratedMidiItemResponse> items = new ArrayList<>();
-            int index = 0;
-
-            for (Path midiFile : generatedFiles.midiFiles()) {
-                MidiMetadataExtractor.MidiMetadata metadata = metadataExtractor.extract(midiFile);
-                GeneratedPackStorageService.StoredObject upload = storageService.uploadMidi(midiFile);
-                uploadedKeys.add(upload.objectKey());
-                items.add(toGuestItemResponse(index, midiFile.getFileName().toString(), upload, metadata));
-                index++;
-            }
-
+            List<GeneratedItemDraft> itemDrafts = uploadMidiItems(generatedFiles.midiFiles(), uploadedKeys);
             GeneratedPackStorageService.StoredObject zipUpload = storageService.uploadZip(generatedFiles.zipPath());
             uploadedKeys.add(zipUpload.objectKey());
 
-            return new GeneratedPackResponse(
-                    UUID.randomUUID(),
-                    normalizedPackName(request.getPackName()),
-                    request.getSource().name(),
-                    request.getType().name(),
-                    request.getBpm(),
-                    request.getPitch(),
-                    request.getOctaves(),
-                    request.getAmount(),
-                    OffsetDateTime.now(),
-                    zipUpload.publicUrl(),
-                    items
-            );
+            GeneratedPack pack = new GeneratedPack();
+            pack.setId(UUID.randomUUID());
+            pack.setName(normalizedPackName(request.getPackName()));
+            pack.setSourceType(GenerationSourceType.valueOf(request.getSource().name()));
+            pack.setGenerationType(GeneratedPackType.valueOf(request.getType().name()));
+            pack.setBpm(request.getBpm());
+            pack.setPitch(request.getPitch());
+            pack.setOctaves(request.getOctaves());
+            pack.setAmount(request.getAmount());
+            pack.setVisibility(GeneratedPackVisibility.PUBLIC);
+            pack.setZipObjectKey(zipUpload.objectKey());
+            pack.setCreatedAt(OffsetDateTime.now());
+            pack.setMetadata(metadataFor(request));
+
+            GeneratedPack savedPack = packRepository.save(pack);
+            List<GeneratedPackItem> savedItems = new ArrayList<>();
+            for (GeneratedItemDraft draft : itemDrafts) {
+                GeneratedPackItem item = new GeneratedPackItem();
+                item.setId(UUID.randomUUID());
+                item.setPack(savedPack);
+                item.setItemIndex(draft.index());
+                item.setFileName(draft.fileName());
+                item.setMidiObjectKey(draft.upload().objectKey());
+                item.setDurationSeconds(draft.metadata().durationSeconds());
+                item.setNoteCount(draft.metadata().noteCount());
+                item.setTrackCount(draft.metadata().trackCount());
+                item.setMinPitch(draft.metadata().minPitch());
+                item.setMaxPitch(draft.metadata().maxPitch());
+                item.setAvgPitch(draft.metadata().avgPitch());
+                item.setBpm(draft.metadata().bpm());
+                item.setCreatedAt(savedPack.getCreatedAt());
+                item.setMetadata(Map.of("preview", previewToMetadata(draft.metadata().preview())));
+                savedItems.add(itemRepository.save(item));
+            }
+            packRepository.flush();
+            itemRepository.flush();
+
+            return toPackResponse(savedPack, savedItems);
         } catch (RuntimeException exception) {
             uploadedKeys.forEach(storageService::deleteObjectQuietly);
             log.warn("Guest generated pack upload failed; uploaded objects were cleaned where possible: {}",
@@ -397,28 +412,6 @@ public class GeneratedPackService {
                 item.getAvgPitch(),
                 item.getBpm(),
                 previewFromMetadata(item.getMetadata())
-        );
-    }
-
-    private GeneratedMidiItemResponse toGuestItemResponse(
-            int index,
-            String fileName,
-            GeneratedPackStorageService.StoredObject upload,
-            MidiMetadataExtractor.MidiMetadata metadata
-    ) {
-        return new GeneratedMidiItemResponse(
-                UUID.randomUUID(),
-                index,
-                fileName,
-                upload.publicUrl(),
-                metadata.durationSeconds(),
-                metadata.noteCount(),
-                metadata.trackCount(),
-                metadata.minPitch(),
-                metadata.maxPitch(),
-                metadata.avgPitch(),
-                metadata.bpm(),
-                metadata.preview()
         );
     }
 

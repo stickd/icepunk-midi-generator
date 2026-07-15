@@ -105,19 +105,16 @@ class ApiFlowsE2ETest {
 
     @Test
     void guestGenerateReturnsDownloadUrlAndIncrementsCounter() throws Exception {
-        stubSuccessfulGeneration("https://cdn.example/guest-pack.zip");
+        stubSuccessfulGeneration();
 
-        // Guest packs are ephemeral by design: never written to the database, so
-        // the response carries direct CDN URLs rather than backend redirect routes,
-        // and there is no persisted row to look up afterwards.
         MvcResult result = mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.packId").exists())
                 .andExpect(jsonPath("$.items[0].fileName").value("track.mid"))
                 .andExpect(jsonPath("$.totalGenerations").value(1))
-                .andExpect(jsonPath("$.downloadUrl").value("https://cdn.example/guest-pack.zip"))
-                .andExpect(jsonPath("$.packDownloadUrl").value("https://cdn.example/guest-pack.zip"))
-                .andExpect(jsonPath("$.items[0].downloadUrl").value("https://cdn.example/item.mid"))
+                .andExpect(jsonPath("$.downloadUrl", matchesPattern("/generated-packs/.+/download")))
+                .andExpect(jsonPath("$.packDownloadUrl", matchesPattern("/generated-packs/.+/download")))
+                .andExpect(jsonPath("$.items[0].downloadUrl", matchesPattern("/generated-packs/.+/items/.+/download")))
                 .andReturn();
 
         String responseBody = result.getResponse().getContentAsString();
@@ -133,7 +130,7 @@ class ApiFlowsE2ETest {
         entityManager.clear();
 
         mockMvc.perform(get("/generated-packs/" + packId))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/generation-stats"))
                 .andExpect(status().isOk())
@@ -142,7 +139,7 @@ class ApiFlowsE2ETest {
 
     @Test
     void authenticatedUserGenerateReturnsDownloadUrlAndIncrementsCounter() throws Exception {
-        stubSuccessfulGeneration("https://cdn.example/user-pack.zip");
+        stubSuccessfulGeneration();
         String token = register("carol", "carol@example.com", "secret123", "198.51.100.11");
 
         mockMvc.perform(post("/generate")
@@ -187,7 +184,7 @@ class ApiFlowsE2ETest {
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
         when(generatedPackStorageService.uploadMidi(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn.example/item.mid"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
         when(generatedPackStorageService.uploadZip(any()))
                 .thenThrow(new RuntimeException("S3 upload failed"));
 
@@ -199,17 +196,13 @@ class ApiFlowsE2ETest {
 
     // --- Helpers ----------------------------------------------------------
 
-    private void stubSuccessfulGeneration(String downloadUrl) throws Exception {
+    private void stubSuccessfulGeneration() throws Exception {
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
         when(generatedPackStorageService.uploadMidi(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid", "https://cdn.example/item.mid"));
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
         when(generatedPackStorageService.uploadZip(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip", downloadUrl));
-        when(generatedPackStorageService.publicUrlForObjectKey("generated_midi_items/item.mid"))
-                .thenReturn("https://cdn.example/item.mid");
-        when(generatedPackStorageService.publicUrlForObjectKey("generated_midi/pack.zip"))
-                .thenReturn(downloadUrl);
+                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip"));
     }
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {

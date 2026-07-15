@@ -107,15 +107,13 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
         when(generatedPackStorageService.uploadMidi(any()))
                 .thenAnswer(invocation -> {
                     String key = "generated_midi_items/" + UUID.randomUUID() + ".mid";
-                    return new GeneratedPackStorageService.StoredObject(key, "https://cdn.example/" + key);
+                    return new GeneratedPackStorageService.StoredObject(key);
                 });
         when(generatedPackStorageService.uploadZip(any()))
                 .thenAnswer(invocation -> {
                     String key = "generated_midi/" + UUID.randomUUID() + ".zip";
-                    return new GeneratedPackStorageService.StoredObject(key, "https://cdn.example/" + key);
+                    return new GeneratedPackStorageService.StoredObject(key);
                 });
-        when(generatedPackStorageService.publicUrlForObjectKey(any()))
-                .thenAnswer(invocation -> "https://cdn.example/" + invocation.getArgument(0, String.class));
     }
 
     @Test

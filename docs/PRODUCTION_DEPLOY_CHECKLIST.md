@@ -4,7 +4,7 @@
 
 - [ ] Point frontend domain to the frontend host.
 - [ ] Point backend API domain to the VPS reverse proxy.
-- [ ] Point file/download domain or path to the VPS reverse proxy for MinIO object downloads.
+- [ ] Point backend API domain to the VPS reverse proxy for file download endpoints.
 - [ ] Confirm DNS propagation before switching real users.
 
 ## SSL
@@ -45,11 +45,10 @@
 
 ## MinIO
 
-- [ ] Keep MinIO console bound to localhost or behind private VPN/SSH tunnel.
+- [ ] Keep MinIO API and console bound to localhost or behind private VPN/SSH tunnel.
 - [ ] Use strong `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`.
-- [ ] Confirm bucket exists and anonymous download is enabled only for generated ZIP objects.
-- [ ] Set `S3_PUBLIC_URL` to the real HTTPS download URL.
-- [ ] Confirm generated ZIP download URLs work from a browser.
+- [ ] Confirm bucket exists and anonymous download is disabled.
+- [ ] Confirm generated ZIP/MIDI download URLs work through backend endpoints.
 
 ## Environment Variables
 
@@ -65,7 +64,6 @@ Core:
 - [ ] `CORS_ALLOWED_ORIGINS`
 - [ ] `SPRING_PROFILES_ACTIVE=prod`
 - [ ] `S3_BUCKET`
-- [ ] `S3_PUBLIC_URL`
 - [ ] `S3_REGION`
 - [ ] `BACKEND_BIND_ADDRESS`
 - [ ] `BACKEND_PORT`
@@ -133,7 +131,7 @@ Frontend:
 
 - [ ] Frontend domain opens the landing page.
 - [ ] API domain returns backend responses through HTTPS.
-- [ ] Download URL domain/path returns generated ZIP files through HTTPS.
+- [ ] Backend download endpoints return generated ZIP/MIDI files through HTTPS.
 - [ ] CORS allows frontend domain and rejects unknown origins.
 
 ## First User Test

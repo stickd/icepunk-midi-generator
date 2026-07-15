@@ -208,7 +208,7 @@ export type UploadProjectResponse = {
   midiObjectKey: string;
   midiUrl: string;
   sampleObjectKey: string;
-  sampleUrl: string;
+  sampleUrl: string | null;
   uploadedAt: string;
   visibility: UploadVisibility;
   metadata: Record<string, unknown>;
@@ -382,7 +382,16 @@ export async function getPublicUploadFeed(
     throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
   }
 
-  return response.json();
+  const feed = (await response.json()) as PublicUploadFeedResponse;
+
+  return {
+    ...feed,
+    items: feed.items.map((item) => ({
+      ...item,
+      midiUrl: apiUrl(item.midiUrl),
+      sampleUrl: item.sampleUrl ? apiUrl(item.sampleUrl) : null,
+    })),
+  };
 }
 
 export async function getPublicGeneratedPackFeed(
@@ -544,7 +553,11 @@ export async function getUserProfile(
   username: string,
   signal?: AbortSignal,
 ): Promise<UserProfileResponse> {
-  return fetchJson(`/users/${encodeURIComponent(username)}/profile`, { signal });
+  const profile = await fetchJson<UserProfileResponse>(`/users/${encodeURIComponent(username)}/profile`, { signal });
+  return {
+    ...profile,
+    profilePictureUrl: profile.profilePictureUrl ? apiUrl(profile.profilePictureUrl) : null,
+  };
 }
 
 export async function getUserPacks(
@@ -556,17 +569,30 @@ export async function getUserPacks(
 ): Promise<UserPackListResponse> {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
 
-  return fetchJson(`/users/${encodeURIComponent(username)}/packs?${params.toString()}`, {
+  const packs = await fetchJson<UserPackListResponse>(`/users/${encodeURIComponent(username)}/packs?${params.toString()}`, {
     headers: authHeaders(token),
     signal,
   });
+
+  return {
+    ...packs,
+    items: packs.items.map((item) => ({
+      ...item,
+      midiUrl: apiUrl(item.midiUrl),
+      sampleUrl: item.sampleUrl ? apiUrl(item.sampleUrl) : null,
+    })),
+  };
 }
 
 export async function getMe(
   token: string,
   signal?: AbortSignal,
 ): Promise<MeResponse> {
-  return fetchJson("/users/me", { headers: authHeaders(token), signal });
+  const me = await fetchJson<MeResponse>("/users/me", { headers: authHeaders(token), signal });
+  return {
+    ...me,
+    profilePictureUrl: me.profilePictureUrl ? apiUrl(me.profilePictureUrl) : null,
+  };
 }
 
 export async function uploadAvatar(
@@ -590,7 +616,11 @@ export async function uploadAvatar(
     throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
   }
 
-  return response.json();
+  const me = (await response.json()) as MeResponse;
+  return {
+    ...me,
+    profilePictureUrl: me.profilePictureUrl ? apiUrl(me.profilePictureUrl) : null,
+  };
 }
 
 export async function updateProfilePictureUrl(
@@ -598,12 +628,16 @@ export async function updateProfilePictureUrl(
   profilePictureUrl: string,
   signal?: AbortSignal,
 ): Promise<MeResponse> {
-  return fetchJson("/users/me/profile", {
+  const me = await fetchJson<MeResponse>("/users/me/profile", {
     method: "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
     body: JSON.stringify({ profilePictureUrl }),
     signal,
   });
+  return {
+    ...me,
+    profilePictureUrl: me.profilePictureUrl ? apiUrl(me.profilePictureUrl) : null,
+  };
 }
 
 export async function getFavorites(
@@ -614,10 +648,19 @@ export async function getFavorites(
 ): Promise<UserPackListResponse> {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
 
-  return fetchJson(`/users/me/favorites?${params.toString()}`, {
+  const packs = await fetchJson<UserPackListResponse>(`/users/me/favorites?${params.toString()}`, {
     headers: authHeaders(token),
     signal,
   });
+
+  return {
+    ...packs,
+    items: packs.items.map((item) => ({
+      ...item,
+      midiUrl: apiUrl(item.midiUrl),
+      sampleUrl: item.sampleUrl ? apiUrl(item.sampleUrl) : null,
+    })),
+  };
 }
 
 export async function setProjectLiked(
@@ -663,7 +706,12 @@ export function uploadMidiProject({
     request.onload = () => {
       if (request.status >= 200 && request.status < 300) {
         onProgress?.(100);
-        resolve(JSON.parse(request.responseText) as UploadProjectResponse);
+        const response = JSON.parse(request.responseText) as UploadProjectResponse;
+        resolve({
+          ...response,
+          midiUrl: apiUrl(response.midiUrl),
+          sampleUrl: response.sampleUrl ? apiUrl(response.sampleUrl) : null,
+        });
         return;
       }
 

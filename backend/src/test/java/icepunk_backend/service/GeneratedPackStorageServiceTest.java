@@ -34,8 +34,6 @@ import static org.mockito.Mockito.when;
 class GeneratedPackStorageServiceTest {
 
     private static final String BUCKET = "icepunk-zips";
-    private static final String PUBLIC_URL = "https://cdn.example.com";
-
     @TempDir
     Path tempDir;
 
@@ -44,11 +42,11 @@ class GeneratedPackStorageServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new GeneratedPackStorageService(s3Client, BUCKET, PUBLIC_URL);
+        service = new GeneratedPackStorageService(s3Client, BUCKET);
     }
 
     @Test
-    void uploadZipStoresObjectUnderGeneratedMidiPrefixAndReturnsPublicUrl() throws Exception {
+    void uploadZipStoresObjectUnderGeneratedMidiPrefixAndReturnsObjectKey() throws Exception {
         Path zipFile = tempDir.resolve("pack.zip");
         Files.write(zipFile, new byte[]{1, 2, 3});
 
@@ -61,7 +59,6 @@ class GeneratedPackStorageServiceTest {
         assertEquals(BUCKET, request.bucket());
         assertEquals("application/zip", request.contentType());
         assertTrue(stored.objectKey().matches("generated_midi/[0-9a-f-]{36}\\.zip"), "key was " + stored.objectKey());
-        assertEquals(PUBLIC_URL + "/" + stored.objectKey(), stored.publicUrl());
     }
 
     @Test
@@ -76,7 +73,6 @@ class GeneratedPackStorageServiceTest {
 
         assertEquals("audio/midi", requestCaptor.getValue().contentType());
         assertTrue(stored.objectKey().matches("generated_midi_items/[0-9a-f-]{36}\\.mid"), "key was " + stored.objectKey());
-        assertEquals(PUBLIC_URL + "/" + stored.objectKey(), stored.publicUrl());
     }
 
     @Test
@@ -107,11 +103,6 @@ class GeneratedPackStorageServiceTest {
         );
 
         assertEquals("Generated MIDI upload failed. Please try again.", exception.getMessage());
-    }
-
-    @Test
-    void publicUrlForObjectKeyJoinsBaseUrlAndKey() {
-        assertEquals(PUBLIC_URL + "/generated_midi/abc.zip", service.publicUrlForObjectKey("generated_midi/abc.zip"));
     }
 
     @Test

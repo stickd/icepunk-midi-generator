@@ -48,13 +48,11 @@ class UserUploadServiceTest {
 
         when(storageService.upload(eq(42L), eq("lead.mid"), eq("audio/midi"), eq(4L), any(InputStream.class)))
                 .thenReturn(new UserUploadStorageService.StoredUpload(
-                        "user_uploads/42/midi.mid",
-                        "https://cdn.example.com/user_uploads/42/midi.mid"
+                        "user_uploads/42/midi.mid"
                 ));
         when(storageService.upload(eq(42L), eq("kick.wav"), eq("audio/wav"), eq(5L), any(InputStream.class)))
                 .thenReturn(new UserUploadStorageService.StoredUpload(
-                        "user_uploads/42/kick.wav",
-                        "https://cdn.example.com/user_uploads/42/kick.wav"
+                        "user_uploads/42/kick.wav"
                 ));
         when(projectRepository.save(any(UserUploadedProject.class))).thenAnswer(invocation -> {
             UserUploadedProject project = invocation.getArgument(0);
@@ -77,9 +75,9 @@ class UserUploadServiceTest {
         assertEquals(42L, response.getOwnerId());
         assertEquals("Frozen Lead", response.getTitle());
         assertEquals("user_uploads/42/midi.mid", response.getMidiObjectKey());
-        assertEquals("https://cdn.example.com/user_uploads/42/midi.mid", response.getMidiUrl());
+        assertEquals("/uploads/projects/7/midi", response.getMidiUrl());
         assertEquals("user_uploads/42/kick.wav", response.getSampleObjectKey());
-        assertEquals("https://cdn.example.com/user_uploads/42/kick.wav", response.getSampleUrl());
+        assertEquals(null, response.getSampleUrl());
         assertEquals(UploadVisibility.UNLISTED, response.getVisibility());
         assertNotNull(response.getUploadedAt());
         assertEquals("lead.mid", response.getMetadata().get("midiOriginalFilename"));
@@ -185,11 +183,6 @@ class UserUploadServiceTest {
                 eq(UploadVisibility.PUBLIC),
                 eq(PageRequest.of(0, 2))
         )).thenReturn(new PageImpl<>(List.of(publicProject), PageRequest.of(0, 2), 3));
-        when(storageService.publicUrlForObjectKey("user_uploads/42/public.mid"))
-                .thenReturn("https://cdn.example.com/user_uploads/42/public.mid");
-        when(storageService.publicUrlForObjectKey("user_uploads/42/public.wav"))
-                .thenReturn("https://cdn.example.com/user_uploads/42/public.wav");
-
         PublicUploadFeedResponse response = service.getPublicFeed(0, 2);
 
         assertEquals(1, response.getItems().size());
@@ -200,7 +193,7 @@ class UserUploadServiceTest {
         assertEquals(true, response.isHasNext());
         assertEquals(8L, response.getItems().getFirst().getId());
         assertEquals("nikul", response.getItems().getFirst().getOwnerUsername());
-        assertEquals("https://cdn.example.com/user_uploads/42/public.mid", response.getItems().getFirst().getMidiUrl());
+        assertEquals("/uploads/projects/8/midi", response.getItems().getFirst().getMidiUrl());
     }
 
     @Test
@@ -217,12 +210,12 @@ class UserUploadServiceTest {
                 "midiOriginalFilename", "public.mid"
         ));
 
-        when(projectRepository.findByIdAndVisibility(8L, UploadVisibility.PUBLIC))
+        when(projectRepository.findById(8L))
                 .thenReturn(Optional.of(publicProject));
         when(storageService.readObjectBytes("user_uploads/42/public.mid"))
                 .thenReturn(new byte[]{77, 84, 104, 100});
 
-        Optional<UserUploadService.PublicMidiFile> result = service.getPublicMidiFile(8L);
+        Optional<UserUploadService.PublicMidiFile> result = service.getMidiFile(8L, null);
 
         assertEquals(true, result.isPresent());
         assertEquals("audio/midi", result.get().contentType());
@@ -231,11 +224,56 @@ class UserUploadServiceTest {
     }
 
     @Test
+    void ownerCanReadPrivateMidiFile() {
+        UserUploadedProject privateProject = new UserUploadedProject();
+        privateProject.setId(8L);
+        privateProject.setOwner(owner);
+        privateProject.setTitle("Private Lead");
+        privateProject.setMidiObjectKey("user_uploads/42/private.mid");
+        privateProject.setUploadedAt(OffsetDateTime.parse("2026-07-03T08:00:00Z"));
+        privateProject.setVisibility(UploadVisibility.PRIVATE);
+        privateProject.setMetadata(Map.of(
+                "midiContentType", "audio/midi",
+                "midiOriginalFilename", "private.mid"
+        ));
+
+        when(projectRepository.findById(8L)).thenReturn(Optional.of(privateProject));
+        when(storageService.readObjectBytes("user_uploads/42/private.mid"))
+                .thenReturn(new byte[]{77, 84, 104, 100});
+
+        Optional<UserUploadService.PublicMidiFile> result = service.getMidiFile(8L, owner);
+
+        assertEquals(true, result.isPresent());
+        assertEquals("private.mid", result.get().filename());
+        verify(projectRepository, never()).incrementDownloadCount(8L);
+    }
+
+    @Test
+    void strangerCannotReadPrivateMidiFile() {
+        User stranger = new User("stranger", "stranger@example.com", "hash");
+        stranger.setId(99L);
+
+        UserUploadedProject privateProject = new UserUploadedProject();
+        privateProject.setId(8L);
+        privateProject.setOwner(owner);
+        privateProject.setTitle("Private Lead");
+        privateProject.setMidiObjectKey("user_uploads/42/private.mid");
+        privateProject.setVisibility(UploadVisibility.PRIVATE);
+
+        when(projectRepository.findById(8L)).thenReturn(Optional.of(privateProject));
+
+        Optional<UserUploadService.PublicMidiFile> result = service.getMidiFile(8L, stranger);
+
+        assertEquals(true, result.isEmpty());
+        verify(storageService, never()).readObjectBytes(any());
+    }
+
+    @Test
     void getPublicMidiFileDoesNotReadPrivateOrMissingProject() {
-        when(projectRepository.findByIdAndVisibility(8L, UploadVisibility.PUBLIC))
+        when(projectRepository.findById(8L))
                 .thenReturn(Optional.empty());
 
-        Optional<UserUploadService.PublicMidiFile> result = service.getPublicMidiFile(8L);
+        Optional<UserUploadService.PublicMidiFile> result = service.getMidiFile(8L, null);
 
         assertEquals(true, result.isEmpty());
         verify(storageService, never()).readObjectBytes(any());

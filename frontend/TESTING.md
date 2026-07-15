@@ -112,9 +112,6 @@ docker compose up -d --wait
 docker run --rm --network host \
   -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
   minio/mc mb --ignore-existing local/icepunk-zips
-docker run --rm --network host \
-  -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
-  minio/mc anonymous set download local/icepunk-zips
 
 # python venv for the generator (must live at the repo root, see CLAUDE.md)
 python3 -m venv venv && venv/bin/pip install -r requirements.txt

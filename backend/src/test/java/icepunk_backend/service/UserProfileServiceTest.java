@@ -127,11 +127,10 @@ class UserProfileServiceTest {
                 .thenReturn(List.<Object[]>of(new Object[]{10L, 7L}));
         when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
         when(likeRepository.findLikedProjectIds(eq(2L), anyList())).thenReturn(Set.of(10L));
-        when(storageService.publicUrlForObjectKey(any())).thenReturn("https://files/midi.mid");
-
         UserPackListResponse response = service.getUserPacks("maco", 0, 12, "viewer@example.com");
 
         assertThat(response.items()).hasSize(2);
+        assertThat(response.items().get(0).midiUrl()).isEqualTo("/uploads/projects/10/midi");
         assertThat(response.items().get(0).likeCount()).isEqualTo(7L);
         assertThat(response.items().get(0).likedByViewer()).isTrue();
         assertThat(response.items().get(1).likeCount()).isZero();
@@ -152,11 +151,10 @@ class UserProfileServiceTest {
                 eq(1L), eq(UploadVisibility.PUBLIC), any(Pageable.class)))
                 .thenReturn(page);
         when(likeRepository.countByProjectIds(anyList())).thenReturn(List.of());
-        when(storageService.publicUrlForObjectKey(any())).thenReturn("https://files/midi.mid");
-
         UserPackListResponse response = service.getUserPacks("maco", 0, 12, null);
 
         assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).midiUrl()).isEqualTo("/uploads/projects/10/midi");
         assertThat(response.items().get(0).likedByViewer()).isFalse();
         verify(likeRepository, never()).findLikedProjectIds(any(), anyList());
     }

@@ -239,7 +239,6 @@ JWT_SECRET=change_this_to_a_long_random_secret_at_least_32_chars
 CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
 
 S3_BUCKET=icepunk-zips
-S3_PUBLIC_URL=https://your-files-domain.com/icepunk-zips
 
 BACKEND_PORT=8081
 FRONTEND_PORT=3000
@@ -283,7 +282,6 @@ S3_ENDPOINT=https://s3-compatible-endpoint
 S3_BUCKET=icepunk-zips
 S3_ACCESS_KEY=prod_access_key
 S3_SECRET_KEY=prod_secret_key
-S3_PUBLIC_URL=https://public-download-domain/icepunk-zips
 ```
 
 The Docker image already sets:
@@ -417,6 +415,6 @@ Pick one before the first `prod` deploy:
 ## Notes
 
 - `analysis_output/midi_analysis.json` is required at runtime by the Python generator.
-- The production compose creates the MinIO bucket and sets anonymous download access for ZIP files.
+- The production compose creates the MinIO bucket without anonymous/public read access; downloads are streamed through the backend.
 - For real production, rotate any secrets that were ever committed to git history.
 - The production Spring profile (`prod`) must be activated by setting `SPRING_PROFILES_ACTIVE=prod` in the deployment environment or compose file.

@@ -8,6 +8,8 @@ import icepunk_backend.dto.UserProfileResponse;
 import icepunk_backend.service.UserProfileService;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +32,14 @@ public class UserProfileController {
     @GetMapping("/users/{username}/profile")
     public UserProfileResponse profile(@PathVariable("username") String username) {
         return userProfileService.getProfile(username);
+    }
+
+    @GetMapping("/users/{userId}/avatar")
+    public ResponseEntity<byte[]> avatar(@PathVariable("userId") Long userId) {
+        UserProfileService.AvatarFile avatar = userProfileService.getAvatar(userId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(avatar.contentType()))
+                .body(avatar.bytes());
     }
 
     @GetMapping("/users/{username}/packs")
