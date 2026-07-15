@@ -5,6 +5,7 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { cn } from "@/lib/ui";
+import { getGeneratedItemDownloadUrl, getGeneratedItemPreviewUrl, getGeneratedPackDownloadUrl } from "@/lib/api";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
 import PianoRollPreview from "./PianoRollPreview";
 import { FeedGeneration } from "./feedTypes";
@@ -48,26 +49,33 @@ function GenerationFeedCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const items = useMemo(() => generation.items ?? [], [generation.items]);
   const activeItem = items[activeIndex] ?? null;
-  const midiUrl = activeItem?.downloadUrl ?? generation.midiUrl ?? null;
+  const midiUrl = activeUrl;
   const hasMultipleItems = items.length > 1;
   const previewNotes = activeItem?.preview?.notes ?? null;
   const hasPreviewNotes = Boolean(previewNotes && previewNotes.length > 0);
-  const isThisSource = Boolean(midiUrl) && playback.activeSourceId === midiUrl;
+  const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.id;
   const isThisLoading = isThisSource && playback.isLoading;
   const isThisPlaying = isThisSource && playback.isPlaying;
 
-  const togglePreview = useCallback(() => {
-    if (!midiUrl) return;
+  const togglePreview = useCallback(async () => {
+    if (!activeItem) return;
 
     if (isThisPlaying) {
       playback.stop();
       return;
     }
 
-    playback.play(midiUrl, soundEngine, midiUrl);
-  }, [isThisPlaying, midiUrl, playback, soundEngine]);
+    try {
+      const access = await getGeneratedItemPreviewUrl(generation.id, activeItem.id);
+      setActiveUrl(access.url);
+      playback.play(access.url, soundEngine, activeItem.id);
+    } catch {
+      onStubStatus("Preview is unavailable.");
+    }
+  }, [activeItem, generation.id, isThisPlaying, onStubStatus, playback, soundEngine]);
 
   const handleMidiDownload = useCallback(() => {
     if (!isLoggedIn) {
@@ -75,29 +83,26 @@ function GenerationFeedCard({
       onStubStatus("Sign up or log in to keep creating and downloading free of charge!");
       return;
     }
-    if (!midiUrl) return;
+    if (!activeItem) return;
 
     const rawName = activeItem?.fileName ?? generation.title;
     const cleanName = rawName.replace(/\.mid$/i, "").replace(/\s+/g, "_");
     const downloadFilename = `${cleanName}_by_${generation.username}.mid`;
 
-    const link = document.createElement("a");
-    link.href = midiUrl;
-    link.download = downloadFilename;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    onStubStatus(`Downloading ${downloadFilename}`);
-  }, [activeItem?.fileName, generation.title, generation.username, isLoggedIn, midiUrl, onRequireLogin, onStubStatus]);
+    getGeneratedItemDownloadUrl(generation.id, activeItem.id)
+      .then(({ url }) => {
+        window.location.assign(url);
+        onStubStatus(`Downloading ${downloadFilename}`);
+      })
+      .catch(() => onStubStatus("MIDI download is unavailable."));
+  }, [activeItem, generation.id, generation.title, generation.username, isLoggedIn, onRequireLogin, onStubStatus]);
 
   const handleSelectItem = useCallback(
     (index: number) => {
       if (isThisSource) {
         playback.stop();
       }
+      setActiveUrl(null);
       setActiveIndex(index);
     },
     [isThisSource, playback],
@@ -316,31 +321,25 @@ function GenerationFeedCard({
             </svg>
           </button>
 
-          <a
-            className={`inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white ${
-              generation.packDownloadUrl
-                ? ""
-                : "pointer-events-none opacity-50"
-            }`}
-            download={`${generation.title.replace(/\s+/g, "_")}_by_${generation.username}.zip`}
-            href={isLoggedIn ? (generation.packDownloadUrl ?? "#download") : "#login-required"}
-            onClick={(event) => {
-              if (!generation.packDownloadUrl) {
-                event.preventDefault();
-                return;
-              }
+          <button
+            className="inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white"
+            onClick={() => {
               if (!isLoggedIn) {
-                event.preventDefault();
                 onRequireLogin?.();
                 onStubStatus("Sign up or log in to keep creating and downloading free of charge!");
+                return;
               }
+              getGeneratedPackDownloadUrl(generation.id)
+                .then(({ url }) => window.location.assign(url))
+                .catch(() => onStubStatus("ZIP download is unavailable."));
             }}
+            type="button"
           >
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <span>Download ZIP</span>
-          </a>
+          </button>
         </div>
 
         {showDetails ? (

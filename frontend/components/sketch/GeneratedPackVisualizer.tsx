@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button } from "@/components/ui";
-import { GeneratedMidiItem, GenerateMidiResponse } from "@/lib/api";
+import {
+  GeneratedMidiItem,
+  GenerateMidiResponse,
+  getGeneratedItemDownloadUrl,
+  getGeneratedItemPreviewUrl,
+  getGeneratedPackDownloadUrl,
+} from "@/lib/api";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
@@ -39,9 +45,11 @@ export default function GeneratedPackVisualizer({
   onStubStatus,
 }: GeneratedPackVisualizerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const [isRequestingUrl, setIsRequestingUrl] = useState(false);
   const items = generation.items;
   const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
-  const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.downloadUrl;
+  const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.id;
   const isThisLoading = isThisSource && playback.isLoading;
   const isThisPlaying = isThisSource && playback.isPlaying;
 
@@ -51,18 +59,19 @@ export default function GeneratedPackVisualizer({
   );
 
   useEffect(() => {
-    onActiveMidiChange?.(activeItem?.downloadUrl ?? null);
-  }, [activeItem?.downloadUrl, onActiveMidiChange]);
+    onActiveMidiChange?.(activeUrl);
+  }, [activeUrl, onActiveMidiChange]);
 
   function selectItem(index: number) {
     if (index === activeIndex) return;
     if (isThisSource) {
       playback.stop();
     }
+    setActiveUrl(null);
     setActiveIndex(index);
   }
 
-  function togglePreview() {
+  async function togglePreview() {
     if (!activeItem) return;
 
     if (isThisPlaying) {
@@ -70,7 +79,35 @@ export default function GeneratedPackVisualizer({
       return;
     }
 
-    playback.play(activeItem.downloadUrl, soundEngine, activeItem.downloadUrl);
+    setIsRequestingUrl(true);
+    try {
+      const access = await getGeneratedItemPreviewUrl(generation.packId, activeItem.id, token);
+      setActiveUrl(access.url);
+      playback.play(access.url, soundEngine, activeItem.id);
+    } catch {
+      onStubStatus("Preview is unavailable or you no longer have access to this MIDI.");
+    } finally {
+      setIsRequestingUrl(false);
+    }
+  }
+
+  async function downloadPack() {
+    try {
+      const access = await getGeneratedPackDownloadUrl(generation.packId, token);
+      window.location.assign(access.url);
+    } catch {
+      onStubStatus("Pack download is unavailable or you no longer have access.");
+    }
+  }
+
+  async function downloadItem() {
+    if (!activeItem) return;
+    try {
+      const access = await getGeneratedItemDownloadUrl(generation.packId, activeItem.id, token);
+      window.location.assign(access.url);
+    } catch {
+      onStubStatus("MIDI download is unavailable or you no longer have access.");
+    }
   }
 
   return (
@@ -107,18 +144,16 @@ export default function GeneratedPackVisualizer({
           ) : null}
         </div>
 
-        <a
+        <button
           className="inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white"
-          download={`${generation.name.replace(/\s+/g, "_")}_by_icepunk.zip`}
-          href={generation.packDownloadUrl || generation.downloadUrl}
-          rel="noreferrer"
-          target="_blank"
+          onClick={downloadPack}
+          type="button"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span>Download whole pack (ZIP)</span>
-        </a>
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.04] shadow-[var(--ice-shadow-card)] backdrop-blur-2xl">
@@ -138,7 +173,7 @@ export default function GeneratedPackVisualizer({
           <BrowserPianoRoll
             isPlaying={isThisPlaying}
             midiFile={null}
-            midiUrl={activeItem.downloadUrl}
+            midiUrl={activeUrl}
             playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
           />
         ) : (
@@ -164,7 +199,7 @@ export default function GeneratedPackVisualizer({
           </div>
           <div className="flex gap-2">
             <Button
-              disabled={!activeItem}
+              disabled={!activeItem || isRequestingUrl}
               onClick={togglePreview}
               size="sm"
               type="button"
@@ -179,20 +214,19 @@ export default function GeneratedPackVisualizer({
                 </>
               )}
             </Button>
-            <a
+            <button
               className={`inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-medium text-ice-primary transition-colors duration-150 ease-out hover:bg-white/[0.08] ${
                 activeItem ? "" : "pointer-events-none opacity-50"
               }`}
-              download={activeItem ? `${(activeItem.fileName ?? "midi").replace(/\.mid$/i, "").replace(/\s+/g, "_")}_by_icepunk.mid` : undefined}
-              href={activeItem?.downloadUrl ?? "#download"}
-              rel="noreferrer"
-              target="_blank"
+              disabled={!activeItem}
+              onClick={downloadItem}
+              type="button"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Download
-            </a>
+            </button>
           </div>
         </div>
       </div>

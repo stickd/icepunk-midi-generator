@@ -1,6 +1,7 @@
 package icepunk_backend.controller;
 
 import icepunk_backend.dto.GeneratedPackResponse;
+import icepunk_backend.dto.PresignedUrlResponse;
 import icepunk_backend.dto.PublicGeneratedPackFeedResponse;
 import icepunk_backend.dto.RenameGeneratedPackRequest;
 import icepunk_backend.dto.UpdateGeneratedPackVisibilityRequest;
@@ -8,6 +9,7 @@ import icepunk_backend.service.GeneratedPackService.DownloadObject;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.GeneratedPackService;
+import icepunk_backend.service.GeneratedFileAccessService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,10 +34,22 @@ public class GeneratedPackController {
 
     private final GeneratedPackService generatedPackService;
     private final UserRepository userRepository;
+    private final GeneratedFileAccessService generatedFileAccessService;
 
-    public GeneratedPackController(GeneratedPackService generatedPackService, UserRepository userRepository) {
+    @Autowired
+    public GeneratedPackController(
+            GeneratedPackService generatedPackService,
+            UserRepository userRepository,
+            GeneratedFileAccessService generatedFileAccessService
+    ) {
         this.generatedPackService = generatedPackService;
         this.userRepository = userRepository;
+        this.generatedFileAccessService = generatedFileAccessService;
+    }
+
+    /** Retained for unit tests of legacy proxy endpoints. */
+    public GeneratedPackController(GeneratedPackService generatedPackService, UserRepository userRepository) {
+        this(generatedPackService, userRepository, null);
     }
 
     @GetMapping("/generated-packs/{packId}")
@@ -68,6 +83,11 @@ public class GeneratedPackController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/generated-packs/{packId}/download-url")
+    public ResponseEntity<PresignedUrlResponse> downloadPackUrl(Authentication authentication, @PathVariable UUID packId) {
+        return signedUrl(() -> generatedFileAccessService.downloadPack(packId, viewerOrNull(authentication)));
+    }
+
     @GetMapping("/generated-packs/{packId}/items/{itemId}/download")
     public ResponseEntity<ByteArrayResource> downloadItem(
             Authentication authentication,
@@ -77,6 +97,20 @@ public class GeneratedPackController {
         return generatedPackService.getItemDownload(packId, itemId, viewerOrNull(authentication))
                 .map(this::downloadResponse)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/generated-packs/{packId}/items/{itemId}/preview-url")
+    public ResponseEntity<PresignedUrlResponse> previewItemUrl(
+            Authentication authentication, @PathVariable UUID packId, @PathVariable UUID itemId
+    ) {
+        return signedUrl(() -> generatedFileAccessService.previewItem(packId, itemId, viewerOrNull(authentication)));
+    }
+
+    @GetMapping("/generated-packs/{packId}/items/{itemId}/download-url")
+    public ResponseEntity<PresignedUrlResponse> downloadItemUrl(
+            Authentication authentication, @PathVariable UUID packId, @PathVariable UUID itemId
+    ) {
+        return signedUrl(() -> generatedFileAccessService.downloadItem(packId, itemId, viewerOrNull(authentication)));
     }
 
     @GetMapping("/users/me/generated-packs")
@@ -128,5 +162,15 @@ public class GeneratedPackController {
                 .contentLength(download.bytes().length)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + download.fileName() + "\"")
                 .body(new ByteArrayResource(download.bytes()));
+    }
+
+    private ResponseEntity<PresignedUrlResponse> signedUrl(java.util.function.Supplier<PresignedUrlResponse> supplier) {
+        try {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                    .body(supplier.get());
+        } catch (GeneratedFileAccessService.GeneratedFileNotFoundException exception) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

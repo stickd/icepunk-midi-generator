@@ -239,6 +239,10 @@ JWT_SECRET=change_this_to_a_long_random_secret_at_least_32_chars
 CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
 
 S3_BUCKET=icepunk-zips
+# Public browser origin for signed GET URLs; it must route to MinIO, while the bucket stays private.
+S3_PRESIGN_ENDPOINT=https://minio-api.your-domain.com
+PRESIGNED_PREVIEW_TTL_SECONDS=600
+PRESIGNED_DOWNLOAD_TTL_SECONDS=180
 
 BACKEND_PORT=8081
 FRONTEND_PORT=3000
@@ -279,10 +283,16 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/db
 SPRING_DATASOURCE_USERNAME=prod_user
 SPRING_DATASOURCE_PASSWORD=prod_password
 S3_ENDPOINT=https://s3-compatible-endpoint
+S3_PRESIGN_ENDPOINT=https://browser-reachable-s3-endpoint
 S3_BUCKET=icepunk-zips
 S3_ACCESS_KEY=prod_access_key
 S3_SECRET_KEY=prod_secret_key
 ```
+
+Generated MIDI objects are stored in a private bucket. The API authorizes a pack/item ID and then
+returns a short-lived signed GET URL only for Preview or Download; never configure anonymous bucket
+read access. `S3_PRESIGN_ENDPOINT` must be browser reachable and its MinIO/S3 CORS policy must allow
+GET from `CORS_ALLOWED_ORIGINS`.
 
 The Docker image already sets:
 

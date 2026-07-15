@@ -12,10 +12,7 @@ export type FeedGeneration = {
   bpm?: number | null;
   pitch?: number | null;
   octaves?: number | null;
-  packDownloadUrl?: string;
   items?: GeneratedMidiItem[];
-  midiUrl?: string;
-  midiPreviewUrl?: string;
   sampleUrl?: string | null;
   uploadedAt?: string;
 };
@@ -49,7 +46,6 @@ export function toFeedGeneration(item: PublicGeneratedPackFeedItem): FeedGenerat
       fileName: (m as { fileName?: string; filename?: string }).fileName ?? (m as { fileName?: string; filename?: string }).filename ?? "MIDI",
     })),
     midiCount: safeItems.length,
-    packDownloadUrl: item.packDownloadUrl,
     sound: item.type === "DRUMS" ? "Generated drums" : "Generated melody",
     timeAgo: formatRelativeTime(item.createdAt ?? ""),
     title: item.name ?? "Untitled Pack",

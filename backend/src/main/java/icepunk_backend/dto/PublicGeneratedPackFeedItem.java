@@ -1,6 +1,7 @@
 package icepunk_backend.dto;
 
 import icepunk_backend.model.GeneratedPackVisibility;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -19,7 +20,7 @@ public record PublicGeneratedPackFeedItem(
         Integer amount,
         OffsetDateTime createdAt,
         GeneratedPackVisibility visibility,
-        String packDownloadUrl,
+        @JsonIgnore String packDownloadUrl,
         List<GeneratedMidiItemResponse> items
 ) {
 }

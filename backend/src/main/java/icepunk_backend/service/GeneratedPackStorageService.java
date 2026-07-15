@@ -16,8 +16,11 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.UUID;
 
 @Service
@@ -28,14 +31,22 @@ public class GeneratedPackStorageService {
     public static final String GENERATED_ITEM_PREFIX = "generated_midi_items/";
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     private final String bucket;
 
     public GeneratedPackStorageService(
             S3Client s3Client,
+            S3Presigner s3Presigner,
             @Value("${s3.bucket}") String bucket
     ) {
         this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
         this.bucket = bucket;
+    }
+
+    /** Retained for storage tests that exercise upload/read behavior only. */
+    public GeneratedPackStorageService(S3Client s3Client, String bucket) {
+        this(s3Client, null, bucket);
     }
 
     public StoredObject uploadZip(Path zipPath) {
@@ -95,6 +106,30 @@ public class GeneratedPackStorageService {
         }
 
         return new StoredObject(key);
+    }
+
+    public String createPresignedGetUrl(
+            String objectKey,
+            Duration ttl,
+            String contentType,
+            String contentDisposition
+    ) {
+        if (s3Presigner == null) {
+            throw new IllegalStateException("S3 presigner is not configured");
+        }
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(objectKey)
+                .responseContentType(contentType)
+                .responseContentDisposition(contentDisposition)
+                .build();
+
+        return s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
+                        .signatureDuration(ttl)
+                        .getObjectRequest(getObjectRequest)
+                        .build())
+                .url()
+                .toExternalForm();
     }
 
     public record StoredObject(String objectKey) {

@@ -69,15 +69,12 @@ blended with the factory pool), up to 10 combined sources total.
   "octaves": 1,
   "amount": 10,
   "createdAt": "2026-07-08T12:00:00Z",
-  "packDownloadUrl": "/generated-packs/{packId}/download",
-  "downloadUrl": "/generated-packs/{packId}/download",
   "totalGenerations": 12345,
   "items": [
     {
       "id": "uuid",
       "index": 0,
       "fileName": "icepunk_001.mid",
-      "downloadUrl": "/generated-packs/{packId}/items/{itemId}/download",
       "durationSeconds": 8.5,
       "noteCount": 42,
       "trackCount": 1,
@@ -91,9 +88,21 @@ blended with the factory pool), up to 10 combined sources total.
 }
 ```
 
-`downloadUrl` is a backward-compatible alias for `packDownloadUrl`. Both `download` URLs are
+<!-- Legacy proxy-download description (superseded by Generated-file access below):
 **relative paths proxied through the backend**, not direct storage URLs — the frontend must
-prefix them with `NEXT_PUBLIC_API_URL` (see `apiUrl()` in `frontend/lib/api.ts`).
+prefix them with `NEXT_PUBLIC_API_URL` (see `apiUrl()` in `frontend/lib/api.ts`). -->
+
+### Generated-file access
+
+Generation and Feed metadata do not contain a permanent object-storage URL. Request a temporary
+URL only after user action:
+
+- `GET /generated-packs/{packId}/items/{itemId}/preview-url`
+- `GET /generated-packs/{packId}/items/{itemId}/download-url`
+- `GET /generated-packs/{packId}/download-url`
+
+Each returns `{ "url": "...", "expiresAt": "..." }` and `Cache-Control: no-store`. The backend
+authorizes `packId`/`itemId` before signing; clients never send an object key.
 
 ## Datasets
 

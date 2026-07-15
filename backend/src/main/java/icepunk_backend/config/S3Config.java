@@ -9,12 +9,18 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 import java.time.Duration;
 
 @Configuration
 public class S3Config {
+
+    private StaticCredentialsProvider credentials(String accessKey, String secretKey) {
+        return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+    }
 
     @Bean
     public S3Client s3Client(
@@ -37,12 +43,23 @@ public class S3Config {
                         .apiCallTimeout(Duration.ofSeconds(apiCallTimeoutSeconds))
                         .apiCallAttemptTimeout(Duration.ofSeconds(apiCallAttemptTimeoutSeconds))
                         .build())
-                .credentialsProvider(
-                        StaticCredentialsProvider.create(
-                                AwsBasicCredentials.create(accessKey, secretKey)
-                        )
-                )
-                .forcePathStyle(true)
+                .credentialsProvider(credentials(accessKey, secretKey))
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
+    }
+
+    @Bean
+    public S3Presigner s3Presigner(
+            @Value("${s3.presign-endpoint:${s3.endpoint}}") String endpoint,
+            @Value("${s3.region}") String region,
+            @Value("${s3.access-key}") String accessKey,
+            @Value("${s3.secret-key}") String secretKey
+    ) {
+        return S3Presigner.builder()
+                .endpointOverride(URI.create(endpoint))
+                .region(Region.of(region))
+                .credentialsProvider(credentials(accessKey, secretKey))
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
     }
 }

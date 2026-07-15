@@ -411,7 +411,9 @@ public class GeneratedPackService {
                 item.getMaxPitch(),
                 item.getAvgPitch(),
                 item.getBpm(),
-                previewFromMetadata(item.getMetadata())
+                previewFromMetadata(item.getMetadata()),
+                true,
+                true
         );
     }
 

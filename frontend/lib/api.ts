@@ -15,16 +15,7 @@ function apiUrl(pathOrUrl?: string) {
 }
 
 function normalizeGeneratedMidiResponse(response: GenerateMidiResponse): GenerateMidiResponse {
-  const result: GenerateMidiResponse = { ...response };
-  if (response.downloadUrl) result.downloadUrl = apiUrl(response.downloadUrl);
-  if (response.packDownloadUrl) result.packDownloadUrl = apiUrl(response.packDownloadUrl);
-  if (Array.isArray(response.items)) {
-    result.items = response.items.map((item) => ({
-      ...item,
-      downloadUrl: apiUrl(item.downloadUrl),
-    }));
-  }
-  return result;
+  return response;
 }
 
 function withTimeout(signal?: AbortSignal): AbortSignal {
@@ -104,7 +95,8 @@ export type GeneratedMidiItem = {
   id: string;
   index: number;
   fileName: string;
-  downloadUrl: string;
+  /** @deprecated Signed URLs are requested lazily via getGeneratedItemDownloadUrl. */
+  downloadUrl?: string;
   durationSeconds: number | null;
   noteCount: number | null;
   trackCount: number | null;
@@ -113,6 +105,8 @@ export type GeneratedMidiItem = {
   avgPitch: number | null;
   bpm: number | null;
   preview: MidiPreview;
+  canPreview?: boolean;
+  canDownload?: boolean;
 };
 
 export type GenerateMidiResponse = {
@@ -125,8 +119,10 @@ export type GenerateMidiResponse = {
   octaves: number | null;
   amount: number;
   createdAt: string;
-  packDownloadUrl: string;
-  downloadUrl: string;
+  /** @deprecated Signed URLs are requested lazily. */
+  packDownloadUrl?: string;
+  /** @deprecated Signed URLs are requested lazily. */
+  downloadUrl?: string;
   totalGenerations: number;
   items: GeneratedMidiItem[];
 };
@@ -146,7 +142,8 @@ export type PublicGeneratedPackFeedItem = {
   amount: number;
   createdAt: string;
   visibility: GeneratedPackVisibility;
-  packDownloadUrl: string;
+  /** @deprecated Signed URLs are requested lazily. */
+  packDownloadUrl?: string;
   items: GeneratedMidiItem[];
 };
 
@@ -158,6 +155,24 @@ export type PublicGeneratedPackFeedResponse = {
   totalPages: number;
   hasNext: boolean;
 };
+
+export type PresignedUrlResponse = { url: string; expiresAt: string };
+
+async function getGeneratedAccessUrl(path: string, token?: string | null): Promise<PresignedUrlResponse> {
+  return fetchJson<PresignedUrlResponse>(path, { headers: authHeaders(token) });
+}
+
+export function getGeneratedPackDownloadUrl(packId: string, token?: string | null) {
+  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/download-url`, token);
+}
+
+export function getGeneratedItemPreviewUrl(packId: string, itemId: string, token?: string | null) {
+  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/items/${encodeURIComponent(itemId)}/preview-url`, token);
+}
+
+export function getGeneratedItemDownloadUrl(packId: string, itemId: string, token?: string | null) {
+  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/items/${encodeURIComponent(itemId)}/download-url`, token);
+}
 
 export type GenerationSource = "FACTORY" | "CUSTOM_UPLOAD";
 export type GenerationType = "MELODY" | "DRUMS";
@@ -417,17 +432,7 @@ export async function getPublicGeneratedPackFeed(
 
   const feed = (await response.json()) as PublicGeneratedPackFeedResponse;
 
-  return {
-    ...feed,
-    items: feed.items.map((item) => ({
-      ...item,
-      packDownloadUrl: apiUrl(item.packDownloadUrl),
-      items: item.items.map((midiItem) => ({
-        ...midiItem,
-        downloadUrl: apiUrl(midiItem.downloadUrl),
-      })),
-    })),
-  };
+  return feed;
 }
 
 export async function getUserGeneratedPacksFeed(
@@ -457,17 +462,7 @@ export async function getUserGeneratedPacksFeed(
 
   const feed = (await response.json()) as PublicGeneratedPackFeedResponse;
 
-  return {
-    ...feed,
-    items: feed.items.map((item) => ({
-      ...item,
-      packDownloadUrl: apiUrl(item.packDownloadUrl),
-      items: item.items.map((midiItem) => ({
-        ...midiItem,
-        downloadUrl: apiUrl(midiItem.downloadUrl),
-      })),
-    })),
-  };
+  return feed;
 }
 
 export function getPublicUploadMidiPreviewUrl(projectId: number) {

@@ -1,5 +1,6 @@
 package icepunk_backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,8 +15,8 @@ public record GenerationResponse(
         Integer octaves,
         Integer amount,
         OffsetDateTime createdAt,
-        String packDownloadUrl,
-        String downloadUrl,
+        @JsonIgnore String packDownloadUrl,
+        @JsonIgnore String downloadUrl,
         long totalGenerations,
         List<GeneratedMidiItemResponse> items
 ) {
