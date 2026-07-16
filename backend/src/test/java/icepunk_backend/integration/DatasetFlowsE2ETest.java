@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -215,9 +216,13 @@ class DatasetFlowsE2ETest {
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
         Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + java.util.UUID.randomUUID()));
-        Path midiPath = Files.write(outputDir.resolve("track.mid"), ValidMidiFixtures.singleNoteStandardMidi());
+        List<Path> midiFiles = new ArrayList<>();
+        for (int index = 0; index < 10; index++) {
+            String name = index == 0 ? "track.mid" : "track-" + index + ".mid";
+            midiFiles.add(Files.write(outputDir.resolve(name), ValidMidiFixtures.singleNoteStandardMidi()));
+        }
         Path zipPath = Files.writeString(tempDir.resolve("pack-" + java.util.UUID.randomUUID() + ".zip"), "zip");
-        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
+        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, midiFiles);
     }
 
     private String register(String username, String email, String password, String ip) throws Exception {

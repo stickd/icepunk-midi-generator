@@ -13,6 +13,7 @@ import icepunk_backend.model.GeneratedPackStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UUID> {
@@ -30,6 +31,7 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
             select pack from GeneratedPack pack
             join pack.owner owner
             where pack.visibility = :visibility
+              and pack.status = 'READY'
               and lower(owner.username) <> 'guest'
             order by pack.createdAt desc
             """)
@@ -41,6 +43,7 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
             join pack.owner owner
             where lower(owner.username) = lower(:username)
               and pack.visibility = :visibility
+              and pack.status = 'READY'
               and lower(owner.username) <> 'guest'
             order by pack.createdAt desc
             """)
@@ -64,9 +67,24 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
             Pageable pageable
     );
 
-    long countByOwnerIdAndVisibility(Long ownerId, GeneratedPackVisibility visibility);
+    long countByOwnerIdAndVisibilityAndStatus(Long ownerId, GeneratedPackVisibility visibility, GeneratedPackStatus status);
 
     @Modifying
     @Query(value = "update generated_packs set status = 'READY', finalized_at = CURRENT_TIMESTAMP, cleanup_required = false, failure_code = null where id = :id and status = 'PENDING'", nativeQuery = true)
     int markReadyIfPending(@Param("id") UUID id);
+
+    @Modifying
+    @Query(value = "update generated_packs set status = 'FAILED', failure_code = :failureCode, updated_at = :updatedAt where id = :id and status = 'PENDING'", nativeQuery = true)
+    int markFailedIfPending(@Param("id") UUID id, @Param("failureCode") String failureCode,
+                            @Param("updatedAt") OffsetDateTime updatedAt);
+
+    @Modifying
+    @Query(value = "update generated_packs set status = 'FAILED', failure_code = 'DELETE_PENDING', updated_at = :updatedAt where id = :id and status = 'READY'", nativeQuery = true)
+    int markDeletionPendingIfReady(@Param("id") UUID id, @Param("updatedAt") OffsetDateTime updatedAt);
+
+    @Query("select pack from GeneratedPack pack where pack.status = :status and coalesce(pack.updatedAt, pack.createdAt) <= :cutoff order by coalesce(pack.updatedAt, pack.createdAt), pack.id")
+    Page<GeneratedPack> findStaleByStatus(@Param("status") GeneratedPackStatus status, @Param("cutoff") OffsetDateTime cutoff, Pageable pageable);
+
+    @Query("select pack from GeneratedPack pack where pack.cleanupRequired = true and pack.status <> 'READY' order by coalesce(pack.lastCleanupAt, pack.createdAt), pack.id")
+    Page<GeneratedPack> findCleanupRequired(Pageable pageable);
 }

@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -212,9 +213,12 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
         Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + UUID.randomUUID()));
-        Path midiPath = Files.write(outputDir.resolve("track.mid"), ValidMidiFixtures.singleNoteStandardMidi());
+        List<Path> midiFiles = new ArrayList<>();
+        for (int index = 0; index < 10; index++) {
+            midiFiles.add(Files.write(outputDir.resolve("track-" + index + ".mid"), ValidMidiFixtures.singleNoteStandardMidi()));
+        }
         Path zipPath = Files.writeString(tempDir.resolve("pack-" + UUID.randomUUID() + ".zip"), "zip");
-        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
+        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, midiFiles);
     }
 
     private record ConcurrentResult(int succeeded, int rejected) {

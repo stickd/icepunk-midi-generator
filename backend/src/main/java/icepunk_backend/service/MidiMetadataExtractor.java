@@ -10,6 +10,7 @@ import javax.sound.midi.MidiSystem;
 import javax.sound.midi.Sequence;
 import javax.sound.midi.ShortMessage;
 import javax.sound.midi.Track;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,6 +25,22 @@ public class MidiMetadataExtractor {
     private static final int DEFAULT_BPM = 120;
 
     public MidiMetadata extract(Path midiPath) {
+        try {
+            return extractRequired(midiPath);
+        } catch (Exception exception) {
+            return MidiMetadata.empty();
+        }
+    }
+
+    /**
+     * Parses a generated MIDI as an integrity gate. Unlike {@link #extract(Path)},
+     * this method never converts an invalid file into empty metadata.
+     */
+    public MidiMetadata extractRequired(Path midiPath) {
+        if (midiPath == null || !Files.isRegularFile(midiPath)) {
+            throw new IllegalArgumentException("Generated MIDI is missing or is not a regular file");
+        }
+
         try {
             Sequence sequence = MidiSystem.getSequence(midiPath.toFile());
             double ticksPerBeat = sequence.getResolution() > 0 ? sequence.getResolution() : 480.0;
@@ -63,7 +80,7 @@ public class MidiMetadataExtractor {
                     new MidiPreviewResponse(previewNotes, notes.size() > PREVIEW_NOTE_LIMIT)
             );
         } catch (Exception exception) {
-            return MidiMetadata.empty();
+            throw new IllegalArgumentException("Generated MIDI could not be parsed", exception);
         }
     }
 

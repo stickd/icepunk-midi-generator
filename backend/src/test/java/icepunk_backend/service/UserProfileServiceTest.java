@@ -87,7 +87,7 @@ class UserProfileServiceTest {
     void getProfileAggregatesPublicStats() {
         when(userRepository.findByUsernameIgnoreCase("maco")).thenReturn(Optional.of(owner));
         when(projectRepository.countByOwnerIdAndVisibility(1L, UploadVisibility.PUBLIC)).thenReturn(3L);
-        when(generatedPackRepository.countByOwnerIdAndVisibility(1L, icepunk_backend.model.GeneratedPackVisibility.PUBLIC)).thenReturn(2L);
+        when(generatedPackRepository.countByOwnerIdAndVisibilityAndStatus(1L, icepunk_backend.model.GeneratedPackVisibility.PUBLIC, icepunk_backend.model.GeneratedPackStatus.READY)).thenReturn(2L);
         when(projectRepository.sumDownloadCountByOwnerIdAndVisibility(1L, UploadVisibility.PUBLIC)).thenReturn(120L);
         when(likeRepository.countLikesReceivedByOwner(1L, UploadVisibility.PUBLIC)).thenReturn(48L);
 

@@ -25,5 +25,8 @@ public class GeneratedPackCleanupService {
         pack.setCleanupRequired(failed>0); pack.setCleanupLastError(failed>0?"OBJECT_DELETE_FAILED":null); packs.save(pack);
         return new Result(failed==0,attempted,attempted-failed,failed,failed==0?null:"OBJECT_DELETE_FAILED");
     }
+    /** Used only after an owner has atomically changed READY to DELETE_PENDING/FAILED. */
+    @Transactional(propagation=Propagation.REQUIRES_NEW)
+    public Result cleanupForDeletion(UUID packId) { return cleanup(packId); }
     public record Result(boolean complete,int attempted,int successful,int failed,String error){}
 }

@@ -8,6 +8,7 @@ import icepunk_backend.repository.GeneratedPackRepository;
 import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.GeneratedPackTransactionService;
 import icepunk_backend.service.MidiGenerationService;
+import icepunk_backend.support.ValidMidiFixtures;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -216,7 +218,7 @@ class ApiFlowsE2ETest {
         assertEquals(1, generatedPackRepository.findAll().stream()
                 .filter(pack -> pack.getStatus() == GeneratedPackStatus.FAILED)
                 .count());
-        verify(generatedPackStorageService, times(2)).deleteObject(anyString());
+        verify(generatedPackStorageService, times(11)).deleteObject(anyString());
     }
 
     // --- Helpers ----------------------------------------------------------
@@ -232,9 +234,13 @@ class ApiFlowsE2ETest {
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
         Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + java.util.UUID.randomUUID()));
-        Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
+        List<Path> midiFiles = new ArrayList<>();
+        for (int index = 0; index < 10; index++) {
+            String name = index == 0 ? "track.mid" : "track-" + index + ".mid";
+            midiFiles.add(Files.write(outputDir.resolve(name), ValidMidiFixtures.singleNoteStandardMidi()));
+        }
         Path zipPath = Files.writeString(tempDir.resolve("pack-" + java.util.UUID.randomUUID() + ".zip"), "zip");
-        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
+        return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, midiFiles);
     }
 
     private void assertCounterUnchanged() throws Exception {

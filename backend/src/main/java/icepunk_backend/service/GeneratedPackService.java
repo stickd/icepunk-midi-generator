@@ -192,6 +192,7 @@ public class GeneratedPackService {
     @Transactional(readOnly = true)
     public Optional<String> getItemDownloadUrl(UUID packId, UUID itemId) {
         return itemRepository.findByIdAndPackId(itemId, packId)
+                .filter(item -> item.getPack().getStatus() == GeneratedPackStatus.READY)
                 .map(item -> itemDownloadPath(packId, itemId));
     }
 
@@ -199,11 +200,11 @@ public class GeneratedPackService {
                                                                MidiGenerationService.GeneratedFiles generatedFiles) {
         GeneratedPackTransactionService.Context context = transactionService.createPendingPack(owner, request, generatedFiles.midiFiles());
         try {
-            if (context.items().size() != generatedFiles.midiFiles().size()) {
-                throw new IllegalStateException("Generated item count does not match staged records");
-            }
+            validateExpectedMidiCount(request, generatedFiles.midiFiles());
             for (int index = 0; index < context.items().size(); index++) {
-                storageService.uploadMidi(generatedFiles.midiFiles().get(index), context.items().get(index).key());
+                Path midiFile = generatedFiles.midiFiles().get(index);
+                validateGeneratedMidi(midiFile);
+                storageService.uploadMidi(midiFile, context.items().get(index).key());
             }
             storageService.uploadZip(generatedFiles.zipPath(), context.zipKey());
             if (!transactionService.finalizeReady(context.packId())) {
@@ -227,12 +228,52 @@ public class GeneratedPackService {
     }
 
     private String failureCode(RuntimeException exception) {
+        if (exception instanceof GeneratedPackIntegrityException integrityException) {
+            return integrityException.code();
+        }
         return exception instanceof icepunk_backend.exception.StorageException ? "OBJECT_UPLOAD_FAILED" : "PACK_FINALIZATION_FAILED";
+    }
+
+    private void validateExpectedMidiCount(GenerationRequest request, List<Path> midiFiles) {
+        int expected = request.getAmount();
+        int actual = midiFiles == null ? 0 : midiFiles.size();
+        if (expected <= 0 || actual == 0 || actual != expected) {
+            throw new GeneratedPackIntegrityException("MIDI_COUNT_MISMATCH",
+                    "Generated MIDI count does not match the requested amount");
+        }
+    }
+
+    private void validateGeneratedMidi(Path midiFile) {
+        try {
+            metadataExtractor.extractRequired(midiFile);
+        } catch (RuntimeException exception) {
+            throw new GeneratedPackIntegrityException("MIDI_VALIDATION_FAILED",
+                    "Generated MIDI failed integrity validation", exception);
+        }
+    }
+
+    private static final class GeneratedPackIntegrityException extends RuntimeException {
+        private final String code;
+
+        private GeneratedPackIntegrityException(String code, String message) {
+            super(message);
+            this.code = code;
+        }
+
+        private GeneratedPackIntegrityException(String code, String message, Throwable cause) {
+            super(message, cause);
+            this.code = code;
+        }
+
+        private String code() {
+            return code;
+        }
     }
 
     @Transactional(readOnly = true)
     public Optional<String> getPackDownloadUrl(UUID packId) {
         return packRepository.findById(packId)
+                .filter(pack -> pack.getStatus() == GeneratedPackStatus.READY)
                 .map(pack -> packDownloadPath(packId));
     }
 
@@ -294,18 +335,19 @@ public class GeneratedPackService {
         return toPackResponse(saved, sortedItems(saved.getItems()));
     }
 
-    @Transactional
     public void deletePack(UUID packId, User requester) {
         GeneratedPack pack = requireOwnedPack(packId, requester);
-
-        List<String> objectKeys = new ArrayList<>();
-        objectKeys.add(pack.getZipObjectKey());
-        pack.getItems().forEach(item -> objectKeys.add(item.getMidiObjectKey()));
-
-        packRepository.delete(pack);
-        packRepository.flush();
-
-        objectKeys.forEach(storageService::deleteObjectQuietly);
+        if (pack.getStatus() == GeneratedPackStatus.READY
+                && !transactionService.markDeletionPendingIfReady(packId)) {
+            throw new IllegalStateException("Generated pack deletion state changed concurrently");
+        }
+        GeneratedPackCleanupService.Result cleanup = cleanupService.cleanupForDeletion(packId);
+        if (!cleanup.complete()) {
+            throw new IllegalStateException("Generated pack cleanup is pending retry");
+        }
+        if (!transactionService.deleteIfOwned(packId, requester.getId())) {
+            throw new ResourceNotFoundException("Generated pack not found: " + packId);
+        }
     }
 
     private GeneratedPack requireOwnedPack(UUID packId, User requester) {

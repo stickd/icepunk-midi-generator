@@ -66,7 +66,8 @@ public class UserProfileService {
         User user = findUserByUsername(username);
 
         long publicUploads = projectRepository.countByOwnerIdAndVisibility(user.getId(), UploadVisibility.PUBLIC);
-        long publicGenerated = generatedPackRepository.countByOwnerIdAndVisibility(user.getId(), GeneratedPackVisibility.PUBLIC);
+        long publicGenerated = generatedPackRepository.countByOwnerIdAndVisibilityAndStatus(
+                user.getId(), GeneratedPackVisibility.PUBLIC, icepunk_backend.model.GeneratedPackStatus.READY);
         long packCount = publicUploads + publicGenerated;
 
         long totalDownloads = projectRepository.sumDownloadCountByOwnerIdAndVisibility(

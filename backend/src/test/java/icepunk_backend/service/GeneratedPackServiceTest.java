@@ -22,9 +22,12 @@ import org.springframework.data.domain.Pageable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import icepunk_backend.support.ValidMidiFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,6 +41,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 class GeneratedPackServiceTest {
 
@@ -72,7 +77,9 @@ class GeneratedPackServiceTest {
         when(transactions.createPendingPack(any(), any(), any())).thenReturn(context);
         doThrow(original).when(transactions).finalizeReady(packId);
         MidiGenerationService.GeneratedFiles files = new MidiGenerationService.GeneratedFiles(output, zip, List.of(first, second));
-        RuntimeException thrown = assertThrows(RuntimeException.class, () -> staged.persistGeneratedPack(null, factoryRequest(), files));
+        GenerationRequest request = factoryRequest();
+        request.setAmount(2);
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> staged.persistGeneratedPack(null, request, files));
         assertSame(original, thrown);
         var order = inOrder(transactions, storageService, cleanup);
         order.verify(transactions).createPendingPack(any(), any(), any());
@@ -91,7 +98,8 @@ class GeneratedPackServiceTest {
         Path dir=Files.createDirectories(tempDir.resolve("partial")); Path one=Files.writeString(dir.resolve("1.mid"),"x"), two=Files.writeString(dir.resolve("2.mid"),"x"), three=Files.writeString(dir.resolve("3.mid"),"x"), zip=Files.writeString(dir.resolve("p.zip"),"x"); UUID id=UUID.randomUUID();
         var c=new GeneratedPackTransactionService.Context(id,"z",List.of(new GeneratedPackTransactionService.Item(UUID.randomUUID(),"a"),new GeneratedPackTransactionService.Item(UUID.randomUUID(),"b"),new GeneratedPackTransactionService.Item(UUID.randomUUID(),"c"))); RuntimeException original=new RuntimeException("item");
         when(tx.createPendingPack(any(),any(),any())).thenReturn(c); doThrow(original).when(storageService).uploadMidi(two,"b");
-        assertSame(original,assertThrows(RuntimeException.class,()->staged.persistGeneratedPack(null,factoryRequest(),new MidiGenerationService.GeneratedFiles(dir,zip,List.of(one,two,three)))));
+        GenerationRequest request = factoryRequest(); request.setAmount(3);
+        assertSame(original,assertThrows(RuntimeException.class,()->staged.persistGeneratedPack(null,request,new MidiGenerationService.GeneratedFiles(dir,zip,List.of(one,two,three)))));
         verify(storageService,org.mockito.Mockito.never()).uploadMidi(three,"c"); verify(storageService,org.mockito.Mockito.never()).uploadZip(any(),any()); verify(tx,org.mockito.Mockito.never()).finalizeReady(id); verify(tx).markFailedIfPending(id,"PACK_FINALIZATION_FAILED"); verify(cleanup).cleanup(id);
     }
 
@@ -101,8 +109,72 @@ class GeneratedPackServiceTest {
         GeneratedPackService staged=new GeneratedPackService(packRepository,itemRepository,storageService,metadataExtractor,tx,cleanup);
         Path dir=Files.createDirectories(tempDir.resolve("zipfail")); Path one=Files.writeString(dir.resolve("1.mid"),"x"), zip=Files.writeString(dir.resolve("p.zip"),"x"); UUID id=UUID.randomUUID(); var c=new GeneratedPackTransactionService.Context(id,"z",List.of(new GeneratedPackTransactionService.Item(UUID.randomUUID(),"a"))); RuntimeException original=new RuntimeException("zip");
         when(tx.createPendingPack(any(),any(),any())).thenReturn(c); doThrow(original).when(storageService).uploadZip(zip,"z");
-        assertSame(original,assertThrows(RuntimeException.class,()->staged.persistGeneratedPack(null,factoryRequest(),new MidiGenerationService.GeneratedFiles(dir,zip,List.of(one)))));
+        GenerationRequest request = factoryRequest(); request.setAmount(1);
+        assertSame(original,assertThrows(RuntimeException.class,()->staged.persistGeneratedPack(null,request,new MidiGenerationService.GeneratedFiles(dir,zip,List.of(one)))));
         verify(tx,org.mockito.Mockito.never()).finalizeReady(id); verify(tx).markFailedIfPending(id,"PACK_FINALIZATION_FAILED"); verify(cleanup).cleanup(id);
+    }
+
+    @Test
+    void stagedFlowFinalizesOnlyWhenAllRequestedMidiFilesParseSuccessfully() throws Exception {
+        GeneratedPackTransactionService tx = mock(GeneratedPackTransactionService.class);
+        GeneratedPackCleanupService cleanup = mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged = new GeneratedPackService(packRepository, itemRepository, storageService,
+                new MidiMetadataExtractor(), tx, cleanup);
+        Path dir = Files.createDirectories(tempDir.resolve("five-valid"));
+        List<Path> midiFiles = new ArrayList<>();
+        List<GeneratedPackTransactionService.Item> items = new ArrayList<>();
+        for (int index = 0; index < 5; index++) {
+            Path midi = dir.resolve(index + ".mid");
+            Files.write(midi, ValidMidiFixtures.singleNoteStandardMidi());
+            midiFiles.add(midi);
+            items.add(new GeneratedPackTransactionService.Item(UUID.randomUUID(), "item-" + index));
+        }
+        Path zip = Files.writeString(dir.resolve("pack.zip"), "zip");
+        UUID packId = UUID.randomUUID();
+        when(tx.createPendingPack(any(), any(), any())).thenReturn(new GeneratedPackTransactionService.Context(packId, "zip", items));
+        when(tx.finalizeReady(packId)).thenReturn(true);
+        when(packRepository.findWithItemsById(packId)).thenReturn(Optional.of(readyPack(packId)));
+        GenerationRequest request = factoryRequest(); request.setAmount(5);
+
+        staged.persistGeneratedPack(null, request, new MidiGenerationService.GeneratedFiles(dir, zip, midiFiles));
+
+        verify(tx).finalizeReady(packId);
+        verify(storageService, times(5)).uploadMidi(any(), any());
+        verify(cleanup, never()).cleanup(any());
+    }
+
+    @Test
+    void fewerOrMoreOrZeroMidiFilesFailBeforeAnyUpload() throws Exception {
+        assertCountMismatch(5, 4);
+        assertCountMismatch(5, 6);
+        assertCountMismatch(5, 0);
+    }
+
+    @Test
+    void parseFailureAfterPartialUploadMarksFailedAndCleansPersistedObjects() throws Exception {
+        GeneratedPackTransactionService tx = mock(GeneratedPackTransactionService.class);
+        GeneratedPackCleanupService cleanup = mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged = new GeneratedPackService(packRepository, itemRepository, storageService, metadataExtractor, tx, cleanup);
+        Path dir = Files.createDirectories(tempDir.resolve("parse-failure"));
+        Path first = Files.writeString(dir.resolve("first.mid"), "first");
+        Path broken = Files.writeString(dir.resolve("broken.mid"), "broken");
+        Path zip = Files.writeString(dir.resolve("pack.zip"), "zip");
+        UUID packId = UUID.randomUUID();
+        var context = new GeneratedPackTransactionService.Context(packId, "zip", List.of(
+                new GeneratedPackTransactionService.Item(UUID.randomUUID(), "first-key"),
+                new GeneratedPackTransactionService.Item(UUID.randomUUID(), "broken-key")));
+        when(tx.createPendingPack(any(), any(), any())).thenReturn(context);
+        doThrow(new IllegalArgumentException("corrupt MIDI")).when(metadataExtractor).extractRequired(broken);
+        GenerationRequest request = factoryRequest(); request.setAmount(2);
+
+        assertThrows(RuntimeException.class, () -> staged.persistGeneratedPack(null, request,
+                new MidiGenerationService.GeneratedFiles(dir, zip, List.of(first, broken))));
+
+        verify(storageService).uploadMidi(first, "first-key");
+        verify(storageService, never()).uploadMidi(broken, "broken-key");
+        verify(tx).markFailedIfPending(packId, "MIDI_VALIDATION_FAILED");
+        verify(cleanup).cleanup(packId);
+        verify(tx, never()).finalizeReady(packId);
     }
 
     @Test
@@ -295,6 +367,27 @@ class GeneratedPackServiceTest {
     }
 
     @Test
+    void deletionPendingPackIsHiddenFromMetadataAndAllDownloadPaths() {
+        User owner = new User("owner", "owner@example.com", "hash"); owner.setId(1L);
+        UUID packId = UUID.randomUUID(); UUID itemId = UUID.randomUUID();
+        GeneratedPack pack = privatePack(packId, owner);
+        pack.setStatus(icepunk_backend.model.GeneratedPackStatus.FAILED);
+        pack.setFailureCode("DELETE_PENDING");
+        pack.setZipObjectKey("zip");
+        GeneratedPackItem item = new GeneratedPackItem(); item.setId(itemId); item.setPack(pack); item.setMidiObjectKey("item"); item.setFileName("item.mid");
+        when(packRepository.findWithItemsById(packId)).thenReturn(Optional.of(pack));
+        when(packRepository.findById(packId)).thenReturn(Optional.of(pack));
+        when(itemRepository.findByIdAndPackId(itemId, packId)).thenReturn(Optional.of(item));
+
+        assertTrue(service.getPack(packId, owner).isEmpty());
+        assertTrue(service.getPackDownloadUrl(packId).isEmpty());
+        assertTrue(service.getItemDownloadUrl(packId, itemId).isEmpty());
+        assertTrue(service.getPackDownload(packId, owner).isEmpty());
+        assertTrue(service.getItemDownload(packId, itemId, owner).isEmpty());
+        verify(storageService, never()).readObject(any());
+    }
+
+    @Test
     void legacyItemDownloadDoesNotReadStorageWhenItemBelongsToAnotherPack() {
         UUID requestedPackId = UUID.randomUUID();
         UUID itemId = UUID.randomUUID();
@@ -361,5 +454,43 @@ class GeneratedPackServiceTest {
         request.setPitch(0);
         request.setOctaves(1);
         return request;
+    }
+
+    private void assertCountMismatch(int expected, int actual) throws Exception {
+        GeneratedPackTransactionService tx = mock(GeneratedPackTransactionService.class);
+        GeneratedPackCleanupService cleanup = mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged = new GeneratedPackService(packRepository, itemRepository, storageService, metadataExtractor, tx, cleanup);
+        Path dir = Files.createDirectories(tempDir.resolve("count-" + expected + "-" + actual + "-" + UUID.randomUUID()));
+        List<Path> midiFiles = new ArrayList<>();
+        List<GeneratedPackTransactionService.Item> items = new ArrayList<>();
+        for (int index = 0; index < actual; index++) {
+            midiFiles.add(Files.writeString(dir.resolve(index + ".mid"), "midi"));
+            items.add(new GeneratedPackTransactionService.Item(UUID.randomUUID(), "item-" + index));
+        }
+        Path zip = Files.writeString(dir.resolve("pack.zip"), "zip");
+        UUID packId = UUID.randomUUID();
+        when(tx.createPendingPack(any(), any(), any())).thenReturn(new GeneratedPackTransactionService.Context(packId, "zip", items));
+        GenerationRequest request = factoryRequest(); request.setAmount(expected);
+
+        assertThrows(RuntimeException.class, () -> staged.persistGeneratedPack(null, request,
+                new MidiGenerationService.GeneratedFiles(dir, zip, midiFiles)));
+
+        verify(storageService, never()).uploadMidi(any(), any());
+        verify(storageService, never()).uploadZip(any(), any());
+        verify(tx).markFailedIfPending(packId, "MIDI_COUNT_MISMATCH");
+        verify(cleanup).cleanup(packId);
+        verify(tx, never()).finalizeReady(packId);
+    }
+
+    private GeneratedPack readyPack(UUID packId) {
+        GeneratedPack pack = new GeneratedPack();
+        pack.setId(packId);
+        pack.setName("Ready Pack");
+        pack.setSourceType(GenerationSourceType.FACTORY);
+        pack.setGenerationType(GeneratedPackType.MELODY);
+        pack.setAmount(5);
+        pack.setCreatedAt(OffsetDateTime.now());
+        pack.setStatus(icepunk_backend.model.GeneratedPackStatus.READY);
+        return pack;
     }
 }
