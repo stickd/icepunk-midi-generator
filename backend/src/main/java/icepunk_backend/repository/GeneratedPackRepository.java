@@ -7,6 +7,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.repository.query.Param;
+import icepunk_backend.model.GeneratedPackStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -62,4 +65,8 @@ public interface GeneratedPackRepository extends JpaRepository<GeneratedPack, UU
     );
 
     long countByOwnerIdAndVisibility(Long ownerId, GeneratedPackVisibility visibility);
+
+    @Modifying
+    @Query(value = "update generated_packs set status = 'READY', finalized_at = CURRENT_TIMESTAMP, cleanup_required = false, failure_code = null where id = :id and status = 'PENDING'", nativeQuery = true)
+    int markReadyIfPending(@Param("id") UUID id);
 }

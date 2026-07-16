@@ -3,7 +3,6 @@ import mido
 
 import midi_generator as gen
 
-
 # ─── parse_key ────────────────────────────────────────────────────────────────
 
 class TestParseKey:

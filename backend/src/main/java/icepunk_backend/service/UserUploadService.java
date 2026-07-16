@@ -11,6 +11,7 @@ import icepunk_backend.repository.UserUploadedProjectRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,17 +48,27 @@ public class UserUploadService {
     private final UserUploadedProjectRepository projectRepository;
     private final long maxMidiSizeBytes;
     private final long maxSampleSizeBytes;
+    private final MidiUploadValidator midiUploadValidator;
 
+    @Autowired
     public UserUploadService(
             UserUploadStorageService storageService,
             UserUploadedProjectRepository projectRepository,
             @Value("${uploads.midi.max-size-bytes}") long maxMidiSizeBytes,
-            @Value("${uploads.sample.max-size-bytes}") long maxSampleSizeBytes
+            @Value("${uploads.sample.max-size-bytes}") long maxSampleSizeBytes,
+            MidiUploadValidator midiUploadValidator
     ) {
         this.storageService = storageService;
         this.projectRepository = projectRepository;
         this.maxMidiSizeBytes = maxMidiSizeBytes;
         this.maxSampleSizeBytes = maxSampleSizeBytes;
+        this.midiUploadValidator = midiUploadValidator;
+    }
+
+    UserUploadService(UserUploadStorageService storageService, UserUploadedProjectRepository projectRepository,
+                      long maxMidiSizeBytes, long maxSampleSizeBytes) {
+        this(storageService, projectRepository, maxMidiSizeBytes, maxSampleSizeBytes,
+                new MidiUploadValidator(maxMidiSizeBytes, 64, 100_000, 50_000, 10_000_000, 3600, 1000));
     }
 
     @Transactional(readOnly = true)
@@ -90,8 +101,8 @@ public class UserUploadService {
         String normalizedTitle = validateTitle(title);
         UploadVisibility normalizedVisibility = parseVisibility(visibility);
 
-        validateMidi(midiFile);
         validateSample(sampleFile);
+        validateMidi(midiFile);
 
         UserUploadStorageService.StoredUpload midiUpload = storageService.upload(
                 owner.getId(),
@@ -149,6 +160,7 @@ public class UserUploadService {
     }
 
     private void validateMidi(MultipartFile file) {
+        midiUploadValidator.validate(file);
         validateFile(file, "MIDI file");
         validateExtension(file, Set.of(".mid"), "MIDI file must use .mid extension.");
         validateMimeType(file, MIDI_MIME_TYPES, "MIDI file type is not supported.");

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.dto.TempAnalysisResponse;
 import icepunk_backend.exception.GenerationRequestException;
 import icepunk_backend.exception.ResourceNotFoundException;
+import icepunk_backend.exception.UploadValidationException;
 import icepunk_backend.model.User;
+import icepunk_backend.support.ValidMidiFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
@@ -55,8 +57,8 @@ class TempAnalysisServiceTest {
     void analyzeTempRejectsNonMidiFile() {
         TempAnalysisService service = serviceWithAnalyzer(true);
 
-        GenerationRequestException thrown = assertThrows(
-                GenerationRequestException.class,
+        UploadValidationException thrown = assertThrows(
+                UploadValidationException.class,
                 () -> service.analyzeTemp(List.of(file("notes.txt", "text/plain")))
         );
 
@@ -154,7 +156,7 @@ class TempAnalysisServiceTest {
                 "files",
                 filename,
                 contentType,
-                "midi".getBytes(StandardCharsets.UTF_8)
+                ValidMidiFixtures.singleNoteStandardMidi()
         );
     }
 

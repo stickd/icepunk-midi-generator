@@ -159,7 +159,7 @@ public class UserProfileService {
         String ext = filename != null && filename.contains(".") ? filename.substring(filename.lastIndexOf(".")).toLowerCase(Locale.ROOT) : "";
         boolean validExt = ALLOWED_AVATAR_EXTENSIONS.contains(ext);
 
-        if (!validMime && !validExt) {
+        if (!validMime || !validExt || !hasSupportedAvatarSignature(file)) {
             throw new UploadValidationException("Image must be PNG, JPEG, WEBP, or GIF.");
         }
 
@@ -176,6 +176,14 @@ public class UserProfileService {
         userRepository.save(user);
 
         return getMe(email);
+    }
+
+    private boolean hasSupportedAvatarSignature(MultipartFile file) throws IOException {
+        byte[] header = file.getInputStream().readNBytes(12);
+        return (header.length >= 8 && header[0] == (byte) 0x89 && header[1] == 0x50 && header[2] == 0x4e && header[3] == 0x47)
+                || (header.length >= 3 && header[0] == (byte) 0xff && header[1] == (byte) 0xd8 && header[2] == (byte) 0xff)
+                || (header.length >= 6 && header[0] == 'G' && header[1] == 'I' && header[2] == 'F')
+                || (header.length >= 12 && header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F' && header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P');
     }
 
     @Transactional(readOnly = true)

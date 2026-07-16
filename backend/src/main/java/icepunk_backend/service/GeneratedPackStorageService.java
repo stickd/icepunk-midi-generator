@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
@@ -55,8 +56,16 @@ public class GeneratedPackStorageService {
         return upload(zipPath, GENERATED_ZIP_PREFIX + UUID.randomUUID() + ".zip", "application/zip");
     }
 
+    public StoredObject uploadZip(Path zipPath, String objectKey) {
+        return upload(zipPath, objectKey, "application/zip");
+    }
+
     public StoredObject uploadMidi(Path midiPath) {
         return upload(midiPath, GENERATED_ITEM_PREFIX + UUID.randomUUID() + ".mid", "audio/midi");
+    }
+
+    public StoredObject uploadMidi(Path midiPath, String objectKey) {
+        return upload(midiPath, objectKey, "audio/midi");
     }
 
     public byte[] readObject(String objectKey) {
@@ -108,6 +117,19 @@ public class GeneratedPackStorageService {
         }
 
         return new StoredObject(key);
+    }
+
+    /** Strict cleanup API: missing objects are idempotent; all other S3 failures propagate safely. */
+    public void deleteObject(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) return;
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(objectKey).build());
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 404 || "NoSuchKey".equals(exception.awsErrorDetails() == null ? null : exception.awsErrorDetails().errorCode())) return;
+            throw new StorageException("Generated object cleanup failed.");
+        } catch (SdkException exception) {
+            throw new StorageException("Generated object cleanup failed.");
+        }
     }
 
     public String createPresignedGetUrl(

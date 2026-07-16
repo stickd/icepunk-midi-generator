@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ANALYSIS_FILE = Path("analysis_output/midi_analysis.json")
 
 DEFAULT_OUTPUT_DIR = Path("generated_midi")

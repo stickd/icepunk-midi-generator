@@ -30,12 +30,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 class GeneratedPackServiceTest {
 
@@ -52,6 +54,56 @@ class GeneratedPackServiceTest {
 
     @TempDir
     Path tempDir;
+
+    @Test
+    void finalizationFailureAfterAllUploadsMarksFailedAndCleansAllObjects() throws Exception {
+        GeneratedPackTransactionService transactions = mock(GeneratedPackTransactionService.class);
+        GeneratedPackCleanupService cleanup = mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged = new GeneratedPackService(packRepository, itemRepository, storageService, metadataExtractor, transactions, cleanup);
+        Path output = Files.createDirectories(tempDir.resolve("staged"));
+        Path first = Files.writeString(output.resolve("one.mid"), "midi");
+        Path second = Files.writeString(output.resolve("two.mid"), "midi");
+        Path zip = Files.writeString(output.resolve("pack.zip"), "zip");
+        UUID packId = UUID.randomUUID();
+        var context = new GeneratedPackTransactionService.Context(packId, "generated-packs/p/archive/z.zip", List.of(
+                new GeneratedPackTransactionService.Item(UUID.randomUUID(), "generated-packs/p/items/a.mid"),
+                new GeneratedPackTransactionService.Item(UUID.randomUUID(), "generated-packs/p/items/b.mid")));
+        RuntimeException original = new RuntimeException("finalization failed");
+        when(transactions.createPendingPack(any(), any(), any())).thenReturn(context);
+        doThrow(original).when(transactions).finalizeReady(packId);
+        MidiGenerationService.GeneratedFiles files = new MidiGenerationService.GeneratedFiles(output, zip, List.of(first, second));
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> staged.persistGeneratedPack(null, factoryRequest(), files));
+        assertSame(original, thrown);
+        var order = inOrder(transactions, storageService, cleanup);
+        order.verify(transactions).createPendingPack(any(), any(), any());
+        order.verify(storageService).uploadMidi(first, context.items().get(0).key());
+        order.verify(storageService).uploadMidi(second, context.items().get(1).key());
+        order.verify(storageService).uploadZip(zip, context.zipKey());
+        order.verify(transactions).finalizeReady(packId);
+        order.verify(transactions).markFailedIfPending(packId, "PACK_FINALIZATION_FAILED");
+        order.verify(cleanup).cleanup(packId);
+    }
+
+    @Test
+    void partialItemUploadFailureMarksFailedCleansAndSkipsZip() throws Exception {
+        GeneratedPackTransactionService tx=mock(GeneratedPackTransactionService.class); GeneratedPackCleanupService cleanup=mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged=new GeneratedPackService(packRepository,itemRepository,storageService,metadataExtractor,tx,cleanup);
+        Path dir=Files.createDirectories(tempDir.resolve("partial")); Path one=Files.writeString(dir.resolve("1.mid"),"x"), two=Files.writeString(dir.resolve("2.mid"),"x"), three=Files.writeString(dir.resolve("3.mid"),"x"), zip=Files.writeString(dir.resolve("p.zip"),"x"); UUID id=UUID.randomUUID();
+        var c=new GeneratedPackTransactionService.Context(id,"z",List.of(new GeneratedPackTransactionService.Item(UUID.randomUUID(),"a"),new GeneratedPackTransactionService.Item(UUID.randomUUID(),"b"),new GeneratedPackTransactionService.Item(UUID.randomUUID(),"c"))); RuntimeException original=new RuntimeException("item");
+        when(tx.createPendingPack(any(),any(),any())).thenReturn(c); doThrow(original).when(storageService).uploadMidi(two,"b");
+        assertSame(original,assertThrows(RuntimeException.class,()->staged.persistGeneratedPack(null,factoryRequest(),new MidiGenerationService.GeneratedFiles(dir,zip,List.of(one,two,three)))));
+        verify(storageService,org.mockito.Mockito.never()).uploadMidi(three,"c"); verify(storageService,org.mockito.Mockito.never()).uploadZip(any(),any()); verify(tx,org.mockito.Mockito.never()).finalizeReady(id); verify(tx).markFailedIfPending(id,"PACK_FINALIZATION_FAILED"); verify(cleanup).cleanup(id);
+    }
+
+    @Test
+    void zipUploadFailureMarksFailedCleansAndSkipsFinalization() throws Exception {
+        GeneratedPackTransactionService tx=mock(GeneratedPackTransactionService.class); GeneratedPackCleanupService cleanup=mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged=new GeneratedPackService(packRepository,itemRepository,storageService,metadataExtractor,tx,cleanup);
+        Path dir=Files.createDirectories(tempDir.resolve("zipfail")); Path one=Files.writeString(dir.resolve("1.mid"),"x"), zip=Files.writeString(dir.resolve("p.zip"),"x"); UUID id=UUID.randomUUID(); var c=new GeneratedPackTransactionService.Context(id,"z",List.of(new GeneratedPackTransactionService.Item(UUID.randomUUID(),"a"))); RuntimeException original=new RuntimeException("zip");
+        when(tx.createPendingPack(any(),any(),any())).thenReturn(c); doThrow(original).when(storageService).uploadZip(zip,"z");
+        assertSame(original,assertThrows(RuntimeException.class,()->staged.persistGeneratedPack(null,factoryRequest(),new MidiGenerationService.GeneratedFiles(dir,zip,List.of(one)))));
+        verify(tx,org.mockito.Mockito.never()).finalizeReady(id); verify(tx).markFailedIfPending(id,"PACK_FINALIZATION_FAILED"); verify(cleanup).cleanup(id);
+    }
 
     @Test
     void persistsPackAndItemsWithBackendDownloadUrls() throws Exception {

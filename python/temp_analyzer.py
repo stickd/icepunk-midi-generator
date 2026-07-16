@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -13,6 +14,11 @@ from mido import MidiFile
 SUPPORTED_EXTENSIONS = {".mid", ".midi"}
 PATTERN_LENGTH_BEATS = 8.0
 NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+MAX_TRACKS = int(os.getenv("MIDI_MAX_TRACKS", "64"))
+MAX_EVENTS = int(os.getenv("MIDI_MAX_EVENTS", "100000"))
+MAX_NOTES = int(os.getenv("MIDI_MAX_NOTES", "50000"))
+MAX_TICKS = int(os.getenv("MIDI_MAX_TICKS", "10000000"))
+MAX_TEMPO_CHANGES = int(os.getenv("MIDI_MAX_TEMPO_CHANGES", "1000"))
 
 
 def detect_register(pitch: int) -> str:
@@ -50,16 +56,26 @@ def estimate_key(pitch_classes: Counter[int]) -> str | None:
 
 def extract_notes(midi_path: Path) -> tuple[MidiFile, list[dict[str, Any]], float | None]:
     midi = MidiFile(midi_path)
+    if len(midi.tracks) > MAX_TRACKS:
+        raise ValueError("MIDI has too many tracks")
     active_notes: dict[tuple[int, int], list[dict[str, int]]] = defaultdict(list)
     notes: list[dict[str, Any]] = []
     tempos: list[int] = []
+    events = 0
 
     for track_index, track in enumerate(midi.tracks):
         absolute_tick = 0
         for message in track:
+            events += 1
+            if events > MAX_EVENTS:
+                raise ValueError("MIDI has too many events")
             absolute_tick += message.time
+            if absolute_tick > MAX_TICKS:
+                raise ValueError("MIDI tick value exceeds limit")
             if message.type == "set_tempo":
                 tempos.append(message.tempo)
+                if len(tempos) > MAX_TEMPO_CHANGES:
+                    raise ValueError("MIDI has too many tempo changes")
 
             if message.type == "note_on" and message.velocity > 0:
                 active_notes[(getattr(message, "channel", 0), message.note)].append(
@@ -89,6 +105,8 @@ def extract_notes(midi_path: Path) -> tuple[MidiFile, list[dict[str, Any]], floa
                         "track_index": track_index,
                     }
                 )
+                if len(notes) > MAX_NOTES:
+                    raise ValueError("MIDI has too many notes")
 
     tempo_bpm = round(float(mido.tempo2bpm(mean(tempos))), 2) if tempos else None
     notes.sort(key=lambda note: (note["start_beat"], note["pitch"]))

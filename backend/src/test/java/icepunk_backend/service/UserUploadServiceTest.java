@@ -7,6 +7,7 @@ import icepunk_backend.model.UploadVisibility;
 import icepunk_backend.model.User;
 import icepunk_backend.model.UserUploadedProject;
 import icepunk_backend.repository.UserUploadedProjectRepository;
+import icepunk_backend.support.ValidMidiFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,12 +42,13 @@ class UserUploadServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        service = new UserUploadService(storageService, projectRepository, 10, 20);
+        service = new UserUploadService(storageService, projectRepository, 1_024, 20);
 
         owner = new User("nikul", "nikul@example.com", "hash");
         owner.setId(42L);
 
-        when(storageService.upload(eq(42L), eq("lead.mid"), eq("audio/midi"), eq(4L), any(InputStream.class)))
+        when(storageService.upload(eq(42L), eq("lead.mid"), eq("audio/midi"),
+                eq((long) ValidMidiFixtures.singleNoteStandardMidi().length), any(InputStream.class)))
                 .thenReturn(new UserUploadStorageService.StoredUpload(
                         "user_uploads/42/midi.mid"
                 ));
@@ -67,7 +69,7 @@ class UserUploadServiceTest {
                 owner,
                 "  Frozen Lead  ",
                 "UNLISTED",
-                file("midi", "lead.mid", "audio/midi", new byte[]{1, 2, 3, 4}),
+                file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
                 file("sample", "kick.wav", "audio/wav", new byte[]{1, 2, 3, 4, 5})
         );
 
@@ -82,7 +84,7 @@ class UserUploadServiceTest {
         assertNotNull(response.getUploadedAt());
         assertEquals("lead.mid", response.getMetadata().get("midiOriginalFilename"));
         assertEquals("audio/midi", response.getMetadata().get("midiContentType"));
-        assertEquals(4L, response.getMetadata().get("midiSizeBytes"));
+        assertEquals((long) ValidMidiFixtures.singleNoteStandardMidi().length, response.getMetadata().get("midiSizeBytes"));
         assertEquals("kick.wav", response.getMetadata().get("sampleOriginalFilename"));
 
         ArgumentCaptor<UserUploadedProject> projectCaptor = ArgumentCaptor.forClass(UserUploadedProject.class);
@@ -99,11 +101,11 @@ class UserUploadServiceTest {
                 owner,
                 "Frozen Lead",
                 "PRIVATE",
-                file("midi", "lead.txt", "audio/midi", new byte[]{1}),
+                file("midi", "lead.txt", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
                 file("sample", "kick.wav", "audio/wav", new byte[]{1})
         ));
 
-        assertEquals("MIDI file must use .mid extension.", exception.getMessage());
+        assertEquals("Only .mid and .midi files are supported.", exception.getMessage());
         verify(storageService, never()).upload(any(), any(), any(), anyLong(), any(InputStream.class));
         verify(projectRepository, never()).save(any());
     }
@@ -114,7 +116,7 @@ class UserUploadServiceTest {
                 owner,
                 "Frozen Lead",
                 "PRIVATE",
-                file("midi", "lead.mid", "audio/midi", new byte[]{1}),
+                file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
                 file("sample", "kick.wav", "text/plain", new byte[]{1})
         ));
 
@@ -129,7 +131,7 @@ class UserUploadServiceTest {
                 owner,
                 "Frozen Lead",
                 "PRIVATE",
-                file("midi", "lead.mid", "audio/midi", new byte[]{1}),
+                file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
                 file("sample", "kick.wav", "audio/wav", new byte[21])
         ));
 
@@ -144,7 +146,7 @@ class UserUploadServiceTest {
                 owner,
                 "   ",
                 "PRIVATE",
-                file("midi", "lead.mid", "audio/midi", new byte[]{1}),
+                file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
                 file("sample", "kick.wav", "audio/wav", new byte[]{1})
         ));
 
@@ -159,7 +161,7 @@ class UserUploadServiceTest {
                 owner,
                 "Frozen Lead",
                 "FRIENDS_ONLY",
-                file("midi", "lead.mid", "audio/midi", new byte[]{1}),
+                file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
                 file("sample", "kick.wav", "audio/wav", new byte[]{1})
         ));
 
@@ -213,14 +215,14 @@ class UserUploadServiceTest {
         when(projectRepository.findById(8L))
                 .thenReturn(Optional.of(publicProject));
         when(storageService.readObjectBytes("user_uploads/42/public.mid"))
-                .thenReturn(new byte[]{77, 84, 104, 100});
+                .thenReturn(ValidMidiFixtures.singleNoteStandardMidi());
 
         Optional<UserUploadService.PublicMidiFile> result = service.getMidiFile(8L, null);
 
         assertEquals(true, result.isPresent());
         assertEquals("audio/midi", result.get().contentType());
         assertEquals("public.mid", result.get().filename());
-        assertEquals(4, result.get().bytes().length);
+        assertEquals(ValidMidiFixtures.singleNoteStandardMidi().length, result.get().bytes().length);
     }
 
     @Test
@@ -239,7 +241,7 @@ class UserUploadServiceTest {
 
         when(projectRepository.findById(8L)).thenReturn(Optional.of(privateProject));
         when(storageService.readObjectBytes("user_uploads/42/private.mid"))
-                .thenReturn(new byte[]{77, 84, 104, 100});
+                .thenReturn(ValidMidiFixtures.singleNoteStandardMidi());
 
         Optional<UserUploadService.PublicMidiFile> result = service.getMidiFile(8L, owner);
 

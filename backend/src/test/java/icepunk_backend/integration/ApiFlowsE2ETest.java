@@ -3,7 +3,10 @@ package icepunk_backend.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.exception.ServerBusyException;
+import icepunk_backend.model.GeneratedPackStatus;
+import icepunk_backend.repository.GeneratedPackRepository;
 import icepunk_backend.service.GeneratedPackStorageService;
+import icepunk_backend.service.GeneratedPackTransactionService;
 import icepunk_backend.service.MidiGenerationService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.io.TempDir;
@@ -13,6 +16,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -26,6 +31,10 @@ import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -59,11 +68,17 @@ class ApiFlowsE2ETest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private GeneratedPackRepository generatedPackRepository;
+
     @MockitoBean
     private MidiGenerationService midiGenerationService;
 
     @MockitoBean
     private GeneratedPackStorageService generatedPackStorageService;
+
+    @MockitoSpyBean
+    private GeneratedPackTransactionService generatedPackTransactionService;
 
     @TempDir
     Path tempDir;
@@ -141,6 +156,9 @@ class ApiFlowsE2ETest {
     void authenticatedUserGenerateDoesNotExposeDownloadUrlAndIncrementsCounter() throws Exception {
         stubSuccessfulGeneration();
         String token = register("carol", "carol@example.com", "secret123", "198.51.100.11");
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
 
         mockMvc.perform(post("/generate")
                         .header("Authorization", "Bearer " + token)
@@ -183,15 +201,22 @@ class ApiFlowsE2ETest {
     void generatedPackPersistenceFailureReturns500AndDoesNotIncrementCounter() throws Exception {
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
-        when(generatedPackStorageService.uploadMidi(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
-        when(generatedPackStorageService.uploadZip(any()))
-                .thenThrow(new RuntimeException("S3 upload failed"));
+        when(generatedPackStorageService.uploadMidi(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
+        when(generatedPackStorageService.uploadZip(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
+        RuntimeException finalizationFailure = new RuntimeException("simulated finalization failure");
+        doThrow(finalizationFailure).when(generatedPackTransactionService).finalizeReady(any());
 
         mockMvc.perform(post("/generate").header("X-Forwarded-For", "198.51.100.22"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").value("Unexpected server error"));
 
         assertCounterUnchanged();
+        assertEquals(1, generatedPackRepository.findAll().stream()
+                .filter(pack -> pack.getStatus() == GeneratedPackStatus.FAILED)
+                .count());
+        verify(generatedPackStorageService, times(2)).deleteObject(anyString());
     }
 
     // --- Helpers ----------------------------------------------------------
@@ -199,10 +224,10 @@ class ApiFlowsE2ETest {
     private void stubSuccessfulGeneration() throws Exception {
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
-        when(generatedPackStorageService.uploadMidi(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
-        when(generatedPackStorageService.uploadZip(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip"));
+        when(generatedPackStorageService.uploadMidi(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
+        when(generatedPackStorageService.uploadZip(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
     }
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {

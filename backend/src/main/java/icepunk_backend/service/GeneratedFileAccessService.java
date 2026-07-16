@@ -4,6 +4,7 @@ import icepunk_backend.dto.PresignedUrlResponse;
 import icepunk_backend.model.GeneratedPack;
 import icepunk_backend.model.GeneratedPackItem;
 import icepunk_backend.model.GeneratedPackVisibility;
+import icepunk_backend.model.GeneratedPackStatus;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.GeneratedPackItemRepository;
 import icepunk_backend.repository.GeneratedPackRepository;
@@ -64,8 +65,9 @@ public class GeneratedFileAccessService {
     }
 
     private boolean canAccess(GeneratedPack pack, User requester) {
-        return pack.getVisibility() == GeneratedPackVisibility.PUBLIC
-                || (requester != null && pack.getOwner() != null && pack.getOwner().getId().equals(requester.getId()));
+        return pack.getStatus() == GeneratedPackStatus.READY
+                && (pack.getVisibility() == GeneratedPackVisibility.PUBLIC
+                || (requester != null && pack.getOwner() != null && pack.getOwner().getId().equals(requester.getId())));
     }
 
     private PresignedUrlResponse presign(String objectKey, String fileName, String type, Duration ttl, boolean attachment) {

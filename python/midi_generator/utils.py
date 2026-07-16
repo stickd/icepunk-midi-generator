@@ -2,7 +2,6 @@ import random
 from collections import Counter
 from typing import Any, TypeVar
 
-
 Number = TypeVar("Number", int, float)
 
 

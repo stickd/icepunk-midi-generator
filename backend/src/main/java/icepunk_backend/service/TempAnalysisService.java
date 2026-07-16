@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class TempAnalysisService {
@@ -51,6 +54,7 @@ public class TempAnalysisService {
     private final long retentionHours;
     private final Clock clock;
     private final ObjectMapper objectMapper;
+    private final MidiUploadValidator midiUploadValidator;
 
     @Autowired
     public TempAnalysisService(
@@ -61,7 +65,7 @@ public class TempAnalysisService {
             @Value("${datasets.temp.dir:${icepunk.generator.project-dir}/temp_analysis}") String tempAnalysisDir,
             @Value("${datasets.temp.midi.max-size-bytes:2097152}") long maxMidiSizeBytes,
             @Value("${datasets.temp.retention-hours:24}") long retentionHours,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper, MidiUploadValidator midiUploadValidator
     ) {
         this(
                 projectDir,
@@ -72,7 +76,7 @@ public class TempAnalysisService {
                 maxMidiSizeBytes,
                 retentionHours,
                 objectMapper,
-                Clock.systemUTC()
+                Clock.systemUTC(), midiUploadValidator
         );
     }
 
@@ -85,7 +89,7 @@ public class TempAnalysisService {
             long maxMidiSizeBytes,
             long retentionHours,
             ObjectMapper objectMapper,
-            Clock clock
+            Clock clock, MidiUploadValidator midiUploadValidator
     ) {
         this.projectDir = Paths.get(projectDir).toAbsolutePath().normalize();
         this.pythonPath = PythonExecutableResolver.resolve(pythonPath, this.projectDir);
@@ -96,6 +100,16 @@ public class TempAnalysisService {
         this.retentionHours = retentionHours > 0 ? retentionHours : DEFAULT_RETENTION_HOURS;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.midiUploadValidator = midiUploadValidator;
+    }
+
+    // Package-visible compatibility constructor used by focused unit tests.
+    TempAnalysisService(String projectDir, String pythonPath, String analyzerScriptName, long timeoutSeconds,
+                        String tempAnalysisDir, long maxMidiSizeBytes, long retentionHours,
+                        ObjectMapper objectMapper, Clock clock) {
+        this(projectDir, pythonPath, analyzerScriptName, timeoutSeconds, tempAnalysisDir, maxMidiSizeBytes,
+                retentionHours, objectMapper, clock,
+                new MidiUploadValidator(maxMidiSizeBytes, 64, 100_000, 50_000, 10_000_000, 3600, 1000));
     }
 
     public TempAnalysisResponse analyzeTemp(List<MultipartFile> files, User owner) throws IOException {
@@ -275,6 +289,7 @@ public class TempAnalysisService {
     }
 
     private void validateMidiFile(MultipartFile file) {
+        midiUploadValidator.validate(file);
         if (file == null || file.isEmpty()) {
             throw new GenerationRequestException("MIDI files cannot be empty.");
         }
@@ -307,19 +322,19 @@ public class TempAnalysisService {
 
     private void runAnalyzer(Path inputDir, Path analysisFile) throws IOException {
         Process process = startAnalyzerProcess(inputDir, analysisFile);
-
         StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append(System.lineSeparator());
-            }
-        }
+        ExecutorService readerExecutor = Executors.newSingleThreadExecutor();
+        Future<?> readerTask = readerExecutor.submit(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line; while ((line = reader.readLine()) != null) { if (output.length() < 16_384) output.append(line).append(System.lineSeparator()); }
+            } catch (IOException ignored) { }
+        });
 
         try {
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                readerTask.cancel(true);
                 throw new GenerationRequestException("Temporary MIDI analysis timed out.");
             }
         } catch (InterruptedException exception) {
@@ -334,6 +349,7 @@ public class TempAnalysisService {
         if (!output.isEmpty()) {
             output.toString().lines().forEach(line -> System.out.println("[TEMP_ANALYZER] " + line));
         }
+        readerExecutor.shutdownNow();
     }
 
     Process startAnalyzerProcess(Path inputDir, Path analysisFile) throws IOException {
@@ -354,7 +370,6 @@ public class TempAnalysisService {
         if (Files.isRegularFile(pythonPath)) {
             return;
         }
-
         throw new IllegalStateException(
                 "Python generator executable not found: " + pythonPath
                         + ". Configure ICEPUNK_GENERATOR_PYTHON_PATH or create the project venv."

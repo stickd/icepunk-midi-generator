@@ -6,6 +6,7 @@ import icepunk_backend.service.DatasetPresetStorageService;
 import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.MidiGenerationService;
 import icepunk_backend.service.TempAnalysisService;
+import icepunk_backend.support.ValidMidiFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,6 +78,9 @@ class DatasetFlowsE2ETest {
     @Test
     void userCanSaveAnalyzedDatasetGenerateFromItAndSeeItInMyPacks() throws Exception {
         String token = register("dana", "dana@example.com", "secret123", "198.51.100.30");
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
 
         // 1. The user already analyzed some MIDI files (POST /datasets/analyze-temp
         // is exercised in DatasetControllerTest / TempAnalysisServiceTest; here we
@@ -107,6 +112,9 @@ class DatasetFlowsE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(presetId))
                 .andExpect(jsonPath("$[0].name").value("My Dark Loops"));
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
 
         // 4. Generate a pack from the saved preset (merge path: datasetIds, no
         // factory pool). The merge reads the preset's analysis back from storage.
@@ -199,15 +207,15 @@ class DatasetFlowsE2ETest {
     private void stubSuccessfulGeneration(String downloadUrl) throws Exception {
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
-        when(generatedPackStorageService.uploadMidi(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi_items/item.mid"));
-        when(generatedPackStorageService.uploadZip(any()))
-                .thenReturn(new GeneratedPackStorageService.StoredObject("generated_midi/pack.zip"));
+        when(generatedPackStorageService.uploadMidi(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
+        when(generatedPackStorageService.uploadZip(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
     }
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
         Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + java.util.UUID.randomUUID()));
-        Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
+        Path midiPath = Files.write(outputDir.resolve("track.mid"), ValidMidiFixtures.singleNoteStandardMidi());
         Path zipPath = Files.writeString(tempDir.resolve("pack-" + java.util.UUID.randomUUID() + ".zip"), "zip");
         return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
     }

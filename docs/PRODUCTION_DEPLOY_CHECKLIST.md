@@ -105,7 +105,16 @@ Frontend:
 
 - [ ] Rotate any secret that was ever committed to git history.
 - [ ] Confirm `.env*` files are not tracked.
-- [ ] Confirm nginx overwrites or strips untrusted `X-Forwarded-For` headers.
+- [ ] Set `TRUSTED_PROXY_CIDRS` to the exact CIDR(s) that can connect directly to the backend (for example, the Docker/nginx network). The prod profile refuses to start without it.
+- [ ] Configure nginx to append, never pass through, forwarding headers:
+  ```nginx
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header Host $host;
+  ```
+  Do not expose backend port 8081 publicly. The application ignores all forwarded headers unless the TCP peer matches `TRUSTED_PROXY_CIDRS`.
+- [ ] This deployment uses an in-memory auth limiter and is supported as a **single backend instance**. A horizontally scaled deployment must replace it with a shared Redis/database limiter before enabling more replicas.
 - [ ] Keep only ports `80` and `443` public.
 - [ ] Enable firewall rules.
 - [ ] Add fail2ban or equivalent SSH protection.

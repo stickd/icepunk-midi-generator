@@ -11,6 +11,7 @@ import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.MidiGenerationService;
+import icepunk_backend.support.ValidMidiFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -35,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -104,16 +106,10 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
         // (the controller deletes it afterwards) and the upload returns a URL.
         when(midiGenerationService.generateFiles(any(), any()))
                 .thenAnswer(invocation -> createGeneratedFiles());
-        when(generatedPackStorageService.uploadMidi(any()))
-                .thenAnswer(invocation -> {
-                    String key = "generated_midi_items/" + UUID.randomUUID() + ".mid";
-                    return new GeneratedPackStorageService.StoredObject(key);
-                });
-        when(generatedPackStorageService.uploadZip(any()))
-                .thenAnswer(invocation -> {
-                    String key = "generated_midi/" + UUID.randomUUID() + ".zip";
-                    return new GeneratedPackStorageService.StoredObject(key);
-                });
+        when(generatedPackStorageService.uploadMidi(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
+        when(generatedPackStorageService.uploadZip(any(), any()))
+                .thenAnswer(invocation -> new GeneratedPackStorageService.StoredObject(invocation.getArgument(1)));
     }
 
     @Test
@@ -123,15 +119,17 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
         seed.setGenerationsToday(0);
         guestUsageRepository.save(seed);
 
-        int succeeded = runConcurrently(() -> {
+        ConcurrentResult result = runConcurrently(() -> {
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setRemoteAddr(GUEST_IP);
             generateController.generate(request);
             return null;
         });
 
-        assertEquals(GUEST_DAILY_LIMIT, succeeded,
+        assertEquals(GUEST_DAILY_LIMIT, result.succeeded(),
                 "only the daily cap of guest generations may succeed under concurrency");
+        assertEquals(CONCURRENT_REQUESTS - GUEST_DAILY_LIMIT, result.rejected(),
+                "every guest request above the cap must be rejected");
         assertEquals(GUEST_DAILY_LIMIT,
                 guestUsageRepository.findByIpAddress(GUEST_IP).orElseThrow().getGenerationsToday(),
                 "persisted guest usage must not exceed the cap");
@@ -146,7 +144,7 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
         seed.setGenerationsToday(0);
         userRepository.save(seed);
 
-        int succeeded = runConcurrently(() -> {
+        ConcurrentResult result = runConcurrently(() -> {
             SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken(USER_EMAIL, null, List.of()));
             try {
@@ -157,8 +155,9 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
             return null;
         });
 
-        assertEquals(CONCURRENT_REQUESTS, succeeded,
+        assertEquals(CONCURRENT_REQUESTS, result.succeeded(),
                 "registered users have no daily generation cap; none should be rejected");
+        assertEquals(0, result.rejected(), "registered users must not be rejected by the guest cap");
         assertEquals(CONCURRENT_REQUESTS, generationStatsService.getTotalGenerations(),
                 "global counter must advance for every successful (uploaded) generation");
     }
@@ -169,10 +168,11 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
      * {@link GenerationLimitException} (the over-limit rejection) counts as a
      * non-success; any other failure aborts the test.
      */
-    private int runConcurrently(Callable<Void> task) throws Exception {
+    private ConcurrentResult runConcurrently(Callable<Void> task) throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(CONCURRENT_REQUESTS);
         CountDownLatch start = new CountDownLatch(1);
         AtomicInteger succeeded = new AtomicInteger();
+        AtomicInteger rejected = new AtomicInteger();
         List<Future<?>> futures = new ArrayList<>();
 
         try {
@@ -183,6 +183,7 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
                         task.call();
                         succeeded.incrementAndGet();
                     } catch (GenerationLimitException expected) {
+                        rejected.incrementAndGet();
                         // Over-limit request rejected — the cap held.
                     }
                     return null;
@@ -191,20 +192,31 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
 
             start.countDown();
 
+            Throwable unexpectedFailure = null;
             for (Future<?> future : futures) {
-                future.get(60, TimeUnit.SECONDS);
+                try {
+                    future.get(60, TimeUnit.SECONDS);
+                } catch (java.util.concurrent.ExecutionException exception) {
+                    if (unexpectedFailure == null) {
+                        unexpectedFailure = exception.getCause();
+                    }
+                }
             }
+            assertNull(unexpectedFailure, "concurrent generation failed unexpectedly: " + unexpectedFailure);
         } finally {
             pool.shutdownNow();
         }
 
-        return succeeded.get();
+        return new ConcurrentResult(succeeded.get(), rejected.get());
     }
 
     private MidiGenerationService.GeneratedFiles createGeneratedFiles() throws Exception {
         Path outputDir = Files.createDirectories(tempDir.resolve("generated-" + UUID.randomUUID()));
-        Path midiPath = Files.writeString(outputDir.resolve("track.mid"), "midi");
+        Path midiPath = Files.write(outputDir.resolve("track.mid"), ValidMidiFixtures.singleNoteStandardMidi());
         Path zipPath = Files.writeString(tempDir.resolve("pack-" + UUID.randomUUID() + ".zip"), "zip");
         return new MidiGenerationService.GeneratedFiles(outputDir, zipPath, List.of(midiPath));
+    }
+
+    private record ConcurrentResult(int succeeded, int rejected) {
     }
 }

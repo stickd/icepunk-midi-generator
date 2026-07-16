@@ -15,6 +15,8 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -148,5 +150,19 @@ class GeneratedPackStorageServiceTest {
         service.deleteObjectQuietly("generated_midi/key.zip");
 
         verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test void deleteObjectCompletesWhenStorageDeleteSucceeds() { service.deleteObject("generated-packs/private-secret-key.mid"); verify(s3Client).deleteObject(any(DeleteObjectRequest.class)); }
+    @Test void deleteObjectTreatsNoSuchKeyAsSuccess() {
+        doThrow(S3Exception.builder().statusCode(404).awsErrorDetails(AwsErrorDetails.builder().errorCode("NoSuchKey").build()).build()).when(s3Client).deleteObject(any(DeleteObjectRequest.class));
+        service.deleteObject("generated-packs/private-secret-key.mid");
+    }
+    @Test void deleteObjectWrapsNonNotFoundS3FailureWithoutSensitiveData() {
+        String key="generated-packs/private-secret-key.mid"; doThrow(S3Exception.builder().statusCode(403).message("https://storage/?token=SUPER_SECRET_TOKEN ACCESS_KEY_SENTINEL SECRET_SENTINEL").build()).when(s3Client).deleteObject(any(DeleteObjectRequest.class));
+        StorageException ex=assertThrows(StorageException.class,()->service.deleteObject(key)); assertEquals("Generated object cleanup failed.",ex.getMessage());
+    }
+    @Test void deleteObjectWrapsSdkFailureWithoutSensitiveData() {
+        doThrow(SdkClientException.builder().message("https://storage/?token=SUPER_SECRET_TOKEN").build()).when(s3Client).deleteObject(any(DeleteObjectRequest.class));
+        StorageException ex=assertThrows(StorageException.class,()->service.deleteObject("generated-packs/private-secret-key.mid")); assertEquals("Generated object cleanup failed.",ex.getMessage());
     }
 }

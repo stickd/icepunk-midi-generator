@@ -25,6 +25,30 @@ python/requirements.txt   Python generator dependencies
 
 ## Local Development
 
+## CI and branch strategy
+
+`dev` is the integration branch and `main` is release-only. The CI workflow runs on pushes and
+pull requests targeting either branch. Its required branch-protection status is **CI Required**;
+it succeeds only after Backend, Python engine, Frontend, Docker Compose validation, Newman,
+Playwright, Docker build, Trivy, and CodeQL jobs succeed.
+
+Reproduce the primary checks locally:
+
+```bash
+# backend (PowerShell: .\mvnw.cmd verify)
+cd backend && ./mvnw verify
+# Python, from the repository root
+python -m compileall python/midi_generator python/generate_midi.py
+python -m ruff check python/midi_generator python/generate_midi.py python/tests
+python -m mypy --config-file python/mypy.ini python/midi_generator python/generate_midi.py
+python -m pytest python/tests -v
+# frontend
+cd frontend && npm ci && npm run ci
+```
+
+After a workflow job is renamed, run it once on GitHub and update branch protection with its exact
+displayed status context; do not guess the context name.
+
 Requirements:
 
 - Java 21
@@ -428,3 +452,15 @@ Pick one before the first `prod` deploy:
 - The production compose creates the MinIO bucket without anonymous/public read access; downloads are streamed through the backend.
 - For real production, rotate any secrets that were ever committed to git history.
 - The production Spring profile (`prod`) must be activated by setting `SPRING_PROFILES_ACTIVE=prod` in the deployment environment or compose file.
+# Security configuration
+
+Uploads accept only structurally valid Standard MIDI files (`.mid`/`.midi`), never empty files.
+Defaults are: 2 MiB MIDI, 25 MiB per multipart part, 220 MiB request, 100 temporary-analysis files,
+64 tracks, 100,000 events, 50,000 notes, 10,000,000 ticks, 1 hour duration, and 1,000 tempo changes.
+Override these with `UPLOADS_*`, `DATASETS_TEMP_MIDI_MAX_SIZE_BYTES`, and `MIDI_MAX_*` variables.
+Oversize multipart requests return 413; invalid uploads return a safe 400 response.
+
+Swagger/OpenAPI is available outside `prod`; production disables Springdoc and denies its routes.
+`JWT_SECRET` is required in `prod` and must contain at least 32 random bytes. Generate one with
+`[Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Maximum 256 }))` (PowerShell) or
+`openssl rand -base64 64` (Linux/macOS). Do not commit it. The development default is deliberately insecure.

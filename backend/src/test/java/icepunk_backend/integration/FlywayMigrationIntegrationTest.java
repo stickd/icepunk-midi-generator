@@ -35,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
     /** Every versioned migration currently in db/migration. */
-    private static final int EXPECTED_MIGRATION_COUNT = 5;
+    private static final int EXPECTED_MIGRATION_COUNT = 7;
+    private static final int PRE_STAGED_LIFECYCLE_MIGRATION_COUNT = 5;
 
     /** Expected table → column set, mirroring the JPA entities. */
     private static final Map<String, Set<String>> EXPECTED_COLUMNS = Map.of(
@@ -55,7 +56,8 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             "generated_packs", Set.of(
                     "id", "owner_id", "guest_session_id", "name", "source_type", "generation_type",
                     "bpm", "pitch", "octaves", "amount", "visibility", "zip_object_key",
-                    "created_at", "updated_at", "metadata"),
+                    "created_at", "updated_at", "metadata", "status", "failure_code", "finalized_at",
+                    "cleanup_required", "cleanup_attempts", "cleanup_last_error", "last_cleanup_at"),
             "generated_pack_items", Set.of(
                     "id", "pack_id", "item_index", "file_name", "midi_object_key",
                     "duration_seconds", "note_count", "track_count", "min_pitch", "max_pitch",
@@ -115,7 +117,9 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
         assertNotNullable("generated_packs", "generation_type");
         assertNotNullable("generated_packs", "amount");
         assertNotNullable("generated_packs", "visibility");
-        assertNotNullable("generated_packs", "zip_object_key");
+        assertNotNullable("generated_packs", "status");
+        assertNotNullable("generated_packs", "cleanup_required");
+        assertNotNullable("generated_packs", "cleanup_attempts");
         assertNotNullable("generated_packs", "created_at");
         assertNotNullable("generated_pack_items", "pack_id");
         assertNotNullable("generated_pack_items", "item_index");
@@ -185,6 +189,8 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                 "generated pack created-at sort index must exist");
         assertTrue(indexExists("idx_generated_packs_visibility"),
                 "generated pack visibility index must exist");
+        assertTrue(indexExists("idx_generated_packs_status_created"),
+                "generated pack lifecycle lookup index must exist");
         assertTrue(indexExists("idx_generated_pack_items_pack_id"),
                 "generated item pack lookup index must exist");
         assertTrue(indexExists("idx_generated_pack_items_pack_index"),
@@ -221,6 +227,8 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
             MigrateResult first = flyway.migrate();
             assertEquals(EXPECTED_MIGRATION_COUNT, first.migrationsExecuted, "all migrations should apply once");
+            assertEquals(0, flyway.migrate().migrationsExecuted,
+                    "a second Flyway run must not create additional changes");
 
             // "rollback": clean tears the schema back down to empty.
             flyway.clean();
@@ -231,9 +239,22 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
             // Re-migrating from empty rebuilds the identical schema — forward-only,
             // deterministic, no manual intervention.
-            MigrateResult second = flyway.migrate();
-            assertEquals(EXPECTED_MIGRATION_COUNT, second.migrationsExecuted,
-                    "the migrations must replay cleanly from scratch");
+            Flyway preLifecycle = Flyway.configure()
+                    .dataSource(dataSource)
+                    .schemas("flyway_repro_test")
+                    .locations("classpath:db/migration")
+                    .target(String.valueOf(PRE_STAGED_LIFECYCLE_MIGRATION_COUNT))
+                    .cleanDisabled(false)
+                    .load();
+            assertEquals(PRE_STAGED_LIFECYCLE_MIGRATION_COUNT, preLifecycle.migrate().migrationsExecuted,
+                    "the supported pre-lifecycle schema must be reproducible");
+
+            MigrateResult upgrade = flyway.migrate();
+            assertEquals(EXPECTED_MIGRATION_COUNT - PRE_STAGED_LIFECYCLE_MIGRATION_COUNT,
+                    upgrade.migrationsExecuted,
+                    "the staged lifecycle migrations must upgrade the V5 schema in place");
+            assertEquals(0, flyway.migrate().migrationsExecuted,
+                    "the upgraded schema must have a stable Flyway history");
         } finally {
             flyway.clean();
         }

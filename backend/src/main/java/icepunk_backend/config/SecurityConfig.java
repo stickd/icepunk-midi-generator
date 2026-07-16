@@ -92,12 +92,12 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                     // Health endpoint (used by Docker / load-balancer healthchecks)
                     .requestMatchers("/actuator/health").permitAll()
 
-                    // Swagger / OpenAPI documentation (springdoc)
+                    // Swagger is only registered outside prod; never make it an unauthenticated fallback.
                     .requestMatchers(
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html"
-                    ).permitAll()
+                    ).denyAll()
 
                     // All other endpoints require a valid JWT token
                     .anyRequest().authenticated()

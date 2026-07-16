@@ -13,6 +13,7 @@ import icepunk_backend.model.GeneratedPack;
 import icepunk_backend.model.GeneratedPackItem;
 import icepunk_backend.model.GeneratedPackType;
 import icepunk_backend.model.GeneratedPackVisibility;
+import icepunk_backend.model.GeneratedPackStatus;
 import icepunk_backend.model.GenerationSourceType;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.GeneratedPackItemRepository;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Path;
@@ -44,25 +46,43 @@ public class GeneratedPackService {
     private final GeneratedPackItemRepository itemRepository;
     private final GeneratedPackStorageService storageService;
     private final MidiMetadataExtractor metadataExtractor;
+    private final GeneratedPackTransactionService transactionService;
+    private final GeneratedPackCleanupService cleanupService;
 
+    @Autowired
     public GeneratedPackService(
             GeneratedPackRepository packRepository,
             GeneratedPackItemRepository itemRepository,
             GeneratedPackStorageService storageService,
-            MidiMetadataExtractor metadataExtractor
+            MidiMetadataExtractor metadataExtractor,
+            GeneratedPackTransactionService transactionService,
+            GeneratedPackCleanupService cleanupService
     ) {
         this.packRepository = packRepository;
         this.itemRepository = itemRepository;
         this.storageService = storageService;
         this.metadataExtractor = metadataExtractor;
+        this.transactionService = transactionService;
+        this.cleanupService = cleanupService;
     }
 
-    @Transactional
+    /** Compatibility constructor for pre-existing unit tests. Production uses the autowired constructor above. */
+    public GeneratedPackService(GeneratedPackRepository packRepository, GeneratedPackItemRepository itemRepository,
+                                GeneratedPackStorageService storageService, MidiMetadataExtractor metadataExtractor) {
+        this.packRepository=packRepository; this.itemRepository=itemRepository; this.storageService=storageService;
+        this.metadataExtractor=metadataExtractor; this.transactionService=null; this.cleanupService=null;
+    }
+
+    // The staged workflow owns its database boundaries in GeneratedPackTransactionService.
+    // Keeping an outer transaction here would hold a connection while REQUIRES_NEW opens another.
     public GeneratedPackResponse persistGeneratedPack(
             User owner,
             GenerationRequest request,
             MidiGenerationService.GeneratedFiles generatedFiles
     ) {
+        if (transactionService != null) {
+            return persistStagedGeneratedPack(owner, request, generatedFiles);
+        }
         if (owner == null) {
             return uploadGuestGeneratedPack(request, generatedFiles);
         }
@@ -175,6 +195,41 @@ public class GeneratedPackService {
                 .map(item -> itemDownloadPath(packId, itemId));
     }
 
+    private GeneratedPackResponse persistStagedGeneratedPack(User owner, GenerationRequest request,
+                                                               MidiGenerationService.GeneratedFiles generatedFiles) {
+        GeneratedPackTransactionService.Context context = transactionService.createPendingPack(owner, request, generatedFiles.midiFiles());
+        try {
+            if (context.items().size() != generatedFiles.midiFiles().size()) {
+                throw new IllegalStateException("Generated item count does not match staged records");
+            }
+            for (int index = 0; index < context.items().size(); index++) {
+                storageService.uploadMidi(generatedFiles.midiFiles().get(index), context.items().get(index).key());
+            }
+            storageService.uploadZip(generatedFiles.zipPath(), context.zipKey());
+            if (!transactionService.finalizeReady(context.packId())) {
+                throw new IllegalStateException("Generated pack finalization was rejected");
+            }
+            GeneratedPack ready = packRepository.findWithItemsById(context.packId())
+                    .filter(pack -> pack.getStatus() == icepunk_backend.model.GeneratedPackStatus.READY)
+                    .orElseThrow(() -> new IllegalStateException("Generated pack was not finalized"));
+            return toPackResponse(ready, sortedItems(ready.getItems()));
+        } catch (RuntimeException exception) {
+            handleStagedFailure(context.packId(), failureCode(exception), exception);
+            throw exception;
+        }
+    }
+
+    private void handleStagedFailure(UUID packId, String code, RuntimeException original) {
+        try { transactionService.markFailedIfPending(packId, code); }
+        catch (RuntimeException secondary) { original.addSuppressed(secondary); }
+        try { cleanupService.cleanup(packId); }
+        catch (RuntimeException secondary) { original.addSuppressed(secondary); }
+    }
+
+    private String failureCode(RuntimeException exception) {
+        return exception instanceof icepunk_backend.exception.StorageException ? "OBJECT_UPLOAD_FAILED" : "PACK_FINALIZATION_FAILED";
+    }
+
     @Transactional(readOnly = true)
     public Optional<String> getPackDownloadUrl(UUID packId) {
         return packRepository.findById(packId)
@@ -204,6 +259,7 @@ public class GeneratedPackService {
     }
 
     private boolean isVisibleTo(GeneratedPack pack, User viewer) {
+        if (pack.getStatus() != GeneratedPackStatus.READY) return false;
         if (pack.getVisibility() == GeneratedPackVisibility.PUBLIC) {
             return true;
         }

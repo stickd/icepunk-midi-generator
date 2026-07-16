@@ -59,6 +59,18 @@ public class GeneratedPack {
     @Column(nullable = false, unique = true, length = 1024)
     private String zipObjectKey;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private GeneratedPackStatus status = GeneratedPackStatus.READY;
+    private String failureCode;
+    private OffsetDateTime finalizedAt;
+    @Column(nullable = false)
+    private boolean cleanupRequired;
+    @Column(nullable = false)
+    private int cleanupAttempts;
+    private String cleanupLastError;
+    private OffsetDateTime lastCleanupAt;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
@@ -166,6 +178,20 @@ public class GeneratedPack {
     public void setZipObjectKey(String zipObjectKey) {
         this.zipObjectKey = zipObjectKey;
     }
+    public GeneratedPackStatus getStatus() { return status; }
+    public void setStatus(GeneratedPackStatus status) { this.status = status; }
+    public void setFailureCode(String failureCode) { this.failureCode = failureCode; }
+    public String getFailureCode() { return failureCode; }
+    public void setFinalizedAt(OffsetDateTime finalizedAt) { this.finalizedAt = finalizedAt; }
+    public OffsetDateTime getFinalizedAt() { return finalizedAt; }
+    public boolean isCleanupRequired() { return cleanupRequired; }
+    public void setCleanupRequired(boolean cleanupRequired) { this.cleanupRequired = cleanupRequired; }
+    public int getCleanupAttempts() { return cleanupAttempts; }
+    public void setCleanupAttempts(int cleanupAttempts) { this.cleanupAttempts = cleanupAttempts; }
+    public void setCleanupLastError(String cleanupLastError) { this.cleanupLastError = cleanupLastError; }
+    public String getCleanupLastError() { return cleanupLastError; }
+    public OffsetDateTime getLastCleanupAt() { return lastCleanupAt; }
+    public void setLastCleanupAt(OffsetDateTime lastCleanupAt) { this.lastCleanupAt = lastCleanupAt; }
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
