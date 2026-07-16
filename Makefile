@@ -103,6 +103,8 @@ compose-validate: ## Validate both compose files (same check CI runs)
 		echo "MINIO_ROOT_PASSWORD=dummy"; \
 		echo "JWT_SECRET=dummy-not-a-real-secret"; \
 		echo "CORS_ALLOWED_ORIGINS=https://example.com"; \
+		echo "TRUSTED_PROXY_CIDRS=172.30.0.0/24"; \
+		echo "S3_PRESIGN_ENDPOINT=https://example.com"; \
 		echo "NEXT_PUBLIC_API_URL=https://example.com"; \
 	} > "$$tmp"; \
 	docker compose -f docker-compose.production.yml --env-file "$$tmp" config -q; \

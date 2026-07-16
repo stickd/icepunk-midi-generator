@@ -15,6 +15,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - backend-network
 
   minio:
     image: minio/minio
@@ -28,6 +30,8 @@ services:
     ports:
       - "${MINIO_BIND_ADDRESS:-127.0.0.1}:${MINIO_API_PORT:-9010}:9000"
       - "${MINIO_CONSOLE_BIND_ADDRESS:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9011}:9001"
+    networks:
+      - backend-network
 
   create-minio-bucket:
     image: minio/mc
@@ -45,6 +49,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       S3_BUCKET: ${S3_BUCKET:-icepunk-zips}
+    networks:
+      - backend-network
 
   backend:
     build:
@@ -72,6 +78,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:?TRUSTED_PROXY_CIDRS is required}
       ICEPUNK_GENERATOR_PROJECT_DIR: /app
       ICEPUNK_GENERATOR_PYTHON_PATH: /app/venv/bin/python3
       ICEPUNK_GENERATOR_SCRIPT_NAME: python/generate_midi.py
@@ -97,6 +104,8 @@ services:
       PRESIGNED_DOWNLOAD_TTL_SECONDS: ${PRESIGNED_DOWNLOAD_TTL_SECONDS:-180}
     ports:
       - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8081}:8081"
+    networks:
+      - backend-network
 
   frontend:
     build:
@@ -117,7 +126,17 @@ services:
       FEEDBACK_FROM_EMAIL: ${FEEDBACK_FROM_EMAIL:-}
     ports:
       - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - backend-network
 
 volumes:
   postgres_data:
   minio_data:
+
+networks:
+  # Reverse proxies can join this fixed private network without trusting public peers.
+  backend-network:
+    name: icepunk-prod-backend
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

@@ -261,6 +261,8 @@ MINIO_ROOT_PASSWORD=change_this_minio_password
 
 JWT_SECRET=change_this_to_a_long_random_secret_at_least_32_chars
 CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
+# Required: trust only the private Docker network that contains the reverse proxy.
+TRUSTED_PROXY_CIDRS=172.30.0.0/24
 
 S3_BUCKET=icepunk-zips
 # Public browser origin for signed GET URLs; it must route to MinIO, while the bucket stays private.
@@ -298,7 +300,9 @@ S3_API_CALL_TIMEOUT_SECONDS=30
 S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS=20
 ```
 
-Note: `SPRING_JPA_HIBERNATE_DDL_AUTO` is only read on the *default* profile. When `SPRING_PROFILES_ACTIVE=prod` (required for real production, see [Notes](#notes) below), `application-prod.properties` forces `ddl-auto=validate` regardless of this variable — Flyway, not Hibernate, owns schema changes in production. `JWT_SECRET` also has no fallback under `prod`; the backend refuses to start without it.
+Note: `SPRING_JPA_HIBERNATE_DDL_AUTO` is only read on the *default* profile. When `SPRING_PROFILES_ACTIVE=prod` (required for real production, see [Notes](#notes) below), `application-prod.properties` forces `ddl-auto=validate` regardless of this variable — Flyway, not Hibernate, owns schema changes in production. `JWT_SECRET` and `TRUSTED_PROXY_CIDRS` have no fallback under `prod`; the backend refuses to start without them.
+
+`docker-compose.production.yml` creates the private `icepunk-prod-backend` network at `172.30.0.0/24`. The shown `TRUSTED_PROXY_CIDRS` value is safe only when the reverse proxy is attached to that network (for example, `docker network connect icepunk-prod-backend nginx`). If your proxy uses another network, set it to that network's exact subnet from `docker network inspect <network-name>`; never use `0.0.0.0/0` or `::/0`.
 
 If you use external PostgreSQL or external S3 instead of the included compose services, set these backend env variables in your hosting/runtime:
 
@@ -363,10 +367,10 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 docker compose --env-file .env.production -f docker-compose.production.yml logs -f backend
 ```
 
-6. Verify backend:
+6. Verify backend health:
 
 ```bash
-curl https://your-backend-domain.com/generation-stats
+curl -fsS https://your-backend-domain.com/actuator/health
 ```
 
 7. If you deploy frontend separately, build it with `NEXT_PUBLIC_API_URL=https://your-backend-domain.com`.
