@@ -8,6 +8,8 @@ type MidiDropZoneProps = {
   onAnalysisComplete: (tempAnalysisId: string, accessToken: string) => void;
   onAnalysisReset: () => void;
   onStubStatus: (message: string) => void;
+  onUnauthorized: () => void;
+  token: string | null;
 };
 
 const MAX_CUSTOM_MIDI_FILES = 100;
@@ -21,6 +23,8 @@ export default function MidiDropZone({
   onAnalysisComplete,
   onAnalysisReset,
   onStubStatus,
+  onUnauthorized,
+  token,
 }: MidiDropZoneProps) {
   const midiInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -75,15 +79,20 @@ export default function MidiDropZone({
     try {
       setAnalysisStatus("analyzing");
       setAnalysisMessage("Analyzing uploaded MIDI structure...");
-      const response = await analyzeTempMidiFiles(files);
+      const response = await analyzeTempMidiFiles(files, token);
       setAnalysisStatus("success");
       setAnalysisMessage(
         `${response.fileCount} MIDI file${response.fileCount === 1 ? "" : "s"} analyzed. Custom generation is ready.`,
       );
       onAnalysisComplete(response.tempAnalysisId, response.accessToken);
-    } catch {
+    } catch (error) {
       setAnalysisStatus("error");
-      setAnalysisMessage("Custom analysis failed. Check the MIDI files and try again.");
+      if (error instanceof Error && error.message.includes("HTTP_401")) {
+        setAnalysisMessage("Your session expired. Please log in again before analyzing MIDI files.");
+        onUnauthorized();
+      } else {
+        setAnalysisMessage("Custom analysis failed. Check the MIDI files and try again.");
+      }
       onAnalysisReset();
     }
   }

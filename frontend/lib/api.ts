@@ -319,6 +319,7 @@ export async function generateMidiPack(
 
 export async function analyzeTempMidiFiles(
   files: File[],
+  token?: string | null,
   signal?: AbortSignal,
 ): Promise<TempAnalysisResponse> {
   const formData = new FormData();
@@ -326,6 +327,7 @@ export async function analyzeTempMidiFiles(
 
   const response = await fetch(`${API_URL}/datasets/analyze-temp`, {
     method: "POST",
+    headers: authHeaders(token),
     body: formData,
     signal: withTimeout(signal),
   });

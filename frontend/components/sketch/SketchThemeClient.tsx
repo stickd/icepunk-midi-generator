@@ -176,6 +176,10 @@ export default function SketchThemeClient() {
   }, [token, lastGeneration]);
 
   useEffect(() => {
+    setSourceState({ source: "FACTORY" });
+  }, [token]);
+
+  useEffect(() => {
     if (lastGeneration) {
       hadGenerationRef.current = true;
       return;
@@ -240,6 +244,13 @@ export default function SketchThemeClient() {
   }, [activeMidiSource, playback, soundEngine]);
 
   const openCreatePack = useCallback(() => setActiveModal("create"), []);
+
+  const handleCustomAnalysisUnauthorized = useCallback(() => {
+    clearToken();
+    setAuthStatus("Your session expired. Please log in again.");
+    setAuthMode("login");
+    setStatus("Your session expired. Please log in again.");
+  }, [clearToken, setAuthMode, setAuthStatus]);
 
   const openGuestSignUp = useCallback(() => {
     setShowGuestLimitModal(false);
@@ -315,6 +326,7 @@ export default function SketchThemeClient() {
                       onOpenCreatePack={openCreatePack}
                       onSourceStateChange={setSourceState}
                       onStubStatus={setStatus}
+                      onUnauthorized={handleCustomAnalysisUnauthorized}
                       sourceState={sourceState}
                       status={generationStatus}
                       token={token}

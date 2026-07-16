@@ -239,7 +239,7 @@ describe("lib/api", () => {
         }),
       );
 
-      await expect(analyzeTempMidiFiles([midiFile])).resolves.toEqual({
+      await expect(analyzeTempMidiFiles([midiFile], "custom-token")).resolves.toEqual({
         fileCount: 1,
         metadata: {},
         tempAnalysisId: "temp-1",
@@ -249,6 +249,7 @@ describe("lib/api", () => {
       expect(url).toBe("http://localhost:8081/datasets/analyze-temp");
       expect(init.method).toBe("POST");
       expect(init.body).toBeInstanceOf(FormData);
+      expect(init.headers).toEqual({ Authorization: "Bearer custom-token" });
     });
 
     it("loginUser resolves the raw Response without throwing on a non-2xx status", async () => {

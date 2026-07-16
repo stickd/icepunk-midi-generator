@@ -18,6 +18,7 @@ type RandomGeneratePanelProps = {
   onSourceStateChange: (state: GenerationSourceState) => void;
   onOpenCreatePack: () => void;
   onStubStatus: (message: string) => void;
+  onUnauthorized: () => void;
   status: string;
   token: string | null;
 };
@@ -43,6 +44,7 @@ export default function RandomGeneratePanel({
   onSourceStateChange,
   onOpenCreatePack,
   onStubStatus,
+  onUnauthorized,
   status,
   token,
 }: RandomGeneratePanelProps) {
@@ -89,6 +91,8 @@ export default function RandomGeneratePanel({
             }
             onAnalysisReset={() => onSourceStateChange({ source: "CUSTOM_UPLOAD" })}
             onStubStatus={onStubStatus}
+            onUnauthorized={onUnauthorized}
+            token={token}
           />
           <CustomDatasetControls
             includeFactoryPool={Boolean(sourceState.includeFactoryPool)}

@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
  * |-----------------------------|------------------------------------|--------------------------------|
  * | no Authorization header     | header null                        | chain continues, no auth set   |
  * | valid token, user exists    | extractEmail ok, user found        | auth set to email, chain runs  |
- * | valid token, user deleted   | extractEmail ok, user not found    | no auth set, chain runs        |
- * | token parsing throws        | extractEmail throws                | context cleared, chain runs    |
+ * | valid token, user deleted   | extractEmail ok, user not found    | 401, chain stops               |
+ * | token parsing throws        | extractEmail throws                | 401, context cleared           |
  *
  * In the same package as JwtAuthFilter so the protected doFilterInternal is callable.
  */
@@ -72,7 +72,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void validTokenForDeletedUserLeavesNoAuthentication() throws Exception {
+    void validTokenForDeletedUserIsRejected() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
@@ -83,11 +83,11 @@ class JwtAuthFilterTest {
         filter.doFilterInternal(request, response, chain);
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(chain).doFilter(request, response);
+        verify(response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired authentication token.");
     }
 
     @Test
-    void tokenParsingExceptionClearsContextAndContinues() throws Exception {
+    void tokenParsingExceptionClearsContextAndReturnsUnauthorized() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
@@ -100,6 +100,6 @@ class JwtAuthFilterTest {
         filter.doFilterInternal(request, response, chain);
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(chain).doFilter(request, response);
+        verify(response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired authentication token.");
     }
 }

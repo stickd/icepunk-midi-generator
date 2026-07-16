@@ -61,7 +61,7 @@ class SecurityConfigTest {
     @Test
     void unknownEndpointRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/internal/secret"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -80,7 +80,7 @@ class SecurityConfigTest {
     @Test
     void anonymousAvatarUploadRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/users/me/avatar"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -104,17 +104,31 @@ class SecurityConfigTest {
         // "/users/me/generated-packs" must NOT be swallowed by the public
         // "/users/*/generated-packs" wildcard below it.
         mockMvc.perform(get("/users/me/generated-packs"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void protectedEndpointWithInvalidTokenIsForbidden() throws Exception {
+    void protectedEndpointWithInvalidTokenIsUnauthorized() throws Exception {
         // JwtAuthFilter swallows a malformed/expired token and continues
         // unauthenticated, so the request still hits anyRequest().authenticated()
         // and is rejected with 403 — it must NOT leak a 500 from the bad token.
         mockMvc.perform(get("/internal/secret")
                         .header("Authorization", "Bearer not-a-real-jwt"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void invalidTokenCannotFallBackToGuestForTempAnalysisOrGeneration() throws Exception {
+        mockMvc.perform(multipart("/datasets/analyze-temp")
+                        .file("files", new byte[] {0x4d, 0x54, 0x68, 0x64})
+                        .header("Authorization", "Bearer expired-token"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"source\":\"FACTORY\"}")
+                        .header("Authorization", "Bearer expired-token"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

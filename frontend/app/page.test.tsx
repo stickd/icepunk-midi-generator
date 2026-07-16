@@ -153,7 +153,7 @@ describe("Home page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analyze" }));
 
     await waitFor(() => {
-      expect(mockAnalyzeTempMidiFiles).toHaveBeenCalledWith([midiFile]);
+      expect(mockAnalyzeTempMidiFiles).toHaveBeenCalledWith([midiFile], null);
     });
     expect(await screen.findByText(/Custom generation is ready/i)).toBeInTheDocument();
 
