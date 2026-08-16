@@ -1,3 +1,5 @@
+name: icepunk-prod
+
 services:
   postgres:
     image: postgres:16
@@ -13,6 +15,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - backend-network
 
   minio:
     image: minio/minio
@@ -21,16 +25,29 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      # Allows browser requests to short-lived presigned URLs without making the
+      # bucket public. Keep this aligned with the backend's CORS allow-list.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      MINIO_API_CORS_ALLOW_CREDENTIALS_WITH_WILDCARD: "off"
     volumes:
       - minio_data:/data
     ports:
       - "${MINIO_BIND_ADDRESS:-127.0.0.1}:${MINIO_API_PORT:-9010}:9000"
       - "${MINIO_CONSOLE_BIND_ADDRESS:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9011}:9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - backend-network
 
   create-minio-bucket:
     image: minio/mc
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
       until mc alias set local http://minio:9000 \"$${MINIO_ROOT_USER}\" \"$${MINIO_ROOT_PASSWORD}\"; do
@@ -38,12 +55,13 @@ services:
         sleep 2;
       done;
       mc mb --ignore-existing local/\"$${S3_BUCKET}\";
-      mc anonymous set download local/\"$${S3_BUCKET}\";
       "
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       S3_BUCKET: ${S3_BUCKET:-icepunk-zips}
+    networks:
+      - backend-network
 
   backend:
     build:
@@ -56,29 +74,90 @@ services:
         condition: service_healthy
       create-minio-bucket:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
     environment:
       SERVER_PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-icepunk}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-icepunk}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:?TRUSTED_PROXY_CIDRS is required}
       ICEPUNK_GENERATOR_PROJECT_DIR: /app
       ICEPUNK_GENERATOR_PYTHON_PATH: /app/venv/bin/python3
-      ICEPUNK_GENERATOR_SCRIPT_NAME: icepunk_midi_generator.py
+      ICEPUNK_GENERATOR_SCRIPT_NAME: python/generate_midi.py
+      ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME: python/temp_analyzer.py
       ICEPUNK_GENERATOR_TIMEOUT_SECONDS: ${ICEPUNK_GENERATOR_TIMEOUT_SECONDS:-60}
       ICEPUNK_GENERATOR_MAX_CONCURRENT: ${ICEPUNK_GENERATOR_MAX_CONCURRENT:-2}
+      DATASETS_TEMP_DIR: /app/temp_analysis
+      DATASETS_TEMP_MIDI_MAX_SIZE_BYTES: ${DATASETS_TEMP_MIDI_MAX_SIZE_BYTES:-2097152}
+      DATASETS_TEMP_RETENTION_HOURS: ${DATASETS_TEMP_RETENTION_HOURS:-24}
+      GENERATED_ZIP_RETENTION_DAYS: ${GENERATED_ZIP_RETENTION_DAYS:-2}
       S3_ENDPOINT: http://minio:9000
+      # Browser-reachable MinIO API origin used only in signed GET URLs. Keep the bucket private.
+      S3_PRESIGN_ENDPOINT: ${S3_PRESIGN_ENDPOINT:?S3_PRESIGN_ENDPOINT is required}
       S3_REGION: ${S3_REGION:-eu-central-1}
       S3_BUCKET: ${S3_BUCKET:-icepunk-zips}
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
-      S3_PUBLIC_URL: ${S3_PUBLIC_URL:?S3_PUBLIC_URL is required}
+      S3_CONNECTION_TIMEOUT_SECONDS: ${S3_CONNECTION_TIMEOUT_SECONDS:-3}
+      S3_SOCKET_TIMEOUT_SECONDS: ${S3_SOCKET_TIMEOUT_SECONDS:-15}
+      S3_API_CALL_TIMEOUT_SECONDS: ${S3_API_CALL_TIMEOUT_SECONDS:-30}
+      S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS: ${S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS:-20}
+      PRESIGNED_PREVIEW_TTL_SECONDS: ${PRESIGNED_PREVIEW_TTL_SECONDS:-600}
+      PRESIGNED_DOWNLOAD_TTL_SECONDS: ${PRESIGNED_DOWNLOAD_TTL_SECONDS:-180}
     ports:
       - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8081}:8081"
+    networks:
+      - backend-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FEEDBACK_TO_EMAIL: ${FEEDBACK_TO_EMAIL:-}
+      FEEDBACK_FROM_EMAIL: ${FEEDBACK_FROM_EMAIL:-}
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    networks:
+      - backend-network
 
 volumes:
   postgres_data:
   minio_data:
+
+networks:
+  # Reverse proxies can join this fixed private network without trusting public peers.
+  backend-network:
+    name: icepunk-prod-backend
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

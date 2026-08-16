@@ -1,53 +1,57 @@
 "use client";
 
-import { useState } from "react";
-import { generateMidiPack, TOKEN_KEY } from "@/lib/api";
+import { useCallback, useState } from "react";
+import {
+  GenerateMidiRequest,
+  GenerateMidiResponse,
+  generateMidiPack,
+  normalizeAuthToken,
+  TOKEN_KEY,
+} from "@/lib/api";
+import { notifyFeedRefresh } from "@/lib/events";
 
 export function useMidiGeneration(
   onUnauthorized?: () => void,
   onGenerated?: (totalGenerations: number) => void,
+  onGuestLimitReached?: () => void,
 ) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState("");
+  const [lastGeneration, setLastGeneration] =
+    useState<GenerateMidiResponse | null>(null);
 
-  async function handleGenerateMidi() {
+  const handleGenerateMidi = useCallback(async (request: GenerateMidiRequest) => {
+    let token: string | null = null;
+
     try {
       setIsGenerating(true);
       setStatus("Generating frozen MIDI patterns...");
 
-      const savedToken = localStorage.getItem(TOKEN_KEY);
-      const token =
-        savedToken && savedToken !== "undefined" && savedToken !== "null"
-          ? savedToken
-          : null;
+      token = normalizeAuthToken(localStorage.getItem(TOKEN_KEY));
 
-      if (savedToken && !token) {
+      if (localStorage.getItem(TOKEN_KEY) && !token) {
         localStorage.removeItem(TOKEN_KEY);
-        onUnauthorized?.();
       }
 
-      const data = await generateMidiPack(token);
-
-      const downloadLink = document.createElement("a");
-      downloadLink.href = data.downloadUrl;
-      downloadLink.target = "_blank";
-      downloadLink.rel = "noreferrer";
-      downloadLink.click();
+      const data = await generateMidiPack(request, token);
+      setLastGeneration(data);
 
       onGenerated?.(data.totalGenerations);
-      setStatus("MIDI pack downloaded.");
+      notifyFeedRefresh();
+      setStatus("MIDI pack generated. Download links are ready.");
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes("Guest daily generation limit reached")) {
           setStatus(
-            "You've used your free daily generation. Log in or create an account to unlock more generations.",
+            "You've used your guest generation limit. Log in or create an account to unlock unlimited generations.",
           );
+          onGuestLimitReached?.();
           return;
         }
 
         if (error.message.includes("User daily generation limit reached")) {
           setStatus(
-            "You've reached today's generation limit. Please try again tomorrow.",
+            "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
           );
           return;
         }
@@ -57,9 +61,16 @@ export function useMidiGeneration(
           return;
         }
 
-        if (error.message.includes("HTTP_401")) {
+        if (token && error.message.includes("HTTP_401")) {
           localStorage.removeItem(TOKEN_KEY);
           setStatus("Your session expired. Please log in again.");
+          onUnauthorized?.();
+          return;
+        }
+
+        if (token && error.message.includes("HTTP_403")) {
+          localStorage.removeItem(TOKEN_KEY);
+          setStatus("Please log in again before generating.");
           onUnauthorized?.();
           return;
         }
@@ -69,11 +80,18 @@ export function useMidiGeneration(
     } finally {
       setIsGenerating(false);
     }
-  }
+  }, [onGenerated, onGuestLimitReached, onUnauthorized]);
+
+  const resetGeneration = useCallback(() => {
+    setLastGeneration(null);
+    setStatus("");
+  }, []);
 
   return {
     isGenerating,
     status,
+    lastGeneration,
+    resetGeneration,
     setStatus,
     handleGenerateMidi,
   };

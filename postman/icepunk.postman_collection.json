@@ -1,0 +1,134 @@
+{
+  "info": {
+    "_postman_id": "8f6f9f0a-1c2b-4b8a-9d3e-2e8c9a1f7b10",
+    "name": "Icepunk MIDI Generator - Public API Smoke Test",
+    "description": "Black-box HTTP smoke test of the public API surface (register, login, generation-stats, guest generate), run with Newman against a live backend in CI.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const suffix = Date.now() + '-' + Math.floor(Math.random() * 100000);",
+              "pm.environment.set('testSuffix', suffix);",
+              "pm.environment.set('testEmail', `newman-${suffix}@example.com`);",
+              "pm.environment.set('testUsername', `newman${suffix}`);",
+              "pm.environment.set('testPassword', 'NewmanTest123!');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Response has a JWT token', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "  pm.environment.set('registerToken', json.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/register"
+      }
+    },
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Response has a JWT token', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "  pm.environment.set('authToken', json.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "Generation Stats",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Response has totalGenerations as a number', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.totalGenerations).to.be.a('number');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/generation-stats"
+      }
+    },
+    {
+      "name": "Guest Generate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Response has a downloadUrl and totalGenerations', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.downloadUrl).to.be.a('string').and.not.empty;",
+              "  pm.expect(json.totalGenerations).to.be.a('number');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/generate"
+      }
+    }
+  ]
+}

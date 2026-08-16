@@ -37,7 +37,7 @@ public class InMemoryRateLimitService {
             }
 
             if (counter.attempts >= limit) {
-                throw new RateLimitException(message);
+                throw new RateLimitException(message, Math.max(1, Duration.between(now, counter.resetAt).toSeconds()));
             }
 
             counter.attempts++;

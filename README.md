@@ -17,42 +17,87 @@ backend/                  Spring Boot API
 frontend/                 Next.js app
 analysis_output/          Required generator analysis data
 generated_midi/           Generated output, ignored by git
-icepunk_midi_generator.py MIDI generation engine
-icepunk_midi_analyzer.py  Dataset analysis helper
-requirements.txt          Python generator dependencies
+python/                   MIDI generation/analysis engine, tests, and Python tooling config
+python/generate_midi.py   MIDI generation engine entrypoint
+python/analyze_midi.py    Dataset analysis entrypoint
+python/requirements.txt   Python generator dependencies
 ```
 
 ## Local Development
 
-Requirements:
+The default `docker-compose.yml` supports both local modes below. It uses only
+disposable development credentials and must not be used for production.
 
-- Java 21
-- Node.js 20+
-- Python 3.10+
-- Docker or compatible container runtime
+### Option A — full Docker stack
 
-Start local infrastructure:
-
-```bash
-docker compose up -d
-```
-
-Install Python dependencies:
+Use this when you want the production-like runtime path, including Python inside
+the backend container:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+docker compose build
+docker compose up -d --wait
 ```
 
-Run backend:
+No environment file is required for the default ports. After all health checks
+pass, open:
+
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:8081/actuator/health`
+- MinIO API: `http://localhost:9010`
+- MinIO console: `http://localhost:9011` (`minioadmin` / `minioadmin`, local only)
+- PostgreSQL: `localhost:5433` (`icepunk` / `icepunk_local_dev`, database `icepunk`)
+
+Compose waits in this order: PostgreSQL and MinIO become healthy, the private
+`icepunk-zips` bucket is created idempotently, then the Spring backend becomes
+healthy, and finally the frontend starts. The backend uses `http://minio:9000`
+inside Docker, but issues browser-facing presigned URLs with
+`http://localhost:9010`; the frontend bundle similarly uses
+`http://localhost:8081`, never the Docker-only `backend` hostname.
+
+Useful commands (PowerShell, Git Bash, and other Docker Compose shells):
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+`docker compose down` keeps PostgreSQL and MinIO named volumes, so data survives
+the next `docker compose up`. To intentionally reset all local database and
+object-storage data, run `docker compose down -v`.
+
+### Option B — hybrid, fast local development
+
+Use this when iterating on Spring Boot or Next.js and you want their native hot
+reload/dev workflow while Docker supplies only PostgreSQL and MinIO:
+
+```bash
+docker compose up -d postgres minio
+```
+
+Add `--wait` (`docker compose up -d --wait postgres minio`) when you want the
+command to wait for both infrastructure health checks before starting native
+processes. `make infra-up` uses that safer form.
+
+Start the backend with the `local` profile in a separate terminal:
+
+```powershell
+cd backend
+$env:SPRING_PROFILES_ACTIVE = "local"
+.\mvnw.cmd spring-boot:run
+```
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
 ```
 
-Run frontend:
+Then configure and start the frontend in another terminal:
+
+```env
+# frontend/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:8081
+```
 
 ```bash
 cd frontend
@@ -60,41 +105,191 @@ npm install
 npm run dev
 ```
 
-Local URLs:
+The backend's default local datasource and S3 settings already target
+`localhost:5433` and `localhost:9010`; it idempotently creates the private
+bucket itself if it does not exist.
 
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8081`
-- MinIO API: `http://localhost:9010`
-- MinIO console: `http://localhost:9011`
+Choose Option A to validate container/runtime parity or the full integration
+path. Choose Option B for the quickest code-feedback loop. GNU Make is optional
+(particularly on Windows): `make dev`, `make dev-down`, and `make dev-logs`
+mirror the full-stack commands; `make infra-up` starts only PostgreSQL and MinIO.
 
-Local frontend config can live in `frontend/.env.local`:
+### Optional Docker overrides
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8081
-RESEND_API_KEY=optional_resend_key
-FEEDBACK_TO_EMAIL=you@example.com
-FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
+[`.env.docker.example`](.env.docker.example) documents the small set of local
+port and browser-URL overrides. Copy it to `.env` only when needed and keep
+`CORS_ALLOWED_ORIGINS`, `NEXT_PUBLIC_API_URL`, and `S3_PRESIGN_ENDPOINT` aligned
+with any changed frontend, backend, or MinIO ports. `.env` remains ignored by
+Git; `.env.production` is separate and always required for production.
+
+## CI and branch strategy
+
+`dev` is the integration branch and `main` is release-only. The CI workflow runs on pushes and
+pull requests targeting either branch. Its required branch-protection status is **CI Required**;
+it succeeds only after Backend, Python engine, Frontend, Docker Compose validation, Newman,
+Playwright, Docker build, Trivy, and CodeQL jobs succeed.
+
+Reproduce the primary checks locally:
+
+```bash
+# backend (PowerShell: .\mvnw.cmd verify)
+cd backend && ./mvnw verify
+# Python, from the repository root
+python -m compileall python/midi_generator python/generate_midi.py
+python -m ruff check python/midi_generator python/generate_midi.py python/tests
+python -m mypy --config-file python/mypy.ini python/midi_generator python/generate_midi.py
+python -m pytest python/tests -v
+# frontend
+cd frontend && npm ci && npm run ci
 ```
 
-`.env*` files are ignored by git.
+After a workflow job is renamed, run it once on GitHub and update branch protection with its exact
+displayed status context; do not guess the context name.
+
+Native/hybrid requirements:
+
+- Java 21
+- Node.js 20+
+- Python 3.10+
+- Docker or compatible container runtime
+
+Install Python dependencies:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r python/requirements.txt
+```
 
 ## API
 
-- `POST /generate` creates a MIDI ZIP and returns `{ "downloadUrl": "...", "totalGenerations": 123 }`.
-- `GET /generation-stats` returns `{ "totalGenerations": 123 }`.
-- `POST /auth/register` creates a user account and returns a JWT token.
-- `POST /auth/login` returns a JWT token.
+Full reference with request/response shapes: [docs/api.md](docs/api.md). Summary:
 
-Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation and successful ZIP upload.
+- `POST /generate` creates a generated pack, uploads the whole ZIP plus each generated `.mid` item, persists pack/item metadata (for authenticated users — guest generations are ephemeral and not persisted), and returns a structured generated pack response. The response keeps `downloadUrl` as a backward-compatible alias for `packDownloadUrl`.
+- `GET /generation-usage` returns `{ "used": 3, "limit": 7 }` for the caller's identity (guest IP or JWT user).
+- `GET /generation-stats` returns `{ "totalGenerations": 123 }`.
+- `POST /datasets/analyze-temp` accepts 1-100 `.mid/.midi` files, creates a temporary (24h) analysis dataset, and returns `{ "tempAnalysisId": "...", "fileCount": 1, "metadata": {...} }`.
+- `POST /datasets` (JWT) promotes a `tempAnalysisId` into a permanent, named, owned dataset preset. `GET /datasets` lists your saved presets; `DELETE /datasets/{id}` removes one.
+- `GET /generated-packs/feed?page=&size=` returns the paged public community feed. `GET /generated-packs/{packId}` returns one pack's metadata and items.
+- `GET /generated-packs/{packId}/download` and `GET /generated-packs/{packId}/items/{itemId}/download` proxy the pack ZIP / a single MIDI file through the backend with a friendly filename.
+- `GET /users/me/generated-packs` (JWT) lists all of the caller's packs, including private ones ("My Packs"). `PATCH .../name`, `PATCH .../visibility`, and `DELETE` (all JWT, owner-only) manage a pack.
+- `POST /auth/register` / `POST /auth/login` return a JWT token.
+- `POST /uploads/projects` uploads an authenticated user's MIDI project and one-shot sample.
+- `GET /uploads/feed?page=0&size=10` returns newest public uploaded projects for the discovery feed.
+- `GET /uploads/projects/{id}/midi` streams a public uploaded MIDI file through the backend for browser piano-roll visualization (and counts as a download).
+- `GET /users/{username}/profile` returns public profile stats; `GET /users/me` returns the same plus email/credits. `POST /users/me/profile` and `POST /users/me/avatar` edit bio/avatar.
+- `GET /users/me/favorites`, `POST`/`DELETE /uploads/projects/{id}/like` implement favorites/likes — for uploaded projects only; Generated Packs have no like mechanism today.
+
+Guests and logged-in users have daily generation limits. Usage is counted only after successful MIDI generation, storage upload, and generated pack persistence.
+
+The public feed uses real generated packs and uploaded projects only. Empty feeds show an empty state instead of demo cards, and feed MIDI previews render from note data embedded in the pack response (no MIDI file download needed) via the client-side Tone.js playback engine (`frontend/hooks/useBrowserMidiPlayback.ts`) — the Python engine only writes `.mid` files, it never renders audio itself.
+
+## Generation Sources
+
+The generator supports two real generation sources:
+
+- `FACTORY`: uses the bundled `analysis_output/midi_analysis.json`.
+- `CUSTOM_UPLOAD`: either (a) uploads 1-100 MIDI files to `/datasets/analyze-temp` and sends the returned `tempAnalysisId` to `/generate`, or (b) for signed-in users, generates from one or more previously saved dataset presets (`datasetIds`, up to 10 combined sources, optionally blended with the factory pool via `includeFactoryPool`).
+
+Temporary custom analysis files are stored under `DATASETS_TEMP_DIR`, defaulting to `temp_analysis` inside the generator project directory, and expire after `DATASETS_TEMP_RETENTION_HOURS`. Saving one as a dataset preset (`POST /datasets`) copies its analysis into S3 permanently, scoped to the owner.
+
+```env
+ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=python/temp_analyzer.py
+DATASETS_TEMP_DIR=/app/temp_analysis
+DATASETS_TEMP_MIDI_MAX_SIZE_BYTES=2097152
+DATASETS_TEMP_RETENTION_HOURS=24
+```
+
+## Generated ZIP Retention
+
+Generated MIDI ZIP files are temporary download artifacts. New generated ZIPs are stored in the S3/MinIO bucket under the `generated_midi/` prefix and are automatically cleaned up by the backend after the configured retention period.
+
+The default retention period is 2 days. Change it with:
+
+```env
+GENERATED_ZIP_RETENTION_DAYS=2
+```
+
+The cleanup task only deletes objects inside `generated_midi/` and never deletes files newer than the configured number of days.
+
+## Generated Packs
+
+Generation output is stored separately from user-uploaded projects:
+
+- `generated_packs`: one row per generation request, including owner if logged in, source type, generation type, controls, ZIP object key, visibility, timestamps, and metadata.
+- `generated_pack_items`: one row per generated `.mid`, linked to its pack with `ON DELETE CASCADE`, including object key, file name, duration, note count, track count, pitch range, BPM, and capped preview-note metadata.
+
+Current `/generate` response shape:
+
+```json
+{
+  "packId": "uuid",
+  "name": "Ice Pack",
+  "source": "FACTORY",
+  "type": "MELODY",
+  "bpm": 146,
+  "pitch": 0,
+  "octaves": 1,
+  "amount": 10,
+  "createdAt": "2026-07-03T12:00:00Z",
+  "packDownloadUrl": "https://files.example/generated_midi/pack.zip",
+  "downloadUrl": "https://files.example/generated_midi/pack.zip",
+  "totalGenerations": 123,
+  "items": [
+    {
+      "id": "uuid",
+      "index": 0,
+      "fileName": "icepunk_001.mid",
+      "downloadUrl": "https://files.example/generated_midi_items/item.mid",
+      "durationSeconds": 8.5,
+      "noteCount": 42,
+      "trackCount": 1,
+      "minPitch": 36,
+      "maxPitch": 84,
+      "avgPitch": 55.2,
+      "bpm": 146,
+      "preview": {
+        "notes": [
+          { "pitch": 60, "start": 0.0, "duration": 0.5, "velocity": 90 }
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}
+```
+
+Architecture:
+
+```text
+POST /generate
+-> selected analysis source (FACTORY, CUSTOM_UPLOAD temp, or merged dataset presets)
+-> Python generator
+-> local generated MIDI files
+-> MIDI metadata extractor
+-> individual MIDI uploads under generated_midi_items/
+-> ZIP upload under generated_midi/
+-> generated_packs row + generated_pack_items rows (authenticated callers only)
+-> structured response for the frontend
+```
+
+Guest calls skip the DB-persistence step entirely — a guest's pack exists only as S3 objects and is
+never listed in the feed, in "My Packs", or on any profile. Authenticated packs are ownable
+(rename, toggle `PUBLIC`/`PRIVATE`, delete — see [docs/api.md](docs/api.md)) and listable via
+`GET /users/me/generated-packs`.
+
+Current limitations: credits and paid/private-download economy, and likes/ratings/favorites *on
+generated packs specifically* (uploaded projects already have likes/favorites) are intentionally
+left for later phases. Permanent custom dataset saving is implemented (`POST /datasets`) — it is
+no longer a limitation.
 
 ## Production Backend Docker
 
 The production backend image is built from the repository root because it needs:
 
 - `backend/` Spring Boot source
-- `icepunk_midi_generator.py`
+- `python/` MIDI generation/analysis engine
 - `analysis_output/midi_analysis.json`
-- `requirements.txt`
 
 Build manually:
 
@@ -102,7 +297,7 @@ Build manually:
 docker build -f backend/Dockerfile -t icepunk-backend .
 ```
 
-Or run backend + Postgres + MinIO with:
+Or run the production stack with Postgres, MinIO, backend, and frontend:
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
@@ -124,11 +319,17 @@ MINIO_ROOT_PASSWORD=change_this_minio_password
 
 JWT_SECRET=change_this_to_a_long_random_secret_at_least_32_chars
 CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
+# Required: trust only the private Docker network that contains the reverse proxy.
+TRUSTED_PROXY_CIDRS=172.30.0.0/24
 
 S3_BUCKET=icepunk-zips
-S3_PUBLIC_URL=https://your-files-domain.com/icepunk-zips
+# Public browser origin for signed GET URLs; it must route to MinIO, while the bucket stays private.
+S3_PRESIGN_ENDPOINT=https://minio-api.your-domain.com
+PRESIGNED_PREVIEW_TTL_SECONDS=600
+PRESIGNED_DOWNLOAD_TTL_SECONDS=180
 
 BACKEND_PORT=8081
+FRONTEND_PORT=3000
 MINIO_API_PORT=9010
 MINIO_CONSOLE_PORT=9011
 
@@ -136,8 +337,30 @@ SPRING_JPA_HIBERNATE_DDL_AUTO=update
 JWT_EXPIRATION=86400000
 ICEPUNK_GENERATOR_TIMEOUT_SECONDS=60
 ICEPUNK_GENERATOR_MAX_CONCURRENT=2
+GENERATED_ZIP_RETENTION_DAYS=2
 S3_REGION=eu-central-1
+
+# Custom-upload analysis (defaults shown)
+DATASETS_TEMP_DIR=/app/temp_analysis
+DATASETS_TEMP_MIDI_MAX_SIZE_BYTES=2097152
+DATASETS_TEMP_RETENTION_HOURS=24
+
+# User project uploads (defaults shown)
+UPLOADS_MIDI_MAX_SIZE_BYTES=2097152
+UPLOADS_SAMPLE_MAX_SIZE_BYTES=20971520
+UPLOADS_MULTIPART_MAX_FILE_SIZE=25MB
+UPLOADS_MULTIPART_MAX_REQUEST_SIZE=220MB
+
+# S3 client timeouts (defaults shown, rarely need changing)
+S3_CONNECTION_TIMEOUT_SECONDS=3
+S3_SOCKET_TIMEOUT_SECONDS=15
+S3_API_CALL_TIMEOUT_SECONDS=30
+S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS=20
 ```
+
+Note: `SPRING_JPA_HIBERNATE_DDL_AUTO` is only read on the *default* profile. When `SPRING_PROFILES_ACTIVE=prod` (required for real production, see [Notes](#notes) below), `application-prod.properties` forces `ddl-auto=validate` regardless of this variable — Flyway, not Hibernate, owns schema changes in production. `JWT_SECRET` and `TRUSTED_PROXY_CIDRS` have no fallback under `prod`; the backend refuses to start without them.
+
+`docker-compose.production.yml` creates the private `icepunk-prod-backend` network at `172.30.0.0/24`. The shown `TRUSTED_PROXY_CIDRS` value is safe only when the reverse proxy is attached to that network (for example, `docker network connect icepunk-prod-backend nginx`). If your proxy uses another network, set it to that network's exact subnet from `docker network inspect <network-name>`; never use `0.0.0.0/0` or `::/0`.
 
 If you use external PostgreSQL or external S3 instead of the included compose services, set these backend env variables in your hosting/runtime:
 
@@ -146,18 +369,25 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/db
 SPRING_DATASOURCE_USERNAME=prod_user
 SPRING_DATASOURCE_PASSWORD=prod_password
 S3_ENDPOINT=https://s3-compatible-endpoint
+S3_PRESIGN_ENDPOINT=https://browser-reachable-s3-endpoint
 S3_BUCKET=icepunk-zips
 S3_ACCESS_KEY=prod_access_key
 S3_SECRET_KEY=prod_secret_key
-S3_PUBLIC_URL=https://public-download-domain/icepunk-zips
 ```
+
+Generated MIDI objects are stored in a private bucket. The API authorizes a pack/item ID and then
+returns a short-lived signed GET URL only for Preview or Download; never configure anonymous bucket
+read access. `S3_PRESIGN_ENDPOINT` must be browser reachable. Production Compose applies
+`CORS_ALLOWED_ORIGINS` to MinIO's explicit CORS allow-list so signed browser GETs work while the
+bucket stays private.
 
 The Docker image already sets:
 
 ```env
 ICEPUNK_GENERATOR_PROJECT_DIR=/app
 ICEPUNK_GENERATOR_PYTHON_PATH=/app/venv/bin/python3
-ICEPUNK_GENERATOR_SCRIPT_NAME=icepunk_midi_generator.py
+ICEPUNK_GENERATOR_SCRIPT_NAME=python/generate_midi.py
+ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME=python/temp_analyzer.py
 ```
 
 Required for frontend production build/runtime:
@@ -184,7 +414,7 @@ cd icepunk-midi-generator
 
 3. Create `.env.production` with the production values above.
 
-4. Start backend infrastructure and API:
+4. Start Postgres, MinIO, backend, and frontend:
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
@@ -196,13 +426,13 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 docker compose --env-file .env.production -f docker-compose.production.yml logs -f backend
 ```
 
-6. Verify backend:
+6. Verify backend health:
 
 ```bash
-curl https://your-backend-domain.com/generation-stats
+curl -fsS https://your-backend-domain.com/actuator/health
 ```
 
-7. Deploy frontend with `NEXT_PUBLIC_API_URL=https://your-backend-domain.com`.
+7. If you deploy frontend separately, build it with `NEXT_PUBLIC_API_URL=https://your-backend-domain.com`.
 
 For a VPS-hosted frontend:
 
@@ -225,13 +455,75 @@ npm run start
 - login
 - guest generate
 - logged-in generate
-- ZIP download
+- pack ZIP download and single-item download
+- rename / toggle visibility / delete an owned generated pack
+- custom-upload analyze, then save it as a permanent dataset preset, then generate from it
+- upload a public MIDI project with a one-shot sample
+- public feed shows the uploaded project and generated packs
+- like/unlike an uploaded project, confirm it appears under favorites
+- view a profile page (`/u/{username}`), confirm stats and "My Packs"
 - global counter update
 - feedback form
 - backend restart keeps generation counter
 
+## Database Migrations
+
+Schema is managed by [Flyway](https://flywaydb.org/). Migration files live in `backend/src/main/resources/db/migration/` and follow the naming convention `V{version}__{description}.sql`.
+
+### Profile behaviour
+
+| Profile | `ddl-auto` | Flyway |
+|---|---|---|
+| *(none / default)* | `update` (env var) | enabled |
+| `local` | `update` | enabled, baseline mode |
+| `test` | `create-drop` | disabled (H2 in-memory) |
+| `prod` | `validate` | enabled, strict |
+
+### Running with a profile
+
+```bash
+# local profile (recommended for development)
+cd backend
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+```
+
+### Introducing Flyway to an existing local database
+
+If you already have a database created by a previous `ddl-auto=update` run, use the `local` profile. It sets `baseline-on-migrate=true` and `baseline-version=1`, which marks the existing schema as V1 without re-running the migration.
+
+### First production deploy onto an existing database
+
+> **One-time step.** Required before the first deploy of the `prod` profile onto a database that was previously created by Hibernate (`ddl-auto=update`).
+
+The `prod` profile runs Flyway in strict mode (`baseline-on-migrate=false`). If the production database already has tables but no `flyway_schema_history` table, Flyway aborts on startup with *"Found non-empty schema(s) without schema history table"* and the backend never comes up.
+
+Pick one before the first `prod` deploy:
+
+1. **Baseline the existing schema (recommended).** For the first deploy only, start the backend once with `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` and `SPRING_FLYWAY_BASELINE_VERSION=1`. This stamps the current schema as V1 without re-running it. Remove both env vars for subsequent deploys.
+2. **Manual baseline.** Run `flyway baseline -baselineVersion=1` against the prod database out-of-band, then deploy normally.
+3. **Fresh database.** If the prod database is empty (or you recreate the volume), V1 applies cleanly and no baseline is needed.
+
+### Adding a new migration
+
+1. Create `backend/src/main/resources/db/migration/V{next}__{description}.sql`
+2. Never modify an already-applied migration file
+3. Test the migration locally before merging
+
 ## Notes
 
 - `analysis_output/midi_analysis.json` is required at runtime by the Python generator.
-- The production compose creates the MinIO bucket and sets anonymous download access for ZIP files.
+- The production compose creates the MinIO bucket without anonymous/public read access; downloads are streamed through the backend.
 - For real production, rotate any secrets that were ever committed to git history.
+- The production Spring profile (`prod`) must be activated by setting `SPRING_PROFILES_ACTIVE=prod` in the deployment environment or compose file.
+# Security configuration
+
+Uploads accept only structurally valid Standard MIDI files (`.mid`/`.midi`), never empty files.
+Defaults are: 2 MiB MIDI, 25 MiB per multipart part, 220 MiB request, 100 temporary-analysis files,
+64 tracks, 100,000 events, 50,000 notes, 10,000,000 ticks, 1 hour duration, and 1,000 tempo changes.
+Override these with `UPLOADS_*`, `DATASETS_TEMP_MIDI_MAX_SIZE_BYTES`, and `MIDI_MAX_*` variables.
+Oversize multipart requests return 413; invalid uploads return a safe 400 response.
+
+Swagger/OpenAPI is available outside `prod`; production disables Springdoc and denies its routes.
+`JWT_SECRET` is required in `prod` and must contain at least 32 random bytes. Generate one with
+`[Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Maximum 256 }))` (PowerShell) or
+`openssl rand -base64 64` (Linux/macOS). Do not commit it. The development default is deliberately insecure.

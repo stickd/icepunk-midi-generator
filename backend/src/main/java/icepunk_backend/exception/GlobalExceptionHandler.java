@@ -1,17 +1,22 @@
 package icepunk_backend.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(
@@ -77,6 +82,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", Long.toString(exception.getRetryAfterSeconds()))
                 .body(response);
     }
 
@@ -92,6 +98,95 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(StorageTimeoutException.class)
+    public ResponseEntity<Map<String, String>> handleStorageTimeout(
+            StorageTimeoutException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(response);
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<Map<String, String>> handleStorage(
+            StorageException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(response);
+    }
+
+    @ExceptionHandler(UploadValidationException.class)
+    public ResponseEntity<Map<String, String>> handleUploadValidation(
+            UploadValidationException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, String>> handleUploadTooLarge(MaxUploadSizeExceededException exception) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of("error", "Upload exceeds the configured size limit."));
+    }
+
+    @ExceptionHandler(GenerationRequestException.class)
+    public ResponseEntity<Map<String, String>> handleGenerationRequest(
+            GenerationRequestException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(DatasetNameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleDatasetNameAlreadyExists(
+            DatasetNameAlreadyExistsException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleResourceNotFound(
+            ResourceNotFoundException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(response);
+    }
+
+    @ExceptionHandler(ForbiddenActionException.class)
+    public ResponseEntity<Map<String, String>> handleForbiddenAction(
+            ForbiddenActionException exception
+    ) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(response);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrityViolation() {
         Map<String, String> response = new HashMap<>();
@@ -103,7 +198,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException() {
+    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException exception) {
+        log.error("Unhandled runtime exception", exception);
+
         Map<String, String> response = new HashMap<>();
         response.put("error", "Unexpected server error");
 

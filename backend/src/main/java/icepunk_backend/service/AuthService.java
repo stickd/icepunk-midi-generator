@@ -8,13 +8,18 @@ import icepunk_backend.exception.UsernameAlreadyExistsException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.security.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -32,13 +37,18 @@ public class AuthService {
 
     public String register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
+        String maskedEmail = maskEmailForLogs(email);
         String username = request.getUsername().trim();
 
+        log.info("Registration attempt for email={}", maskedEmail);
+
         if (userRepository.existsByEmail(email)) {
+            log.warn("Registration rejected: email already exists email={}", maskedEmail);
             throw new EmailAlreadyExistsException("Email already exists");
         }
 
         if (userRepository.existsByUsername(username)) {
+            log.warn("Registration rejected: username already exists username={}", username);
             throw new UsernameAlreadyExistsException("Username already exists");
         }
 
@@ -52,14 +62,21 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
+        log.info("Registration succeeded for email={}", maskEmailForLogs(savedUser.getEmail()));
         return jwtService.generateToken(savedUser.getEmail());
     }
 
     public String login(LoginRequest request) {
-        String email = normalizeEmail(request.getEmail());
+        String identifier = request.getIdentifier().trim();
+        String maskedIdentifier = maskEmailForLogs(identifier);
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+        log.info("Login attempt for identifier={}", maskedIdentifier);
+
+        User user = resolveUserByIdentifier(identifier)
+                .orElseThrow(() -> {
+                    log.warn("Login rejected: unknown identifier={}", maskedIdentifier);
+                    return new InvalidCredentialsException("Invalid credentials");
+                });
 
         boolean passwordMatches = passwordEncoder.matches(
                 request.getPassword(),
@@ -67,13 +84,37 @@ public class AuthService {
         );
 
         if (!passwordMatches) {
-            throw new InvalidCredentialsException("Invalid email or password");
+            log.warn("Login rejected: bad password for identifier={}", maskedIdentifier);
+            throw new InvalidCredentialsException("Invalid credentials");
         }
 
+        log.info("Login succeeded for email={}", maskEmailForLogs(user.getEmail()));
         return jwtService.generateToken(user.getEmail());
+    }
+
+    private Optional<User> resolveUserByIdentifier(String identifier) {
+        return userRepository.findByEmail(normalizeEmail(identifier))
+                .or(() -> userRepository.findByUsernameIgnoreCase(identifier));
     }
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    static String maskEmailForLogs(String email) {
+        if (email == null || email.isBlank()) {
+            return "***";
+        }
+
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
+        int atIndex = normalized.indexOf('@');
+        String localPart = atIndex > 0 ? normalized.substring(0, atIndex) : normalized;
+        String domainPart = atIndex >= 0 ? normalized.substring(atIndex) : "";
+
+        if (localPart.isEmpty()) {
+            return "***" + domainPart;
+        }
+
+        return localPart.charAt(0) + "***" + domainPart;
     }
 }

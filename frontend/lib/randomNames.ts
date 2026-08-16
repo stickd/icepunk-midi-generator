@@ -1,0 +1,73 @@
+// Random pack name generator for cold, dark melodic MIDI packs (2 random words)
+
+const PREFIXES = [
+  "Frost",
+  "Glitch",
+  "Echo",
+  "Velvet",
+  "Spectral",
+  "Neon",
+  "Cyber",
+  "Shadow",
+  "Frozen",
+  "Void",
+  "Crystal",
+  "Obsidian",
+  "Subzero",
+  "Vapor",
+  "Midnight",
+  "Polar",
+  "Phantom",
+  "Astral",
+  "Static",
+  "Grim",
+  "Arctic",
+  "Lunar",
+  "Overtone",
+  "Ethereal",
+  "Iron",
+  "Vortex",
+  "Boreal",
+  "Hollow",
+  "Chrono",
+  "Starlight",
+  "Stasis",
+  "Aether",
+];
+
+const SUFFIXES = [
+  "Pulse",
+  "Drift",
+  "Chords",
+  "Mirage",
+  "Aura",
+  "Sphere",
+  "Cascade",
+  "Wave",
+  "Shade",
+  "Nexus",
+  "Ritual",
+  "Strobe",
+  "Fragment",
+  "Helix",
+  "Cipher",
+  "Symphony",
+  "Prism",
+  "Signal",
+  "Enigma",
+  "Sequence",
+  "Labyrinth",
+  "Resonance",
+  "Current",
+  "Obelisk",
+  "Tide",
+  "Matrix",
+  "Spectra",
+  "Phase",
+];
+
+export function generateRandomPackName(): string {
+  const prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
+  const suffix = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+  return `${prefix} ${suffix}`;
+}

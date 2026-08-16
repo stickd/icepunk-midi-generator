@@ -18,10 +18,10 @@ import java.util.Collections;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final icepunk_backend.security.JwtService jwtService;
     private final UserRepository userRepository;
 
-    public JwtAuthFilter(JwtService jwtService, UserRepository userRepository) {
+    public JwtAuthFilter(icepunk_backend.security.JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
     }
@@ -35,10 +35,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        // If the request does not contain a valid Bearer token,
-        // continue processing without authentication
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // Guest access is allowed only when the Authorization header is absent.
+        // A supplied credential must never silently downgrade the request to guest.
+        if (authHeader == null) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (!authHeader.startsWith("Bearer ") || authHeader.substring(7).isBlank()) {
+            rejectInvalidToken(response);
             return;
         }
 
@@ -49,34 +54,44 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Validate the token and extract the user's email
             String email = jwtService.extractEmail(token);
 
-            // Continue only if an email was extracted and no user is authenticated yet
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                User user = userRepository.findByEmail(email).orElse(null);
-
-                if (user != null) {
-                    // Create an authentication object for the authenticated user
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    email,
-                                    null,
-                                    Collections.emptyList()
-                            );
-
-                    // Attach request details (IP address, session info, etc.)
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
-                    
-                    // Store the authenticated user in Spring Security context
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+            if (email == null || email.isBlank()) {
+                rejectInvalidToken(response);
+                return;
             }
+
+            User user = userRepository.findByEmail(email)
+                    .or(() -> userRepository.findByEmail(email.trim().toLowerCase(java.util.Locale.ROOT)))
+                    .or(() -> userRepository.findByUsernameIgnoreCase(email))
+                    .orElse(null);
+
+            if (user == null) {
+                rejectInvalidToken(response);
+                return;
+            }
+
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(
+                            user.getEmail(),
+                            null,
+                            Collections.emptyList()
+                    );
+
+            authToken.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+            SecurityContextHolder.getContext().setAuthentication(authToken);
         } catch (Exception exception) {
-             // Clear authentication if the token is invalid or expired
             SecurityContextHolder.clearContext();
+            rejectInvalidToken(response);
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void rejectInvalidToken(HttpServletResponse response) throws IOException {
+        SecurityContextHolder.clearContext();
+        response.setHeader("WWW-Authenticate", "Bearer");
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired authentication token.");
     }
 }

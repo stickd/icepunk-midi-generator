@@ -4,6 +4,8 @@ import icepunk_backend.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -11,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -53,6 +56,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            .exceptionHandling(exceptions -> exceptions
+                    .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
 
             // Configure endpoint authorization rules
             .authorizeHttpRequests(auth -> auth
@@ -62,8 +68,41 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/auth/register",
                             "/auth/login",
                             "/generate",
-                            "/generation-stats"
+                            "/generation-stats",
+                            "/generation-usage",
+                            "/datasets/analyze-temp",
+                            "/uploads/feed",
+                            "/uploads/projects/*/midi",
+                            "/user-uploads/**"
                     ).permitAll()
+
+                    .requestMatchers("/error").permitAll()
+
+                    .requestMatchers(HttpMethod.GET, "/users/*/avatar").permitAll()
+
+                    // Public reads only — rename/visibility/delete and "my packs" stay authenticated
+                    .requestMatchers(HttpMethod.GET, "/generated-packs/**").permitAll()
+
+                    // "My packs" must stay authenticated — declared before the /users/*/generated-packs
+                    // wildcard below so it takes precedence (first matching rule wins).
+                    .requestMatchers(HttpMethod.GET, "/users/me/generated-packs").authenticated()
+
+                    // Public profile reads only — POST /users/me/profile stays authenticated
+                    .requestMatchers(HttpMethod.GET,
+                            "/users/*/profile",
+                            "/users/*/packs",
+                            "/users/*/generated-packs"
+                    ).permitAll()
+
+                    // Health endpoint (used by Docker / load-balancer healthchecks)
+                    .requestMatchers("/actuator/health").permitAll()
+
+                    // Swagger is only registered outside prod; never make it an unauthenticated fallback.
+                    .requestMatchers(
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html"
+                    ).denyAll()
 
                     // All other endpoints require a valid JWT token
                     .anyRequest().authenticated()
@@ -80,7 +119,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
         config.setAllowedOrigins(allowedOrigins);
 
         // Allowed HTTP methods
-        config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
 
         // Allow all request headers
         config.setAllowedHeaders(List.of("*"));
