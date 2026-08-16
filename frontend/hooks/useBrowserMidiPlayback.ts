@@ -41,7 +41,7 @@ export function preloadBrowserMidiPlayback() {
   midiModulePromise ??= import("@tonejs/midi") as Promise<{ Midi: MidiClass }>;
 }
 
-export type BrowserMidiSource = File | string | null;
+export type BrowserMidiSource = ArrayBuffer | File | string | null;
 
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
@@ -50,6 +50,10 @@ function isAbortError(error: unknown) {
 async function readMidiSource(source: Exclude<BrowserMidiSource, null>, signal?: AbortSignal) {
   if (source instanceof File) {
     return source.arrayBuffer();
+  }
+
+  if (source instanceof ArrayBuffer) {
+    return source.slice(0);
   }
 
   const response = await fetch(source, { signal });
@@ -63,6 +67,10 @@ async function readMidiSource(source: Exclude<BrowserMidiSource, null>, signal?:
 function midiSourceLabel(source: Exclude<BrowserMidiSource, null>) {
   if (source instanceof File) {
     return source.name;
+  }
+
+  if (source instanceof ArrayBuffer) {
+    return "generated MIDI";
   }
 
   try {

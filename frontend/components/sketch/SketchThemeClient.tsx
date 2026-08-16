@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { BrowserMidiSource, SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import {
   GenerateMidiRequest,
@@ -25,6 +25,7 @@ const TAB_BUTTON_BASE =
   "rounded-t-xl border border-b-0 px-4 py-2 text-xs font-medium tracking-[0.02em] outline-none transition-colors duration-150 ease-out";
 const TAB_BUTTON_ACTIVE =
   "border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary";
+const DEFAULT_SOURCE_STATE: GenerationSourceState = { source: "FACTORY" };
 
 const AuthModal = dynamic(() => import("@/components/AuthModal"), {
   ssr: false,
@@ -106,9 +107,8 @@ export default function SketchThemeClient() {
   } = useSketchAuth({ setStatus });
   const [usage, setUsage] = useState<GenerationUsageResponse | null>(null);
   const [activeModal, setActiveModal] = useState<"create" | null>(null);
-  const [sourceState, setSourceState] = useState<GenerationSourceState>({
-    source: "FACTORY",
-  });
+  const [sourceState, setSourceState] = useState<GenerationSourceState>(DEFAULT_SOURCE_STATE);
+  const [sourceStateSession, setSourceStateSession] = useState<string | null>(token);
   const [soundEngine, setSoundEngine] = useState<SoundEngineSettings>({
     preset: "Soft Piano",
     sampleFile: null,
@@ -118,7 +118,7 @@ export default function SketchThemeClient() {
     octaves: 0,
     isLooping: false,
   });
-  const [activeMidiSource, setActiveMidiSource] = useState<string | null>(null);
+  const [activeMidiSource, setActiveMidiSource] = useState<BrowserMidiSource>(null);
   const [isSoundEngineMounted, setIsSoundEngineMounted] = useState(false);
 
   const triggerSoundEngineMount = useCallback(() => {
@@ -175,8 +175,13 @@ export default function SketchThemeClient() {
     };
   }, [token, lastGeneration]);
 
-  useEffect(() => {
-    setSourceState({ source: "FACTORY" });
+  const activeSourceState = sourceStateSession === token
+    ? sourceState
+    : DEFAULT_SOURCE_STATE;
+
+  const handleSourceStateChange = useCallback((nextState: GenerationSourceState) => {
+    setSourceState(nextState);
+    setSourceStateSession(token);
   }, [token]);
 
   useEffect(() => {
@@ -197,15 +202,15 @@ export default function SketchThemeClient() {
     const request: GenerateMidiRequest = {
       amount: draft.amount,
       bpm: 146,
-      datasetIds: sourceState.datasetIds,
-      includeFactoryPool: sourceState.includeFactoryPool,
+      datasetIds: activeSourceState.datasetIds,
+      includeFactoryPool: activeSourceState.includeFactoryPool,
       octaves: 1,
       packName: draft.packName,
       pitch: 0,
       publishMode: "PUBLIC",
-      source: sourceState.source,
-      tempAnalysisId: sourceState.tempAnalysisId,
-      tempAnalysisAccessToken: sourceState.tempAnalysisAccessToken,
+      source: activeSourceState.source,
+      tempAnalysisId: activeSourceState.tempAnalysisId,
+      tempAnalysisAccessToken: activeSourceState.tempAnalysisAccessToken,
       type: draft.type === "drums" ? "DRUMS" : "MELODY",
     };
     setLastRequest(request);
@@ -213,11 +218,11 @@ export default function SketchThemeClient() {
     return handleGenerateMidi(request);
   }, [
     handleGenerateMidi,
-    sourceState.datasetIds,
-    sourceState.includeFactoryPool,
-    sourceState.source,
-    sourceState.tempAnalysisId,
-    sourceState.tempAnalysisAccessToken,
+    activeSourceState.datasetIds,
+    activeSourceState.includeFactoryPool,
+    activeSourceState.source,
+    activeSourceState.tempAnalysisId,
+    activeSourceState.tempAnalysisAccessToken,
   ]);
 
   const handleRegenerate = useCallback(() => {
@@ -225,8 +230,8 @@ export default function SketchThemeClient() {
     return handleGenerateMidi(lastRequest);
   }, [handleGenerateMidi, lastRequest]);
 
-  const handleActiveMidiChange = useCallback((midiUrl: string | null) => {
-    setActiveMidiSource(midiUrl);
+  const handleActiveMidiChange = useCallback((midiSource: BrowserMidiSource) => {
+    setActiveMidiSource(midiSource);
   }, []);
 
   const handleSoundEngineChange = useCallback((nextSettings: SoundEngineSettings) => {
@@ -240,7 +245,7 @@ export default function SketchThemeClient() {
       return;
     }
 
-    playback.play(activeMidiSource, soundEngine, activeMidiSource);
+    playback.play(activeMidiSource, soundEngine);
   }, [activeMidiSource, playback, soundEngine]);
 
   const openCreatePack = useCallback(() => setActiveModal("create"), []);
@@ -311,6 +316,7 @@ export default function SketchThemeClient() {
                     <GeneratedPackVisualizer
                       generation={lastGeneration}
                       isRegenerating={isGenerating}
+                      key={lastGeneration.packId}
                       onActiveMidiChange={handleActiveMidiChange}
                       onNewGeneration={resetGeneration}
                       onRegenerate={handleRegenerate}
@@ -324,10 +330,10 @@ export default function SketchThemeClient() {
                   ) : (
                     <RandomGeneratePanel
                       onOpenCreatePack={openCreatePack}
-                      onSourceStateChange={setSourceState}
+                      onSourceStateChange={handleSourceStateChange}
                       onStubStatus={setStatus}
                       onUnauthorized={handleCustomAnalysisUnauthorized}
-                      sourceState={sourceState}
+                      sourceState={activeSourceState}
                       status={generationStatus}
                       token={token}
                     />

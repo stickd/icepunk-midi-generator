@@ -15,6 +15,7 @@ type UserGenerationsFeedProps = {
   soundEngine: SoundEngineSettings;
   isLoggedIn?: boolean;
   onRequireLogin?: () => void;
+  previewVisibilityRoot?: HTMLElement | null;
 };
 
 const FEED_PAGE_SIZE = 2;
@@ -52,6 +53,7 @@ export default function UserGenerationsFeed({
   soundEngine,
   isLoggedIn = false,
   onRequireLogin,
+  previewVisibilityRoot = null,
 }: UserGenerationsFeedProps) {
   const [feedItems, setFeedItems] = useState<PublicGeneratedPackFeedItem[]>([]);
   const [nextPage, setNextPage] = useState(0);
@@ -330,6 +332,7 @@ export default function UserGenerationsFeed({
                 onRequireLogin={onRequireLogin}
                 onStubStatus={onStubStatus}
                 playback={playback}
+                previewVisibilityRoot={previewVisibilityRoot}
                 soundEngine={soundEngine}
               />
             </div>

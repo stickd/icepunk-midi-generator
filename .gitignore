@@ -28,6 +28,7 @@ build/
 .env.local
 .env*
 !.env.production.example
+!.env.docker.example
 
 # Logs
 *.log

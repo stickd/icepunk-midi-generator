@@ -90,15 +90,21 @@ export default function FeedMountIsland({
   soundEngine,
 }: FeedMountIslandProps) {
   const [isFeedMounted, setIsFeedMounted] = useState(false);
+  const [previewVisibilityRoot, setPreviewVisibilityRoot] = useState<HTMLDivElement | null>(null);
 
   const triggerFeedMount = useCallback(() => {
     setIsFeedMounted(true);
   }, []);
 
+  const setFeedScrollRoot = useCallback((element: HTMLDivElement | null) => {
+    feedScrollRef.current = element;
+    setPreviewVisibilityRoot((current) => current === element ? current : element);
+  }, [feedScrollRef]);
+
   return (
     <div className="min-w-0">
       <div
-        ref={feedScrollRef}
+        ref={setFeedScrollRoot}
         aria-label="Community feed"
         className="ice-scrollbar grid gap-4 overflow-y-auto pr-1 lg:max-h-[calc(100vh-4.5rem)]"
         onClick={triggerFeedMount}
@@ -118,6 +124,7 @@ export default function FeedMountIsland({
             onRequireLogin={onRequireLogin}
             onStubStatus={onStubStatus}
             playback={playback}
+            previewVisibilityRoot={previewVisibilityRoot}
             soundEngine={soundEngine}
           />
         ) : (

@@ -188,16 +188,13 @@ jobs:
         run: chmod +x backend/mvnw
 
       - name: Start Postgres and MinIO
-        run: docker compose up -d --wait
+        run: docker compose up -d --wait postgres minio
 
       - name: Provision the MinIO bucket
         run: |
           docker run --rm --network host \
             -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
             minio/mc mb --ignore-existing local/icepunk-zips
-          docker run --rm --network host \
-            -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
-            minio/mc anonymous set download local/icepunk-zips
 
       - name: Set up the Python venv for the MIDI generator
         run: |
@@ -272,16 +269,13 @@ jobs:
         run: chmod +x backend/mvnw
 
       - name: Start Postgres and MinIO
-        run: docker compose up -d --wait
+        run: docker compose up -d --wait postgres minio
 
       - name: Provision the MinIO bucket
         run: |
           docker run --rm --network host \
             -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
             minio/mc mb --ignore-existing local/icepunk-zips
-          docker run --rm --network host \
-            -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
-            minio/mc anonymous set download local/icepunk-zips
 
       - name: Set up the Python venv for the MIDI generator
         run: |

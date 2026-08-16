@@ -14,7 +14,7 @@ PYTHON ?= python
 	frontend-dev frontend-install frontend-typecheck frontend-lint frontend-build \
 	frontend-test frontend-test-watch frontend-e2e \
 	python-venv python-test \
-	infra-up infra-down infra-logs infra-prod-up infra-prod-down \
+	dev dev-down dev-logs infra-up infra-down infra-logs infra-prod-up infra-prod-down \
 	docker-build-backend compose-validate \
 	newman ci clean
 
@@ -76,14 +76,23 @@ python-test: ## Run fast (non-slow) python unit tests
 
 # --- Infrastructure (Docker Compose) ----------------------------------------
 
-infra-up: ## Start local Postgres + MinIO
-	docker compose up -d
+dev: ## Build and start the complete local Docker development stack
+	docker compose up --build
 
-infra-down: ## Stop local infra
+dev-down: ## Stop the complete local Docker development stack (keeps named volumes)
 	docker compose down
 
-infra-logs: ## Tail local infra logs
+dev-logs: ## Tail logs for the complete local Docker development stack
 	docker compose logs -f
+
+infra-up: ## Start only local Postgres + MinIO for hybrid development
+	docker compose up -d --wait postgres minio
+
+infra-down: ## Stop only local Postgres + MinIO (keeps containers and volumes)
+	docker compose stop postgres minio
+
+infra-logs: ## Tail local Postgres + MinIO logs
+	docker compose logs -f postgres minio
 
 infra-prod-up: ## Start the production stack (needs .env.production)
 	docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
@@ -96,19 +105,7 @@ docker-build-backend: ## Build the backend Docker image (context = repo root)
 
 compose-validate: ## Validate both compose files (same check CI runs)
 	docker compose -f docker-compose.yml config -q
-	@tmp=$$(mktemp); \
-	{ \
-		echo "POSTGRES_PASSWORD=dummy"; \
-		echo "MINIO_ROOT_USER=dummy"; \
-		echo "MINIO_ROOT_PASSWORD=dummy"; \
-		echo "JWT_SECRET=dummy-not-a-real-secret"; \
-		echo "CORS_ALLOWED_ORIGINS=https://example.com"; \
-		echo "TRUSTED_PROXY_CIDRS=172.30.0.0/24"; \
-		echo "S3_PRESIGN_ENDPOINT=https://example.com"; \
-		echo "NEXT_PUBLIC_API_URL=https://example.com"; \
-	} > "$$tmp"; \
-	docker compose -f docker-compose.production.yml --env-file "$$tmp" config -q; \
-	rm -f "$$tmp"
+	docker compose --env-file .env.production.example -f docker-compose.production.yml config -q
 	@echo "docker compose files OK"
 
 # --- API smoke test (Newman) -------------------------------------------------

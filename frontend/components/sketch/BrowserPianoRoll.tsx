@@ -9,7 +9,10 @@ const MELODY_CEILING = 72;
 
 type BrowserPianoRollProps = {
   isPlaying: boolean;
+  midiData?: PianoRollData | null;
   midiFile: File | null;
+  midiMessage?: string;
+  midiStatus?: "idle" | "loading" | "ready" | "error";
   midiUrl?: string | null;
   playbackPositionSeconds: number;
   size?: "normal" | "compact";
@@ -159,7 +162,10 @@ function draw(
 
 function BrowserPianoRoll({
   isPlaying,
+  midiData = null,
   midiFile,
+  midiMessage,
+  midiStatus,
   midiUrl = null,
   playbackPositionSeconds,
   size = "normal",
@@ -167,7 +173,12 @@ function BrowserPianoRoll({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
-  const pianoRoll = useMidiPianoRoll(midiFile ?? midiUrl);
+  const parsedSource = useMidiPianoRoll(midiData || midiStatus ? null : midiFile ?? midiUrl);
+  const pianoRoll = midiData
+    ? { data: midiData, message: midiMessage ?? `${midiData.notes.length.toLocaleString()} notes visualized.`, status: "ready" as const }
+    : midiStatus
+      ? { data: null, message: midiMessage ?? "Loading MIDI preview...", status: midiStatus }
+      : parsedSource;
   const compact = size === "compact";
   const showPlayhead = !compact && (isPlaying || playbackPositionSeconds > 0);
   const playbackPositionRef = useRef(playbackPositionSeconds);
@@ -241,7 +252,7 @@ function BrowserPianoRoll({
     setTooltip(null);
   }
 
-  if (!midiFile && !midiUrl) {
+  if (!midiFile && !midiUrl && !midiData && !midiStatus) {
     return (
       <div
         className={`grid place-items-center rounded-xl border border-white/[0.06] bg-[color:var(--ice-bg-canvas)] text-center text-xs text-ice-muted ${
@@ -263,7 +274,7 @@ function BrowserPianoRoll({
         onMouseMove={handleMouseMove}
         ref={wrapRef}
       >
-        {pianoRoll.status === "ready" ? (
+        {pianoRoll.data ? (
           <canvas
             aria-label={`${pianoRoll.data.notes.length} MIDI notes across ${pianoRoll.data.duration.toFixed(1)} seconds`}
             className="h-full w-full"

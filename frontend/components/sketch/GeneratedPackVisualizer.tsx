@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button } from "@/components/ui";
 import {
   GeneratedMidiItem,
   GenerateMidiResponse,
   getGeneratedItemDownloadUrl,
-  getGeneratedItemPreviewUrl,
   getGeneratedPackDownloadUrl,
 } from "@/lib/api";
-import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { BrowserMidiSource, SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { useGeneratedMidiPreview } from "@/hooks/useGeneratedMidiPreview";
 import BrowserPianoRoll from "./BrowserPianoRoll";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
 import SaveDatasetButton from "./SaveDatasetButton";
@@ -17,7 +17,7 @@ import SaveDatasetButton from "./SaveDatasetButton";
 type GeneratedPackVisualizerProps = {
   generation: GenerateMidiResponse;
   onNewGeneration: () => void;
-  onActiveMidiChange?: (midiUrl: string | null) => void;
+  onActiveMidiChange?: (midiSource: BrowserMidiSource) => void;
   playback: ReturnType<typeof useBrowserMidiPlayback>;
   soundEngine: SoundEngineSettings;
   onRegenerate?: () => void;
@@ -47,10 +47,19 @@ export default function GeneratedPackVisualizer({
   onStubStatus,
 }: GeneratedPackVisualizerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [activeUrl, setActiveUrl] = useState<string | null>(null);
-  const [isRequestingUrl, setIsRequestingUrl] = useState(false);
   const items = generation.items;
   const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
+  const activePreview = useGeneratedMidiPreview(
+    activeItem
+      ? {
+          fileName: activeItem.fileName,
+          itemId: activeItem.id,
+          packId: generation.packId,
+          token,
+        }
+      : null,
+    Boolean(activeItem),
+  );
   const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.id;
   const isThisLoading = isThisSource && playback.isLoading;
   const isThisPlaying = isThisSource && playback.isPlaying;
@@ -61,19 +70,21 @@ export default function GeneratedPackVisualizer({
   );
 
   useEffect(() => {
-    onActiveMidiChange?.(activeUrl);
-  }, [activeUrl, onActiveMidiChange]);
+    onActiveMidiChange?.(activePreview.preview?.midiBuffer ?? null);
+  }, [activePreview.preview?.midiBuffer, onActiveMidiChange]);
 
-  function selectItem(index: number) {
-    if (index === activeIndex) return;
+  const selectItem = useCallback((index: number) => {
+    if (index === activeIndex) {
+      if (activePreview.status === "error") activePreview.retry();
+      return;
+    }
     if (isThisSource) {
       playback.stop();
     }
-    setActiveUrl(null);
     setActiveIndex(index);
-  }
+  }, [activeIndex, activePreview, isThisSource, playback]);
 
-  async function togglePreview() {
+  const togglePreview = useCallback(async () => {
     if (!activeItem) return;
 
     if (isThisPlaying) {
@@ -81,17 +92,13 @@ export default function GeneratedPackVisualizer({
       return;
     }
 
-    setIsRequestingUrl(true);
-    try {
-      const access = await getGeneratedItemPreviewUrl(generation.packId, activeItem.id, token);
-      setActiveUrl(access.url);
-      playback.play(access.url, soundEngine, activeItem.id);
-    } catch {
-      onStubStatus("Preview is unavailable or you no longer have access to this MIDI.");
-    } finally {
-      setIsRequestingUrl(false);
+    if (!activePreview.preview) {
+      activePreview.retry();
+      return;
     }
-  }
+
+    playback.play(activePreview.preview.midiBuffer, soundEngine, activeItem.id);
+  }, [activeItem, activePreview, isThisPlaying, playback, soundEngine]);
 
   async function downloadPack() {
     try {
@@ -174,8 +181,10 @@ export default function GeneratedPackVisualizer({
         {activeItem ? (
           <BrowserPianoRoll
             isPlaying={isThisPlaying}
+            midiData={activePreview.preview?.data}
             midiFile={null}
-            midiUrl={activeUrl}
+            midiMessage={activePreview.error ?? undefined}
+            midiStatus={activePreview.status}
             playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
           />
         ) : (
@@ -187,28 +196,30 @@ export default function GeneratedPackVisualizer({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] bg-black/[0.2] px-4 py-3">
           <div className="flex flex-wrap gap-4 text-[10px] uppercase tracking-[0.06em] text-ice-muted">
             <span>
-              <strong className="text-ice-secondary">{activeItem?.noteCount ?? "n/a"}</strong> notes
+              <strong className="text-ice-secondary">{activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"}</strong> notes
             </span>
             <span>
-              <strong className="text-ice-secondary">{activeItem?.trackCount ?? "n/a"}</strong> tracks
+              <strong className="text-ice-secondary">{activePreview.preview?.data.trackCount ?? activeItem?.trackCount ?? "n/a"}</strong> tracks
             </span>
             <span>
               duration{" "}
               <strong className="text-ice-secondary">
-                {formatDuration(activeItem?.durationSeconds ?? null)}
+                {formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds ?? null)}
               </strong>
             </span>
           </div>
           <div className="flex gap-2">
             <Button
-              disabled={!activeItem || isRequestingUrl}
+              disabled={!activeItem || activePreview.status === "loading"}
               onClick={togglePreview}
               size="sm"
               type="button"
               variant={isThisPlaying ? "primary" : "secondary"}
             >
-              {isThisLoading ? (
+              {isThisLoading || activePreview.status === "loading" ? (
                 "Loading..."
+              ) : activePreview.status === "error" ? (
+                "Retry preview"
               ) : (
                 <>
                   <span aria-hidden="true">{isThisPlaying ? "■ " : "▶ "}</span>
@@ -237,6 +248,8 @@ export default function GeneratedPackVisualizer({
         activeIndex={activeIndex}
         items={items}
         onSelect={selectItem}
+        packId={generation.packId}
+        token={token}
       />
 
       <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">

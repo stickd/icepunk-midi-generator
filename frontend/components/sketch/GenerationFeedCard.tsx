@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
-import { cn } from "@/lib/ui";
-import { getGeneratedItemDownloadUrl, getGeneratedItemPreviewUrl, getGeneratedPackDownloadUrl } from "@/lib/api";
+import { useGeneratedMidiPreview } from "@/hooks/useGeneratedMidiPreview";
+import { getGeneratedItemDownloadUrl, getGeneratedPackDownloadUrl } from "@/lib/api";
+import BrowserPianoRoll from "./BrowserPianoRoll";
 import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
-import PianoRollPreview from "./PianoRollPreview";
 import { FeedGeneration } from "./feedTypes";
 
 type GenerationFeedCardProps = {
@@ -17,6 +17,7 @@ type GenerationFeedCardProps = {
   soundEngine: SoundEngineSettings;
   isLoggedIn?: boolean;
   onRequireLogin?: () => void;
+  previewVisibilityRoot?: HTMLElement | null;
 };
 
 function formatUploadedAt(value?: string | null) {
@@ -45,20 +46,56 @@ function GenerationFeedCard({
   soundEngine,
   isLoggedIn = false,
   onRequireLogin,
+  previewVisibilityRoot = null,
 }: GenerationFeedCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const cardRef = useRef<HTMLElement>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const [isPreviewEligible, setIsPreviewEligible] = useState(
+    () => typeof window !== "undefined" && typeof IntersectionObserver === "undefined",
+  );
   const items = useMemo(() => generation.items ?? [], [generation.items]);
+  const selectedIndex = selectedItemId ? items.findIndex((item) => item.id === selectedItemId) : -1;
+  const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const activeItem = items[activeIndex] ?? null;
-  const midiUrl = activeUrl;
   const hasMultipleItems = items.length > 1;
-  const previewNotes = activeItem?.preview?.notes ?? null;
-  const hasPreviewNotes = Boolean(previewNotes && previewNotes.length > 0);
-  const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.id;
+  const activePreview = useGeneratedMidiPreview(
+    activeItem
+      ? {
+          fileName: activeItem.fileName,
+          itemId: activeItem.id,
+          packId: generation.id,
+        }
+      : null,
+    Boolean(activeItem) && isPreviewEligible,
+  );
+  const playbackSourceId = activeItem ? `${generation.id}:${activeItem.id}` : null;
+  const isThisSource = Boolean(playbackSourceId) && playback.activeSourceId === playbackSourceId;
   const isThisLoading = isThisSource && playback.isLoading;
   const isThisPlaying = isThisSource && playback.isPlaying;
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setIsPreviewEligible(true);
+        observer.disconnect();
+      },
+      // Feed cards live in a separately scrollable column. The actual scroll
+      // root plus this margin starts the selected preview before full exposure.
+      { root: previewVisibilityRoot, rootMargin: "280px 0px" },
+    );
+
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [previewVisibilityRoot]);
 
   const togglePreview = useCallback(async () => {
     if (!activeItem) return;
@@ -68,14 +105,13 @@ function GenerationFeedCard({
       return;
     }
 
-    try {
-      const access = await getGeneratedItemPreviewUrl(generation.id, activeItem.id);
-      setActiveUrl(access.url);
-      playback.play(access.url, soundEngine, activeItem.id);
-    } catch {
-      onStubStatus("Preview is unavailable.");
+    if (!activePreview.preview || !playbackSourceId) {
+      activePreview.retry();
+      return;
     }
-  }, [activeItem, generation.id, isThisPlaying, onStubStatus, playback, soundEngine]);
+
+    playback.play(activePreview.preview.midiBuffer, soundEngine, playbackSourceId);
+  }, [activeItem, activePreview, isThisPlaying, playback, playbackSourceId, soundEngine]);
 
   const handleMidiDownload = useCallback(() => {
     if (!isLoggedIn) {
@@ -99,13 +135,20 @@ function GenerationFeedCard({
 
   const handleSelectItem = useCallback(
     (index: number) => {
+      const item = items[index];
+      if (!item) return;
+
+      if (item.id === activeItem?.id) {
+        if (activePreview.status === "error") activePreview.retry();
+        return;
+      }
+
       if (isThisSource) {
         playback.stop();
       }
-      setActiveUrl(null);
-      setActiveIndex(index);
+      setSelectedItemId(item.id);
     },
-    [isThisSource, playback],
+    [activeItem?.id, activePreview, isThisSource, items, playback],
   );
 
   const handleDetailsToggle = useCallback(() => {
@@ -113,7 +156,8 @@ function GenerationFeedCard({
   }, []);
 
   return (
-    <div
+    <article
+      aria-label={`Generated pack ${generation.title}`}
       className="transition-all duration-300 ease-out transform-gpu"
       ref={cardRef}
     >
@@ -203,55 +247,50 @@ function GenerationFeedCard({
             </div>
 
             {/* Piano Roll Visualizer */}
-            {hasPreviewNotes ? (
-              <PianoRollPreview
-                durationSeconds={activeItem?.durationSeconds}
-                heightClassName="h-[210px]"
-                label={activeItem?.fileName ?? (activeItem as { filename?: string })?.filename ?? activeItem?.id ?? `item-${activeIndex}`}
-                maxPitch={activeItem?.maxPitch}
-                minPitch={activeItem?.minPitch}
-                notes={previewNotes}
-                playbackPositionSeconds={isThisPlaying ? playback.positionSeconds : null}
-              />
-            ) : (
-              <div className="grid h-[210px] place-items-center bg-[color:var(--ice-bg-canvas)] p-3 text-center text-xs text-ice-muted">
-                <div className="h-2 w-2/3 animate-pulse rounded bg-white/10" />
-              </div>
-            )}
+            <BrowserPianoRoll
+              isPlaying={isThisPlaying}
+              midiData={activePreview.preview?.data}
+              midiFile={null}
+              midiMessage={activePreview.error ?? (isPreviewEligible ? undefined : "Preview loads when this pack becomes visible.")}
+              midiStatus={activePreview.status}
+              playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
+            />
 
             {/* Bottom Window Metadata & Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] bg-black/[0.2] px-3.5 py-2.5">
               <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-[0.06em] text-ice-muted">
                 <span>
                   <strong className="text-ice-secondary">
-                    {activeItem?.noteCount ?? "n/a"}
+                    {activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"}
                   </strong>{" "}
                   notes
                 </span>
                 <span>
                   <strong className="text-ice-secondary">
-                    {activeItem?.trackCount ?? "n/a"}
+                    {activePreview.preview?.data.trackCount ?? activeItem?.trackCount ?? "n/a"}
                   </strong>{" "}
                   tracks
                 </span>
                 <span>
                   duration{" "}
                   <strong className="text-ice-secondary">
-                    {formatDuration(activeItem?.durationSeconds ?? null)}
+                    {formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds ?? null)}
                   </strong>
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button
-                  disabled={!midiUrl}
+                  disabled={!activeItem || activePreview.status === "idle" || activePreview.status === "loading"}
                   onClick={togglePreview}
                   size="sm"
                   type="button"
                   variant={isThisPlaying ? "primary" : "secondary"}
                 >
-                  {isThisLoading ? (
+                  {isThisLoading || activePreview.status === "loading" ? (
                     "Loading..."
+                  ) : activePreview.status === "error" ? (
+                    "Retry preview"
                   ) : (
                     <>
                       <span aria-hidden="true">{isThisPlaying ? "■ " : "▶ "}</span>
@@ -262,10 +301,10 @@ function GenerationFeedCard({
 
                 <Button
                   aria-label={`Download ${activeItem?.fileName ?? generation.title}`}
-                  disabled={!midiUrl}
+                  disabled={!activeItem}
                   onClick={handleMidiDownload}
                   size="sm"
-                  title={isLoggedIn ? (midiUrl ? "Download MIDI" : "MIDI download unavailable") : "Log in to download MIDI"}
+                  title={isLoggedIn ? "Download MIDI" : "Log in to download MIDI"}
                   type="button"
                   variant="secondary"
                 >
@@ -286,6 +325,7 @@ function GenerationFeedCard({
                 items={items}
                 label="Pack MIDIs"
                 onSelect={handleSelectItem}
+              packId={generation.id}
               />
             </div>
           ) : hasMultipleItems ? (
@@ -358,12 +398,12 @@ function GenerationFeedCard({
 
             <div className="flex items-center justify-between gap-3">
               <span>Notes</span>
-              <span className="text-ice-secondary">{activeItem?.noteCount ?? "n/a"}</span>
+              <span className="text-ice-secondary">{activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"}</span>
             </div>
 
             <div className="flex items-center justify-between gap-3">
               <span>Duration</span>
-              <span className="text-ice-secondary">{formatDuration(activeItem?.durationSeconds)}</span>
+              <span className="text-ice-secondary">{formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds)}</span>
             </div>
 
             <div className="flex items-center justify-between gap-3">
@@ -374,7 +414,7 @@ function GenerationFeedCard({
         ) : null}
       </div>
     </Card>
-  </div>
+  </article>
   );
 }
 

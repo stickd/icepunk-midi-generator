@@ -158,20 +158,33 @@ export type PublicGeneratedPackFeedResponse = {
 
 export type PresignedUrlResponse = { url: string; expiresAt: string };
 
-async function getGeneratedAccessUrl(path: string, token?: string | null): Promise<PresignedUrlResponse> {
-  return fetchJson<PresignedUrlResponse>(path, { headers: authHeaders(token) });
+async function getGeneratedAccessUrl(
+  path: string,
+  token?: string | null,
+  signal?: AbortSignal,
+): Promise<PresignedUrlResponse> {
+  return fetchJson<PresignedUrlResponse>(path, { headers: authHeaders(token), signal });
 }
 
-export function getGeneratedPackDownloadUrl(packId: string, token?: string | null) {
-  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/download-url`, token);
+export function getGeneratedPackDownloadUrl(packId: string, token?: string | null, signal?: AbortSignal) {
+  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/download-url`, token, signal);
 }
 
-export function getGeneratedItemPreviewUrl(packId: string, itemId: string, token?: string | null) {
-  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/items/${encodeURIComponent(itemId)}/preview-url`, token);
+export function getGeneratedItemPreviewUrl(
+  packId: string,
+  itemId: string,
+  token?: string | null,
+  signal?: AbortSignal,
+) {
+  return getGeneratedAccessUrl(
+    `/generated-packs/${encodeURIComponent(packId)}/items/${encodeURIComponent(itemId)}/preview-url`,
+    token,
+    signal,
+  );
 }
 
-export function getGeneratedItemDownloadUrl(packId: string, itemId: string, token?: string | null) {
-  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/items/${encodeURIComponent(itemId)}/download-url`, token);
+export function getGeneratedItemDownloadUrl(packId: string, itemId: string, token?: string | null, signal?: AbortSignal) {
+  return getGeneratedAccessUrl(`/generated-packs/${encodeURIComponent(packId)}/items/${encodeURIComponent(itemId)}/download-url`, token, signal);
 }
 
 export type GenerationSource = "FACTORY" | "CUSTOM_UPLOAD";

@@ -81,5 +81,5 @@ export async function generateMidiPack(page: Page) {
   await page.getByRole('button', { name: 'Generate', exact: true }).click()
   await page.getByRole('dialog', { name: 'Create pack' }).waitFor()
   await page.getByRole('button', { name: 'Next →' }).click()
-  await page.getByRole('link', { name: /Download whole pack/ }).waitFor()
+  await page.getByRole('button', { name: /Download whole pack/ }).waitFor()
 }

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 type MidiClass = typeof import("@tonejs/midi").Midi;
 export type MidiPianoRollSource = File | string | null;
 
+let midiModulePromise: Promise<{ Midi: MidiClass }> | null = null;
+
 export type PianoRollNote = {
   duration: number;
   midi: number;
@@ -19,6 +21,7 @@ export type PianoRollData = {
   maxMidi: number;
   minMidi: number;
   notes: PianoRollNote[];
+  trackCount: number;
 };
 
 type ParseState =
@@ -50,6 +53,40 @@ function sourceLabel(source: Exclude<MidiPianoRollSource, null>) {
   } catch {
     return "remote MIDI";
   }
+}
+
+export async function parseMidiArrayBuffer(
+  arrayBuffer: ArrayBuffer,
+  fileName: string,
+): Promise<PianoRollData> {
+  midiModulePromise ??= import("@tonejs/midi") as Promise<{ Midi: MidiClass }>;
+  const { Midi } = await midiModulePromise;
+  const midi = new Midi(arrayBuffer);
+  const notes = midi.tracks
+    .flatMap((track) => track.notes)
+    .map((note) => ({
+      duration: Math.max(0.02, note.duration),
+      midi: note.midi,
+      name: note.name,
+      time: note.time,
+      velocity: note.velocity,
+    }))
+    .sort((a, b) => a.time - b.time || a.midi - b.midi);
+
+  if (notes.length === 0) {
+    throw new Error("NO_MIDI_NOTES");
+  }
+
+  const { max, min } = noteRange(notes);
+
+  return {
+    duration: Math.max(...notes.map((note) => note.time + note.duration)),
+    fileName,
+    maxMidi: max,
+    minMidi: min,
+    notes,
+    trackCount: midi.tracks.length,
+  };
 }
 
 async function readMidiSource(
@@ -84,22 +121,23 @@ export function useMidiPianoRoll(midiSource: MidiPianoRollSource) {
       setState({ data: null, message: "Reading MIDI for piano roll...", status: "loading" });
 
       try {
-        const { Midi } = (await import("@tonejs/midi")) as { Midi: MidiClass };
-        const midi = new Midi(await readMidiSource(midiSource, controller.signal));
-        const notes = midi.tracks
-          .flatMap((track) => track.notes)
-          .map((note) => ({
-            duration: Math.max(0.02, note.duration),
-            midi: note.midi,
-            name: note.name,
-            time: note.time,
-            velocity: note.velocity,
-          }))
-          .sort((a, b) => a.time - b.time || a.midi - b.midi);
+        const data = await parseMidiArrayBuffer(
+          await readMidiSource(midiSource, controller.signal),
+          sourceLabel(midiSource),
+        );
 
         if (isCancelled) return;
 
-        if (notes.length === 0) {
+        setState({
+          data,
+          message: `${data.notes.length.toLocaleString()} notes visualized.`,
+          status: "ready",
+        });
+      } catch (error) {
+        if (isCancelled) return;
+        if (error instanceof DOMException && error.name === "AbortError") return;
+
+        if (error instanceof Error && error.message === "NO_MIDI_NOTES") {
           setState({
             data: null,
             message: "No notes found in this MIDI file.",
@@ -107,24 +145,6 @@ export function useMidiPianoRoll(midiSource: MidiPianoRollSource) {
           });
           return;
         }
-
-        const { max, min } = noteRange(notes);
-        const duration = Math.max(...notes.map((note) => note.time + note.duration));
-
-        setState({
-          data: {
-            duration,
-            fileName: sourceLabel(midiSource),
-            maxMidi: max,
-            minMidi: min,
-            notes,
-          },
-          message: `${notes.length.toLocaleString()} notes visualized.`,
-          status: "ready",
-        });
-      } catch (error) {
-        if (isCancelled) return;
-        if (error instanceof DOMException && error.name === "AbortError") return;
 
         setState({
           data: null,

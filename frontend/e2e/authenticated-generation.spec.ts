@@ -24,14 +24,14 @@ test.describe.serial('authenticated MIDI generation', () => {
     const startedAt = Date.now()
     const downloadPromise = page.waitForEvent('download')
     await generateMidiPack(page)
-    await page.getByRole('link', { name: /Download whole pack/ }).click()
+    await page.getByRole('button', { name: /Download whole pack/ }).click()
     const download = await downloadPromise
     const elapsedMs = Date.now() - startedAt
 
     expect(download.suggestedFilename()).toMatch(/\.zip$/)
     // Clicking a `download` link doesn't navigate away — the results view (and its
     // re-clickable download link) should still be there afterwards.
-    await expect(page.getByRole('link', { name: /Download whole pack/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Download whole pack/ })).toBeVisible()
 
     // Client-side fetch aborts generation requests after 15s (lib/api.ts), so
     // a healthy generation should complete well inside that budget.
@@ -41,7 +41,7 @@ test.describe.serial('authenticated MIDI generation', () => {
   test('the downloaded ZIP file is a valid, non-empty archive', async () => {
     const downloadPromise = page.waitForEvent('download')
     await generateMidiPack(page)
-    await page.getByRole('link', { name: /Download whole pack/ }).click()
+    await page.getByRole('button', { name: /Download whole pack/ }).click()
     const download = await downloadPromise
 
     const filePath = await download.path()

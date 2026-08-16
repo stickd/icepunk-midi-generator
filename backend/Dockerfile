@@ -21,9 +21,15 @@ WORKDIR /app
 COPY python python
 COPY analysis_output analysis_output
 
+# Keep the runtime contract explicit: Spring launches these files through
+# ProcessBuilder, so a healthy JVM alone is not sufficient.
 RUN python3 -m venv /app/venv \
     && /app/venv/bin/pip install --no-cache-dir -r python/requirements.txt \
-    && mkdir -p /app/generated_midi \
+    && /app/venv/bin/python3 -c "import mido" \
+    && test -f /app/analysis_output/midi_analysis.json \
+    && test -f /app/python/generate_midi.py \
+    && test -f /app/python/temp_analyzer.py \
+    && mkdir -p /app/generated_midi /app/temp_analysis /app/user_uploads \
     && groupadd --system icepunk \
     && useradd --system --gid icepunk --home-dir /app icepunk \
     && chown -R icepunk:icepunk /app

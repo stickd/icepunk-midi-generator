@@ -25,6 +25,103 @@ python/requirements.txt   Python generator dependencies
 
 ## Local Development
 
+The default `docker-compose.yml` supports both local modes below. It uses only
+disposable development credentials and must not be used for production.
+
+### Option A — full Docker stack
+
+Use this when you want the production-like runtime path, including Python inside
+the backend container:
+
+```bash
+docker compose build
+docker compose up -d --wait
+```
+
+No environment file is required for the default ports. After all health checks
+pass, open:
+
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:8081/actuator/health`
+- MinIO API: `http://localhost:9010`
+- MinIO console: `http://localhost:9011` (`minioadmin` / `minioadmin`, local only)
+- PostgreSQL: `localhost:5433` (`icepunk` / `icepunk_local_dev`, database `icepunk`)
+
+Compose waits in this order: PostgreSQL and MinIO become healthy, the private
+`icepunk-zips` bucket is created idempotently, then the Spring backend becomes
+healthy, and finally the frontend starts. The backend uses `http://minio:9000`
+inside Docker, but issues browser-facing presigned URLs with
+`http://localhost:9010`; the frontend bundle similarly uses
+`http://localhost:8081`, never the Docker-only `backend` hostname.
+
+Useful commands (PowerShell, Git Bash, and other Docker Compose shells):
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+`docker compose down` keeps PostgreSQL and MinIO named volumes, so data survives
+the next `docker compose up`. To intentionally reset all local database and
+object-storage data, run `docker compose down -v`.
+
+### Option B — hybrid, fast local development
+
+Use this when iterating on Spring Boot or Next.js and you want their native hot
+reload/dev workflow while Docker supplies only PostgreSQL and MinIO:
+
+```bash
+docker compose up -d postgres minio
+```
+
+Add `--wait` (`docker compose up -d --wait postgres minio`) when you want the
+command to wait for both infrastructure health checks before starting native
+processes. `make infra-up` uses that safer form.
+
+Start the backend with the `local` profile in a separate terminal:
+
+```powershell
+cd backend
+$env:SPRING_PROFILES_ACTIVE = "local"
+.\mvnw.cmd spring-boot:run
+```
+
+```bash
+cd backend
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+```
+
+Then configure and start the frontend in another terminal:
+
+```env
+# frontend/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:8081
+```
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The backend's default local datasource and S3 settings already target
+`localhost:5433` and `localhost:9010`; it idempotently creates the private
+bucket itself if it does not exist.
+
+Choose Option A to validate container/runtime parity or the full integration
+path. Choose Option B for the quickest code-feedback loop. GNU Make is optional
+(particularly on Windows): `make dev`, `make dev-down`, and `make dev-logs`
+mirror the full-stack commands; `make infra-up` starts only PostgreSQL and MinIO.
+
+### Optional Docker overrides
+
+[`.env.docker.example`](.env.docker.example) documents the small set of local
+port and browser-URL overrides. Copy it to `.env` only when needed and keep
+`CORS_ALLOWED_ORIGINS`, `NEXT_PUBLIC_API_URL`, and `S3_PRESIGN_ENDPOINT` aligned
+with any changed frontend, backend, or MinIO ports. `.env` remains ignored by
+Git; `.env.production` is separate and always required for production.
+
 ## CI and branch strategy
 
 `dev` is the integration branch and `main` is release-only. The CI workflow runs on pushes and
@@ -49,18 +146,12 @@ cd frontend && npm ci && npm run ci
 After a workflow job is renamed, run it once on GitHub and update branch protection with its exact
 displayed status context; do not guess the context name.
 
-Requirements:
+Native/hybrid requirements:
 
 - Java 21
 - Node.js 20+
 - Python 3.10+
 - Docker or compatible container runtime
-
-Start local infrastructure:
-
-```bash
-docker compose up -d
-```
 
 Install Python dependencies:
 
@@ -69,39 +160,6 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r python/requirements.txt
 ```
-
-Run backend:
-
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-Run frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Local URLs:
-
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8081`
-- MinIO API: `http://localhost:9010`
-- MinIO console: `http://localhost:9011`
-
-Local frontend config can live in `frontend/.env.local`:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8081
-RESEND_API_KEY=optional_resend_key
-FEEDBACK_TO_EMAIL=you@example.com
-FEEDBACK_FROM_EMAIL=IcePunk <feedback@your-domain.com>
-```
-
-`.env*` files are ignored by git.
 
 ## API
 
@@ -319,8 +377,9 @@ S3_SECRET_KEY=prod_secret_key
 
 Generated MIDI objects are stored in a private bucket. The API authorizes a pack/item ID and then
 returns a short-lived signed GET URL only for Preview or Download; never configure anonymous bucket
-read access. `S3_PRESIGN_ENDPOINT` must be browser reachable and its MinIO/S3 CORS policy must allow
-GET from `CORS_ALLOWED_ORIGINS`.
+read access. `S3_PRESIGN_ENDPOINT` must be browser reachable. Production Compose applies
+`CORS_ALLOWED_ORIGINS` to MinIO's explicit CORS allow-list so signed browser GETs work while the
+bucket stays private.
 
 The Docker image already sets:
 
