@@ -275,7 +275,7 @@ export default function UserGenerationsFeed({
               <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-[3px] bg-[#6ee7ff] opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-[3px] bg-[#6ee7ff] shadow-[0_0_14px_#6ee7ff]" />
             </span>
-            Feed
+            Community
           </h2>
           <span className="inline-flex items-center gap-1 rounded-full border border-[#6ee7ff]/30 bg-[#6ee7ff]/10 px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase text-[#6ee7ff]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#6ee7ff] animate-pulse" />

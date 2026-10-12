@@ -13,7 +13,7 @@ test('the landing page renders and the auth modal opens/closes across browsers',
   await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Generate' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Feed' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Community' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign up' }).click()
   const modal = authModal(page)

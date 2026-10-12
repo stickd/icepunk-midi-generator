@@ -43,7 +43,7 @@ function SoundEngineShell({
 }) {
   return (
     <div
-      className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
+      className="studio-dock-shell fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
       onClick={onIntent}
       onFocus={onIntent}
       onTouchStart={onIntent}
@@ -463,7 +463,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
 
   return (
     <div className="grid gap-8">
-      <nav className="flex items-center justify-between">
+      <nav className="studio-nav">
         <Link
           className="text-sm font-semibold tracking-[0.02em] text-ice-primary outline-none transition-[color] duration-150 ease-out hover:text-white focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
           href="/"

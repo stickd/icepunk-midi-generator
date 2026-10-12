@@ -104,7 +104,7 @@ describe("UserGenerationsFeed", () => {
 
     expect(await screen.findByText("Frozen Lead Pack")).toBeInTheDocument();
     expect(screen.getByText("nikul")).toBeInTheDocument();
-    expect(screen.getByText("Generated melody")).toBeInTheDocument();
+    expect(screen.getByText("Melody")).toBeInTheDocument();
   });
 
   it("shows an honest empty state when there are no generated packs", async () => {

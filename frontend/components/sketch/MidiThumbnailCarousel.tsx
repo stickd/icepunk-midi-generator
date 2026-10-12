@@ -11,6 +11,7 @@ const MAX_RENDERED_THUMBNAILS = 6;
 const THUMBNAIL_PRELOAD_MARGIN = "0px 160px";
 
 type MidiThumbnailCarouselProps = {
+  variant?: "preview" | "minimal";
   items: GeneratedMidiItem[];
   activeIndex: number;
   onSelect: (index: number) => void;
@@ -128,6 +129,7 @@ function GeneratedMidiThumbnail({
 }
 
 function MidiThumbnailCarousel({
+  variant = "preview",
   items,
   activeIndex,
   onSelect,
@@ -182,6 +184,20 @@ function MidiThumbnailCarousel({
   }, [maxStartIndex]);
 
   if (!items || items.length <= 1) return null;
+
+  // Feed navigation does not download/parse every unselected MIDI for a thumbnail.
+  if (variant === "minimal") return (
+    <div className="feed-midi-strip" aria-label={`${label} (${items.length})`}>
+      <span>{label}</span>
+      <button aria-label="Previous items" disabled={clampedStartIndex <= 0} onClick={handlePrev} type="button">‹</button>
+      <div className="feed-midi-numbers">
+        {visibleItems.map(({ item, index }) => (
+          <button aria-current={index === activeIndex} aria-label={`Select ${item.fileName ?? `MIDI ${index + 1}`}`} key={item.id} onClick={() => onSelect(index)} title={item.fileName} type="button">{String(index + 1).padStart(2, "0")}</button>
+        ))}
+      </div>
+      <button aria-label="Next items" disabled={clampedStartIndex >= maxStartIndex} onClick={handleNext} type="button">›</button>
+    </div>
+  );
 
   return (
     <div className="grid gap-2">

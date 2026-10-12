@@ -157,8 +157,8 @@ describe("GenerationFeedCard", () => {
       true,
     ));
     expect(screen.getByTestId("feed-piano-roll")).toHaveTextContent("ready:feed-first.mid");
-    expect(screen.getByText((_, element) => element?.textContent === "2 notes")).toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.textContent === "1 tracks")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Details +" }));
+    expect(screen.getByText("2 notes · 1 tracks")).toBeInTheDocument();
     expect(screen.getByText("2.9s")).toBeInTheDocument();
 
     const preview = screen.getByRole("button", { name: "Preview" });
@@ -177,8 +177,8 @@ describe("GenerationFeedCard", () => {
       true,
     ));
     expect(screen.getByTestId("feed-piano-roll")).toHaveTextContent("ready:feed-second.mid");
-    expect(screen.getByText((_, element) => element?.textContent === "1 notes")).toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.textContent === "2 tracks")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Details +" }));
+    expect(screen.getByText("1 notes · 2 tracks")).toBeInTheDocument();
     expect(screen.getByText("4.2s")).toBeInTheDocument();
 
     rerender(
@@ -207,5 +207,17 @@ describe("GenerationFeedCard", () => {
 
     expect(screen.getAllByTestId("feed-piano-roll")[0]).toHaveTextContent("error:Could not load this MIDI preview.");
     expect(screen.getAllByTestId("feed-piano-roll")[1]).toHaveTextContent("ready:feed-first.mid");
+  });
+
+  it("does not rerender an inactive pack for another pack's playback clock", () => {
+    const props = { generation: generation(), onStubStatus: jest.fn(), soundEngine: { preset: "Soft Piano" as const, sampleFile: null, volume: .8 } };
+    const playback = { ...createPlayback(), activeSourceId: "another-pack:item", isPlaying: true };
+    const { rerender } = render(<GenerationFeedCard {...props} playback={playback} />);
+    revealCards();
+    const calls = useGeneratedMidiPreviewMock.mock.calls.length;
+    for (let tick = 1; tick <= 60; tick++) rerender(<GenerationFeedCard {...props} playback={{ ...playback, positionSeconds: tick / 30 }} />);
+    expect(useGeneratedMidiPreviewMock).toHaveBeenCalledTimes(calls);
+    rerender(<GenerationFeedCard {...props} playback={{ ...playback, activeSourceId: "public-pack:feed-item-1" }} />);
+    expect(useGeneratedMidiPreviewMock.mock.calls.length).toBeGreaterThan(calls);
   });
 });

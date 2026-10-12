@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { RefObject, UIEvent, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 
 const UserGenerationsFeed = dynamic(() => import("./UserGenerationsFeed"), {
@@ -17,62 +17,21 @@ const UserGenerationsFeed = dynamic(() => import("./UserGenerationsFeed"), {
 
 function FeedShell({ onIntent }: { onIntent: () => void }) {
   return (
-    <section
-      aria-labelledby="user-generations-feed-heading"
-      className="grid gap-4"
-      onFocus={onIntent}
-      onTouchStart={onIntent}
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2
-            className="flex items-center gap-3 pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl"
-            id="user-generations-feed-heading"
-          >
-            <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center p-0.5">
-              <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-[3px] bg-[#6ee7ff] opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-[3px] bg-[#6ee7ff] shadow-[0_0_14px_#6ee7ff]" />
-            </span>
-            Feed
-          </h2>
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#6ee7ff]/30 bg-[#6ee7ff]/10 px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase text-[#6ee7ff]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#6ee7ff] animate-pulse" />
-            Live
-          </span>
-        </div>
+    <section aria-labelledby="user-generations-feed-heading" className="studio-discover">
+      <div className="studio-section-title"><h2 id="user-generations-feed-heading">Community<span aria-hidden="true"> / 02</span></h2><span className="studio-eyebrow">DISCOVER A NEW FREQUENCY</span></div>
+      <div className="studio-discover-card studio-glass">
+        <div className="studio-discover-art" aria-hidden="true"><span /><span /><span /><span /><span /><span /><span /><span /><span /></div>
+        <span className="studio-eyebrow">MADE IN THE COMMUNITY</span>
+        <h3>A shared state of sound.</h3>
+        <p>Find your next spark in original MIDI packs.<br />Listen, explore and make them your own.</p>
+        <button className="studio-explore-button" onClick={onIntent} type="button">Explore community <span aria-hidden="true">↗</span></button>
       </div>
-
-      <div className="grid gap-4">
-        {Array.from({ length: 2 }).map((_, index) => (
-          <div
-            className="overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.035] p-0 shadow-[var(--ice-shadow-card)]"
-            key={`feed-shell-card-${index}`}
-          >
-            <div className="border-b border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 animate-pulse rounded-full bg-white/[0.08]" />
-                <div className="grid gap-1">
-                  <div className="h-3.5 w-24 animate-pulse rounded bg-white/[0.08]" />
-                  <div className="h-2.5 w-14 rounded bg-white/[0.04]" />
-                </div>
-              </div>
-              <div className="mt-2.5 h-5 w-48 animate-pulse rounded bg-white/[0.08]" />
-            </div>
-            <div className="p-3">
-              <div className="flex h-[210px] items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04] p-3">
-                <span className="text-xs text-ice-muted">Click or scroll to load feed.</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <div className="studio-note"><span aria-hidden="true">↳</span><p>From the first note to the final texture.<br /><strong>Keep creating. Stay cold.</strong></p><span className="studio-note-mark" aria-hidden="true">✳</span></div>
     </section>
   );
 }
 
 type FeedMountIslandProps = {
-  feedScrollRef: RefObject<HTMLDivElement | null>;
-  handleFeedScroll: (event?: UIEvent<HTMLElement>) => void;
   isLoggedIn: boolean;
   onRequireLogin: () => void;
   onStubStatus: (message: string) => void;
@@ -81,8 +40,6 @@ type FeedMountIslandProps = {
 };
 
 export default function FeedMountIsland({
-  feedScrollRef,
-  handleFeedScroll,
   isLoggedIn,
   onRequireLogin,
   onStubStatus,
@@ -97,22 +54,18 @@ export default function FeedMountIsland({
   }, []);
 
   const setFeedScrollRoot = useCallback((element: HTMLDivElement | null) => {
-    feedScrollRef.current = element;
     setPreviewVisibilityRoot((current) => current === element ? current : element);
-  }, [feedScrollRef]);
+  }, []);
 
   return (
-    <div className="min-w-0">
+    <div className="studio-community min-w-0" id="community">
       <div
         ref={setFeedScrollRoot}
         aria-label="Community feed"
-        className="ice-scrollbar grid gap-4 overflow-y-auto pr-1 lg:max-h-[calc(100vh-4.5rem)]"
+        className="ice-scrollbar studio-feed-scroll"
         onClick={triggerFeedMount}
         onFocus={triggerFeedMount}
-        onScroll={(event) => {
-          triggerFeedMount();
-          handleFeedScroll(event);
-        }}
+        onScroll={triggerFeedMount}
         onTouchStart={triggerFeedMount}
         role="region"
         tabIndex={0}

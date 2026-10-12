@@ -28,135 +28,80 @@ function registerName(midi: number) {
   return "Pad";
 }
 
-function noteColor(midi: number, alpha: number) {
-  if (midi < BASS_CEILING) return `rgba(80, 200, 180, ${alpha})`;
-  if (midi < MELODY_CEILING) return `rgba(120, 150, 255, ${alpha})`;
-  return `rgba(200, 140, 255, ${alpha})`;
+// Shared geometry for the bitmap, hover hit testing and transport overlay.
+function geometry(data: PianoRollData, width: number, height: number, compact = false) {
+  const center = (data.minMidi + data.maxMidi) / 2;
+  const low = Math.max(0, Math.floor(Math.min(data.minMidi, center - 11)));
+  const high = Math.min(127, Math.ceil(Math.max(data.maxMidi, low + 23)));
+  const left = compact ? 5 : 38;
+  const top = compact ? 5 : 26;
+  return { low, high, left, top, width: Math.max(1, width - left - (compact ? 5 : 12)), height: Math.max(1, height - top - (compact ? 5 : 14)), duration: Math.max(.1, data.duration) };
 }
 
-function isBlackKey(midi: number) {
-  return [1, 3, 6, 8, 10].includes(midi % 12);
-}
-
-function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-}
-
-function noteBox(data: PianoRollData, note: PianoRollNote, width: number, height: number) {
-  const pitchRange = Math.max(1, data.maxMidi - data.minMidi);
-  const rowHeight = height / (pitchRange + 1);
-  const duration = Math.max(0.1, data.duration);
-
+function noteBox(data: PianoRollData, note: PianoRollNote, width: number, height: number, compact = false) {
+  const g = geometry(data, width, height, compact);
+  const row = g.height / (g.high - g.low + 1);
+  const noteHeight = Math.max(2, Math.min(compact ? 4 : 8, row * .76));
   return {
-    height: Math.max(2.5, rowHeight - 1),
-    width: Math.max(3, (note.duration / duration) * width - 1),
-    x: (note.time / duration) * width,
-    y: height - (note.midi - data.minMidi + 1) * rowHeight,
+    height: noteHeight,
+    width: Math.max(2, Math.min(g.width - note.time / g.duration * g.width, note.duration / g.duration * g.width - 1)),
+    x: g.left + note.time / g.duration * g.width,
+    y: g.top + (g.high - note.midi) * row + (row - noteHeight) / 2,
   };
 }
 
-function draw(
-  canvas: HTMLCanvasElement,
-  data: PianoRollData,
-  playbackPositionSeconds: number,
-  showPlayhead: boolean,
-  shimmerT: number,
-) {
-  const context = canvas.getContext("2d");
-  if (!context) return;
-
-  const dpr = window.devicePixelRatio || 1;
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  if (width === 0 || height === 0) return;
-
-  const targetWidth = Math.floor(width * dpr);
-  const targetHeight = Math.floor(height * dpr);
-  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-  }
-  context.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  context.fillStyle = "#07070e";
-  context.fillRect(0, 0, width, height);
-
-  const pitchRange = Math.max(1, data.maxMidi - data.minMidi);
-  const rowHeight = height / (pitchRange + 1);
-
-  for (let midi = data.minMidi; midi <= data.maxMidi; midi += 1) {
-    const y = height - (midi - data.minMidi + 1) * rowHeight;
-    context.fillStyle = isBlackKey(midi) ? "rgba(0, 0, 0, 0.25)" : "rgba(255, 255, 255, 0.02)";
-    context.fillRect(0, y, width, rowHeight);
-
-    if (midi % 12 === 0) {
-      context.strokeStyle = "rgba(255, 255, 255, 0.07)";
-      context.lineWidth = 0.5;
-      context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(width, y);
-      context.stroke();
+function draw(canvas: HTMLCanvasElement, data: PianoRollData, compact: boolean) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = canvas.clientWidth, height = canvas.clientHeight;
+  if (!width || !height) return;
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  const g = geometry(data, width, height, compact);
+  const row = g.height / (g.high - g.low + 1);
+  ctx.font = '9px ui-monospace, monospace';
+  ctx.textBaseline = 'middle';
+  for (let pitch = g.low; pitch <= g.high; pitch++) {
+    const y = g.top + (g.high - pitch) * row;
+    const black = [1, 3, 6, 8, 10].includes(pitch % 12);
+    ctx.fillStyle = black ? '#07131d' : '#0d1c28';
+    ctx.fillRect(g.left, y, g.width, row);
+    if (!compact) {
+      ctx.fillStyle = black ? '#152a39' : '#315064';
+      ctx.fillRect(black ? 23 : 18, y + .5, black ? 11 : 16, Math.max(1, row - 1));
+      if (pitch % 12 === 0) {
+        ctx.fillStyle = '#8faabd';
+        ctx.fillText(pitchName(pitch), 2, y + row / 2);
+      }
+    }
+    if (pitch % 12 === 0) {
+      ctx.fillStyle = '#8acbfa16';
+      ctx.fillRect(g.left, y + row - 1, g.width, 1);
     }
   }
-
-  const markCount = Math.max(1, Math.ceil(data.duration));
-  for (let mark = 0; mark <= markCount; mark += 1) {
-    const x = (mark / markCount) * width;
-    const isHeavy = mark % 4 === 0;
-    context.strokeStyle = isHeavy ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)";
-    context.lineWidth = isHeavy ? 1 : 0.5;
-    context.beginPath();
-    context.moveTo(x, 0);
-    context.lineTo(x, height);
-    context.stroke();
+  const divisions = compact ? 4 : width < 400 ? 4 : 8;
+  for (let i = 0; i <= divisions; i++) {
+    const x = g.left + g.width * i / divisions;
+    ctx.fillStyle = i % 2 === 0 ? '#87c8f025' : '#87c8f012';
+    ctx.fillRect(Math.round(x), g.top, 1, g.height);
+    if (!compact && i < divisions) {
+      ctx.fillStyle = '#799bb3';
+      ctx.fillText((g.duration * i / divisions).toFixed(1) + 's', x + 3, 12);
+    }
   }
-
   for (const note of data.notes) {
-    const box = noteBox(data, note, width, height);
-    const isCurrentNote =
-      showPlayhead &&
-      playbackPositionSeconds >= note.time &&
-      playbackPositionSeconds <= note.time + note.duration;
-    const alpha = 0.4 + note.velocity * 0.6;
-
-    context.fillStyle = noteColor(note.midi, isCurrentNote ? Math.min(1, alpha + 0.3) : alpha);
-    context.beginPath();
-    context.roundRect(box.x, box.y + 0.5, box.width, box.height, 2);
-    context.fill();
-
-    const gloss = context.createLinearGradient(box.x, box.y, box.x, box.y + box.height / 2);
-    gloss.addColorStop(0, "rgba(255, 255, 255, 0.18)");
-    gloss.addColorStop(1, "rgba(255, 255, 255, 0)");
-    context.fillStyle = gloss;
-    context.fill();
-
-    if (isCurrentNote) {
-      context.strokeStyle = "rgba(255, 255, 255, 0.85)";
-      context.lineWidth = 1.5;
-      context.beginPath();
-      context.roundRect(box.x, box.y + 0.5, box.width, box.height, 2);
-      context.stroke();
+    const box = noteBox(data, note, width, height, compact);
+    ctx.fillStyle = 'rgba(110, 195, 250, ' + (.65 + Math.max(0, Math.min(1, note.velocity)) * .35) + ')';
+    ctx.beginPath();
+    ctx.roundRect(box.x, box.y, box.width, box.height, Math.min(2, box.height / 2));
+    ctx.fill();
+    if (!compact && box.width > 4) {
+      ctx.fillStyle = '#d4f2ffb3';
+      ctx.fillRect(box.x + 1, box.y + 1, 2, Math.max(1, box.height - 2));
     }
-  }
-
-  if (showPlayhead) {
-    const playheadX = (Math.min(data.duration, playbackPositionSeconds) / Math.max(0.1, data.duration)) * width;
-    context.strokeStyle = "rgb(100, 120, 255)";
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(playheadX, 0);
-    context.lineTo(playheadX, height);
-    context.stroke();
-  }
-
-  if (!prefersReducedMotion()) {
-    const shimX = (shimmerT % 1) * (width + 80) - 40;
-    const shimmer = context.createLinearGradient(shimX, 0, shimX + 40, 0);
-    shimmer.addColorStop(0, "rgba(255, 255, 255, 0)");
-    shimmer.addColorStop(0.5, "rgba(255, 255, 255, 0.025)");
-    shimmer.addColorStop(1, "rgba(255, 255, 255, 0)");
-    context.fillStyle = shimmer;
-    context.fillRect(0, 0, width, height);
   }
 }
 
@@ -181,53 +126,24 @@ function BrowserPianoRoll({
       : parsedSource;
   const compact = size === "compact";
   const showPlayhead = !compact && (isPlaying || playbackPositionSeconds > 0);
-  const playbackPositionRef = useRef(playbackPositionSeconds);
-  const renderRef = useRef<(() => void) | null>(null);
-
+  const playheadRef = useRef<HTMLDivElement>(null);
+  // Playback only moves a composited overlay; the note bitmap stays unchanged.
   useEffect(() => {
-    playbackPositionRef.current = playbackPositionSeconds;
-    if (!isPlaying || prefersReducedMotion()) {
-      renderRef.current?.();
-    }
-  }, [isPlaying, playbackPositionSeconds]);
+    if (!playheadRef.current || !pianoRoll.data) return;
+    const progress = Math.max(0, Math.min(1, playbackPositionSeconds / Math.max(.1, pianoRoll.data.duration)));
+    playheadRef.current.style.transform = `translateX(${progress * 100}%)`;
+  }, [playbackPositionSeconds, pianoRoll.data, showPlayhead]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !pianoRoll.data) return;
-
     const data = pianoRoll.data;
-    let frame: number | null = null;
-    let shimmerT = 0;
-    const shouldAnimate = !compact && isPlaying && !prefersReducedMotion();
-
-    function render() {
-      if (!canvas) return;
-      draw(canvas, data, playbackPositionRef.current, showPlayhead, shimmerT);
-    }
-
-    renderRef.current = render;
+    if (!canvas || !data) return;
+    const render = () => draw(canvas, data, compact);
     render();
-
-    if (shouldAnimate) {
-      const tick = () => {
-        shimmerT += 0.004;
-        render();
-        frame = requestAnimationFrame(tick);
-      };
-      frame = requestAnimationFrame(tick);
-    }
-
     const observer = new ResizeObserver(render);
     observer.observe(canvas);
-
-    return () => {
-      observer.disconnect();
-      if (frame !== null) cancelAnimationFrame(frame);
-      if (renderRef.current === render) {
-        renderRef.current = null;
-      }
-    };
-  }, [pianoRoll.data, showPlayhead, compact, isPlaying]);
+    return () => observer.disconnect();
+  }, [pianoRoll.data, compact]);
 
   function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
     if (compact || !pianoRoll.data) return;
@@ -242,8 +158,8 @@ function BrowserPianoRoll({
       if (mx >= box.x && mx <= box.x + box.width && my >= box.y && my <= box.y + box.height) {
         setTooltip({
           text: `${pitchName(note.midi)} · vel ${Math.round(note.velocity * 127)} · ${registerName(note.midi)}`,
-          x: mx + 10,
-          y: my - 28,
+          x: Math.min(mx + 10, Math.max(0, rect.width - 190)),
+          y: Math.max(0, my - 28),
         });
         return;
       }
@@ -265,11 +181,9 @@ function BrowserPianoRoll({
   }
 
   return (
-    <section aria-label="MIDI piano roll visualization" className="grid gap-2">
+    <section aria-label="MIDI piano roll visualization" className={compact ? "midi-roll midi-roll-compact" : "midi-roll"}>
       <div
-        className={`relative overflow-hidden rounded-xl border border-white/[0.06] ${
-          compact ? "h-[88px] border-0" : "h-[210px]"
-        }`}
+        className="midi-roll-surface"
         onMouseLeave={() => setTooltip(null)}
         onMouseMove={handleMouseMove}
         ref={wrapRef}
@@ -286,6 +200,10 @@ function BrowserPianoRoll({
             {pianoRoll.message}
           </div>
         )}
+
+        {pianoRoll.data && showPlayhead ? (
+          <div aria-hidden="true" className="midi-playhead-viewport"><div className="midi-playhead-track" ref={playheadRef}><span /></div></div>
+        ) : null}
 
         {tooltip ? (
           <div

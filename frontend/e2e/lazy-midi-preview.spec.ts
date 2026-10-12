@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
+import { loginViaUi, readSeedUser } from './helpers'
 
 test('a generated 17-MIDI pack loads only selected and visible piano-roll previews', async ({ page }) => {
+  const user = readSeedUser()
+  await loginViaUi(page, user.email, user.password)
   const previewUrlRequests: string[] = []
   const midiObjectRequests: string[] = []
 
@@ -15,7 +18,7 @@ test('a generated 17-MIDI pack loads only selected and visible piano-roll previe
   await page.getByRole('dialog', { name: 'Create pack' }).getByRole('button', { name: 'Next →' }).click()
 
   await expect(page.getByRole('button', { name: /Download whole pack/ })).toBeVisible()
-  await expect(page.getByRole('img', { name: /MIDI notes across/ })).toBeVisible()
+  await expect(page.locator('.midi-roll:not(.midi-roll-compact)').getByRole('img', { name: /MIDI notes across/ })).toBeVisible()
   await expect(page.getByText('n/a', { exact: true })).toHaveCount(0)
 
   // The default modal creates 17 items. The carousel mounts at most six thumbnails;

@@ -73,6 +73,7 @@ export function Button({
         buttonSizes[size],
         className,
       )}
+      data-variant={variant}
       {...props}
     />
   );

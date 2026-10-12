@@ -167,7 +167,7 @@ export default function SoundEngineCard({
       </button>
 
       {/* Main Floating Master Dock Container */}
-      <div className="rounded-t-2xl border border-white/10 bg-[rgba(10,14,24,0.95)] p-3 shadow-[0_-12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(132,146,255,0.12)] backdrop-blur-2xl">
+      <div className="studio-active-dock">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Section 1: Sound Source Switch & Selector */}
           <div className="flex items-center gap-2.5">
@@ -175,7 +175,7 @@ export default function SoundEngineCard({
               <button
                 className={`rounded-md px-3 py-1 text-xs font-semibold transition-all duration-150 ${
                   soundMode === "stock"
-                    ? "bg-[color:var(--ice-accent)] text-white font-bold shadow-[0_0_14px_rgba(132,146,255,0.45)] scale-[1.02]"
+                    ? "bg-[color:var(--ice-accent)] text-[#112b24] font-bold shadow-[0_0_14px_rgba(132,146,255,0.45)] scale-[1.02]"
                     : "bg-transparent text-ice-muted hover:text-white"
                 }`}
                 onClick={() => {
@@ -189,7 +189,7 @@ export default function SoundEngineCard({
               <button
                 className={`rounded-md px-3 py-1 text-xs font-semibold transition-all duration-150 ${
                   soundMode === "upload"
-                    ? "bg-[color:var(--ice-accent)] text-white font-bold shadow-[0_0_14px_rgba(132,146,255,0.45)] scale-[1.02]"
+                    ? "bg-[color:var(--ice-accent)] text-[#112b24] font-bold shadow-[0_0_14px_rgba(132,146,255,0.45)] scale-[1.02]"
                     : "bg-transparent text-ice-muted hover:text-white"
                 }`}
                 onClick={() => setSoundMode("upload")}

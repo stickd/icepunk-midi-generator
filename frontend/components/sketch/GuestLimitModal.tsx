@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 type GuestLimitModalProps = {
   onClose: () => void;
@@ -13,8 +14,11 @@ export default function GuestLimitModal({
   onLogin,
   onSignUp,
 }: GuestLimitModalProps) {
+  const dialogRef = useDialogFocus(onClose);
   return (
     <div
+      ref={(element) => { dialogRef.current = element; }}
+      tabIndex={-1}
       aria-labelledby="guest-limit-title"
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-xl"

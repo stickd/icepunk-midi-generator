@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { BrowserMidiSource, SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { useMidiGeneration } from "@/hooks/useMidiGeneration";
 import {
@@ -15,16 +15,10 @@ import GuestLimitModal from "./GuestLimitModal";
 import RandomGeneratePanel, {
   GenerationSourceState,
 } from "./RandomGeneratePanel";
-import SketchScrollIndicator from "./SketchScrollIndicator";
 import SketchTopNav from "./SketchTopNav";
-import { useDualScrollProgress } from "./useDualScrollProgress";
 import { useSketchAuth } from "./useSketchAuth";
-import { InteractiveBubbleBackground, ToastNotification } from "@/components/ui";
+import { ToastNotification } from "@/components/ui";
 
-const TAB_BUTTON_BASE =
-  "rounded-t-xl border border-b-0 px-4 py-2 text-xs font-medium tracking-[0.02em] outline-none transition-colors duration-150 ease-out";
-const TAB_BUTTON_ACTIVE =
-  "border-white/[0.08] bg-[color:var(--ice-surface)] text-ice-primary";
 const DEFAULT_SOURCE_STATE: GenerationSourceState = { source: "FACTORY" };
 
 const AuthModal = dynamic(() => import("@/components/AuthModal"), {
@@ -35,7 +29,8 @@ const CreatePackModal = dynamic(() => import("./CreatePackModal"), {
   ssr: false,
 });
 
-const GeneratedPackVisualizer = dynamic(() => import("./GeneratedPackVisualizer"), {
+const loadGeneratedPackVisualizer = () => import("./GeneratedPackVisualizer");
+const GeneratedPackVisualizer = dynamic(loadGeneratedPackVisualizer, {
   loading: () => (
     <div className="grid min-h-[360px] place-items-center rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.035] text-sm text-ice-muted">
       Preparing generated pack...
@@ -57,10 +52,14 @@ function SoundEngineShell({
 }) {
   return (
     <div
-      className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
+      className="studio-dock-shell fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
       onClick={onIntent}
       onFocus={onIntent}
       onTouchStart={onIntent}
+      role="button"
+      tabIndex={0}
+      aria-label="Open sound engine"
+      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onIntent(); } }}
     >
       <div className="w-[calc(100vw-1.5rem)] max-w-4xl rounded-2xl border border-white/[0.08] bg-[#070914]/94 px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(132,146,255,0.05)] backdrop-blur-xl">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -83,7 +82,7 @@ function SoundEngineShell({
   );
 }
 
-export default function SketchThemeClient() {
+export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
   const [status, setStatus] = useState("");
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
   const {
@@ -125,16 +124,6 @@ export default function SketchThemeClient() {
     setIsSoundEngineMounted(true);
   }, []);
 
-  const {
-    feedProgress,
-    feedScrollRef,
-    genProgress,
-    generatorScrollRef,
-    handleFeedScroll,
-    handleGenScroll,
-    isFeedScrolling,
-    isGenScrolling,
-  } = useDualScrollProgress();
   const playback = useBrowserMidiPlayback();
   const stopPlayback = playback.stop;
   const updatePlaybackSettings = playback.updateSettings;
@@ -248,7 +237,12 @@ export default function SketchThemeClient() {
     playback.play(activeMidiSource, soundEngine);
   }, [activeMidiSource, playback, soundEngine]);
 
-  const openCreatePack = useCallback(() => setActiveModal("create"), []);
+  const openCreatePack = useCallback(() => {
+    // Fetch the results UI while the user configures the pack, rather than
+    // starting another network round trip after generation has finished.
+    void loadGeneratedPackVisualizer().catch(() => undefined);
+    setActiveModal("create");
+  }, []);
 
   const handleCustomAnalysisUnauthorized = useCallback(() => {
     clearToken();
@@ -271,7 +265,7 @@ export default function SketchThemeClient() {
 
   return (
     <>
-      <div className="relative z-10 mx-auto w-full max-w-[1880px] px-3 py-4 sm:px-6 lg:px-8">
+      <div className="studio-container">
         <SketchTopNav
           handleLogout={handleLogout}
           me={me}
@@ -281,37 +275,21 @@ export default function SketchThemeClient() {
           usage={usage}
         />
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.3fr)] lg:items-start lg:gap-8">
+        {intro}
+        <div className="studio-workspace" id="workspace">
           {/* Generator Column */}
           <div
-            ref={generatorScrollRef}
             aria-label="MIDI generator"
-            onScroll={handleGenScroll}
-            className="ice-scrollbar grid gap-6 pr-1 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto"
+            className="studio-generator"
             role="region"
             tabIndex={0}
           >
-            <h1 className="flex items-center gap-3 pl-1 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center p-0.5">
-                <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-[3px] bg-[color:var(--ice-accent)] opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-[3px] bg-[color:var(--ice-accent)] shadow-[0_0_14px_var(--ice-accent)]" />
-              </span>
-              Generator
-            </h1>
+            <div className="studio-section-title"><h2>Generator<span aria-hidden="true"> / 01</span></h2><span className="studio-eyebrow">MAKE SOMETHING NEW</span></div>
 
             <div className="grid gap-0">
-              <div className="flex gap-1 px-1" role="tablist">
-                <button
-                  aria-selected="true"
-                  className={`${TAB_BUTTON_BASE} ${TAB_BUTTON_ACTIVE}`}
-                  role="tab"
-                  type="button"
-                >
-                  Generate
-                </button>
-              </div>
-              <div className="relative overflow-hidden rounded-2xl rounded-tl-none border border-white/[0.08] bg-[#070914]/94 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_36px_rgba(132,146,255,0.05)]">
-                <InteractiveBubbleBackground className="min-h-[440px] p-5 flex flex-col justify-center">
+
+              <div className="studio-glass generator-glass">
+                <div className="generator-content">
                   {lastGeneration ? (
                     <GeneratedPackVisualizer
                       generation={lastGeneration}
@@ -338,21 +316,14 @@ export default function SketchThemeClient() {
                       token={token}
                     />
                   )}
-                </InteractiveBubbleBackground>
+                </div>
               </div>
             </div>
           </div>
 
-          <SketchScrollIndicator
-            feedProgress={feedProgress}
-            genProgress={genProgress}
-            isFeedScrolling={isFeedScrolling}
-            isGenScrolling={isGenScrolling}
-          />
+
 
           <FeedMountIsland
-            feedScrollRef={feedScrollRef}
-            handleFeedScroll={handleFeedScroll}
             isLoggedIn={Boolean(token)}
             onRequireLogin={requireLogin}
             onStubStatus={setStatus}

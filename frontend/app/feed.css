@@ -1,0 +1,68 @@
+/* Quiet, opaque surfaces keep scrolling independent of backdrop-filter layers. */
+.feed-pack {
+  --ice-accent: #8cd5ff;
+  --ice-accent-text: #b9e6ff;
+  --ice-accent-border: #8cd5ff30;
+  --ice-accent-soft: #8cd5ff0a;
+  padding: 22px;
+  border: 1px solid #8fc7e218;
+  border-radius: 16px;
+  background: #0c151b;
+  color: #e1edf4;
+  min-width: 0;
+}
+.feed-pack-header { padding-bottom: 18px; }
+.feed-pack-author { display: flex; align-items: center; gap: 9px; font-size: 11px; color: #a0b7c6; min-width: 0; }
+.feed-pack-author > a, .feed-pack-author > span:not(.feed-pack-time) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-pack-author > :first-child { box-shadow: none !important; background: #13232e; color: #9edcff; border-color: #8cd5ff25; }
+.feed-pack-time { margin-left: auto; white-space: nowrap; font-size: 10px; color: #849baa; }
+.feed-pack-header h3 { font-family: var(--font-display), sans-serif; font-weight: 500; font-size: 21px; line-height: 1.3; letter-spacing: -.04em; margin: 13px 0 8px; overflow-wrap: anywhere; }
+.feed-pack-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 10px; color: #8aa8bb; }
+.feed-pack-meta > span + span::before { content: "·"; margin-right: 14px; color: #547082; }
+.feed-pack-score { border-top: 1px solid #8fc7e211; border-bottom: 1px solid #8fc7e211; }
+.feed-pack-file { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0 10px; font-family: var(--font-geist-mono), monospace; font-size: 9px; color: #91b3c9; }
+.feed-pack-file > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-pack-file > span:last-child { flex-shrink: 0; color: #68879b; }
+.midi-playhead-track { position: absolute; inset: 0; pointer-events: none; will-change: transform; }
+.midi-playhead-track > span { display: block; height: 100%; width: 1px; background: #daf3ff; box-shadow: 0 0 8px #8cd5ff30; }
+.feed-pack-transport { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.feed-pack-duration { font-family: var(--font-geist-mono), monospace; font-size: 10px; color: #8aabba; }
+.feed-pack-transport > div { display: flex; gap: 6px; }
+.feed-pack button[data-variant] { font-size: 10px; height: 30px; padding: 0 12px; border-radius: 7px; box-shadow: none; }
+.feed-pack button[data-variant=primary] { background: #9fdcff; border-color: #9fdcff; color: #102532; }
+.feed-pack button[data-variant=secondary] { background: #162833; border-color: #85c9ed25; color: #bfebff; }
+.feed-pack button[data-variant=ghost] { color: #9fc6dc; }
+.feed-pack button[data-variant]:hover { transform: none; background: #264254; color: #ebf8ff; }
+.feed-midi-strip { display: flex; align-items: center; gap: 6px; padding-top: 13px; }
+.feed-midi-strip > span { font-family: var(--font-geist-mono), monospace; font-size: 9px; color: #829ead; margin-right: auto; }
+.feed-midi-strip button { min-width: 30px; height: 28px; border-radius: 6px; font-family: var(--font-geist-mono), monospace; font-size: 10px; color: #8aabba; background: transparent; border: 1px solid transparent; }
+.feed-midi-strip button[aria-current=true] { color: #bdeaff; border-color: #85c9ed30; background: #80cfff0d; }
+.feed-midi-strip button:hover:not(:disabled) { color: #e4f6ff; background: #80cfff14; }
+.feed-midi-strip button:disabled { opacity: .3; cursor: default; }
+.feed-midi-numbers { display: flex; gap: 3px; }
+.feed-pack-footer { display: flex; gap: 16px; align-items: center; margin-top: 15px; font-size: 10px; color: #829dac; }
+.feed-pack-footer > button:last-child { margin-left: auto; color: #a6d6f1; }
+.feed-pack-footer button { min-height: 28px; }
+.feed-pack-footer button:hover { color: #e4f6ff; }
+.feed-pack-details { border-top: 1px solid #8fc7e218; margin-top: 8px; padding-top: 12px; display: grid; gap: 8px; color: #8faebf; font-size: 11px; }
+.feed-pack-details > div { display: flex; justify-content: space-between; gap: 16px; }
+.feed-pack-message { font-size: 10px; color: #9dc6de; margin-top: 10px; }
+.studio-community section > div:first-child > div > span { border-color: #8cd5ff20; color: #9dcff0; background: #8cd5ff08; }
+@media (max-width: 760px) {
+  .feed-pack { padding: 16px; }
+  .feed-pack-header h3 { font-size: 20px; }
+  .feed-midi-strip { gap: 3px; }
+  .feed-midi-strip button { min-width: 27px; }
+  .feed-pack-footer { gap: 10px; font-size: 9px; }
+}
+
+/* One piano-roll surface for both generator and community. */
+.midi-roll { min-width: 0; }
+.midi-roll-surface { position: relative; height: 220px; overflow: hidden; border: 1px solid #8acbfa24; border-radius: 10px; background: #0a1620; }
+.midi-roll > p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.midi-playhead-viewport { position: absolute; left: 38px; right: 12px; top: 26px; bottom: 14px; overflow: hidden; pointer-events: none; }
+.midi-playhead-track > span::before { content: ""; position: absolute; top: 0; left: -3px; width: 7px; height: 5px; background: #daf3ff; border-radius: 0 0 3px 3px; }
+.midi-roll-compact, .midi-roll-compact .midi-roll-surface { height: 100%; }
+.midi-roll-compact .midi-roll-surface { border: 0; border-radius: 0; }
+
+.feed-pack > .grid { margin-top: 16px; }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, FieldLabel, Input } from "@/components/ui";
 import { generateRandomPackName } from "@/lib/randomNames";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 export type CreatePackDraft = {
   amount: number;
@@ -16,6 +17,7 @@ type CreatePackModalProps = {
 };
 
 export default function CreatePackModal({ onClose, onNext }: CreatePackModalProps) {
+  const dialogRef = useDialogFocus(onClose);
   const [amount, setAmount] = useState(17);
   const [packName, setPackName] = useState(() => generateRandomPackName());
   const [type, setType] = useState<CreatePackDraft["type"]>("melody");
@@ -23,6 +25,8 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-xl">
       <section
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="create-pack-title"
         aria-modal="true"
         className="w-full max-w-lg rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-[#0c0c16] shadow-[var(--ice-shadow-card)] backdrop-blur-2xl"

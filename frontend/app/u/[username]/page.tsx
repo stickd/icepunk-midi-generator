@@ -24,16 +24,16 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   };
 }
 
-import { EtherealShadowBackground } from "@/components/ui/ethereal-shadow";
+
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
 
   return (
-    <EtherealShadowBackground>
+    <div className="ice-studio studio-profile">
       <main className="relative z-10 mx-auto w-full max-w-5xl px-6 py-8 min-h-screen">
         <ProfileView username={safeDecode(username)} />
       </main>
-    </EtherealShadowBackground>
+    </div>
   );
 }

@@ -1,23 +1,12 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import PianoRollPreview from "./PianoRollPreview";
-
-describe("PianoRollPreview", () => {
-  it("renders notes with palette colors", () => {
-    const notes = [
-      { duration: 0.5, pitch: 60, start: 0, velocity: 100 },
-      { duration: 0.5, pitch: 64, start: 0.5, velocity: 90 },
-      { duration: 0.5, pitch: 67, start: 1, velocity: 80 },
-    ];
-
-    const { container } = render(
-      <PianoRollPreview label="Test Palette MIDI" notes={notes} />,
-    );
-
-    const rects = container.querySelectorAll("rect");
-    expect(rects).toHaveLength(3);
-
-    const colors = Array.from(rects).map((rect) => rect.getAttribute("fill"));
-    expect(colors.every((c) => Boolean(c))).toBe(true);
-    expect(colors[0]).toMatch(/^url\(#note-grad-/);
-  });
+import BrowserPianoRoll from "./BrowserPianoRoll";
+jest.mock("./BrowserPianoRoll", () => ({ __esModule: true, default: jest.fn(() => <div>Shared piano roll</div>) }));
+it("adapts thumbnail notes to the same renderer used by generator and feed", () => {
+  render(<PianoRollPreview compact label="Reference" notes={[{ pitch: 60, start: .5, duration: 1, velocity: 127 }]} />);
+  expect(screen.getByText("Shared piano roll")).toBeInTheDocument();
+  const props = jest.mocked(BrowserPianoRoll).mock.calls.at(-1)![0];
+  expect(props.size).toBe("compact");
+  expect(props.midiData?.duration).toBe(1.5);
+  expect(props.midiData?.notes[0]).toMatchObject({ midi: 60, time: .5, duration: 1, velocity: 1 });
 });

@@ -23,15 +23,16 @@ export default function SketchTopNav({
   usage,
 }: SketchTopNavProps) {
   return (
-    <nav className="flex flex-wrap items-center justify-between gap-4">
+    <nav className="studio-nav" aria-label="Main navigation">
       <Link
-        className="text-sm font-bold tracking-[0.04em] text-white outline-none transition-colors duration-150 ease-out hover:text-ice-accent focus-visible:ring-2 focus-visible:ring-[rgba(100,120,255,0.45)]"
+        className="studio-wordmark"
         href="/"
       >
-        iCEPUNK
+        <span className="studio-logo" aria-hidden="true">✳</span> iCEPUNK<span className="studio-wordmark-label">MIDI LAB</span>
       </Link>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="studio-nav-links"><Link href="/#workspace">Studio <span>↗</span></Link><Link href="/#community">Discover</Link></div>
+      <div className="studio-account flex flex-wrap items-center gap-3">
         {!token ? (
           <Badge
             title={
@@ -56,7 +57,7 @@ export default function SketchTopNav({
             {me.username}
           </Link>
         ) : (
-          <span className="text-sm text-ice-muted">guest</span>
+          <span className="studio-guest text-sm text-ice-muted">Guest session</span>
         )}
 
         <div className="flex flex-wrap gap-2">

@@ -1,4 +1,5 @@
 import { Button, FieldLabel, Input } from "@/components/ui";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 type AuthMode = "login" | "register";
 
@@ -29,8 +30,11 @@ export default function AuthModal({
   onSubmit,
   onClose,
 }: AuthModalProps) {
+  const dialogRef = useDialogFocus(onClose);
   return (
     <div
+      ref={(element) => { dialogRef.current = element; }}
+      tabIndex={-1}
       aria-labelledby="auth-modal-title"
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-6 backdrop-blur-xl"
@@ -59,7 +63,7 @@ export default function AuthModal({
           </button>
         </div>
 
-        <div className="mt-7 grid gap-4">
+        <form className="mt-7 grid gap-4" onSubmit={(event) => { event.preventDefault(); if (!isSubmitting) onSubmit(); }}>
           {mode === "register" && (
             <FieldLabel>
               Username
@@ -93,9 +97,8 @@ export default function AuthModal({
           <Button
             className="mt-2 w-full"
             disabled={isSubmitting}
-            onClick={onSubmit}
             size="lg"
-            type="button"
+            type="submit"
             variant="primary"
           >
             {isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Register"}
@@ -106,7 +109,7 @@ export default function AuthModal({
               {authStatus}
             </p>
           )}
-        </div>
+        </form>
       </div>
     </div>
   );

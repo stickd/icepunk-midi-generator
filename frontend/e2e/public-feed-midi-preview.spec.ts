@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import path from 'node:path'
 
 import { loginViaUi, readSeedUser } from './helpers'
 
@@ -12,6 +13,10 @@ test('a public feed pack renders and plays the selected generated MIDI', async (
   await dialog.getByLabel('Pack Name').fill(packName)
   await dialog.getByRole('button', { name: 'Next →' }).click()
   await expect(page.getByRole('button', { name: /Download whole pack/ })).toBeVisible()
+  const generatorRoll = page.locator('.midi-roll:not(.midi-roll-compact)').first()
+  await expect(generatorRoll.getByRole('img')).toBeVisible()
+  const generatorStyle = await generatorRoll.locator('.midi-roll-surface').evaluate(el => ({ height: getComputedStyle(el).height, background: getComputedStyle(el).backgroundColor, border: getComputedStyle(el).borderRadius }))
+  if (process.env.ICEPUNK_CAPTURE_DIR) await generatorRoll.screenshot({ path: path.join(process.env.ICEPUNK_CAPTURE_DIR, 'midi-generator.png') })
 
   const feedResponse = await request.get('http://localhost:8081/generated-packs/feed?page=0&size=10')
   expect(feedResponse.ok()).toBeTruthy()
@@ -29,6 +34,8 @@ test('a public feed pack renders and plays the selected generated MIDI', async (
   const feedPage = await browser.newPage()
   const secondPreviewUrlRequests: string[] = []
   const midiObjectRequests: string[] = []
+  let secondObjectUrl = ""
+  feedPage.on("response", async response => { if (response.url() === secondPreviewEndpoint) secondObjectUrl = (await response.json()).url })
   feedPage.on('request', (request) => {
     const url = request.url()
     if (url === secondPreviewEndpoint) secondPreviewUrlRequests.push(url)
@@ -43,24 +50,34 @@ test('a public feed pack renders and plays the selected generated MIDI', async (
 
     const pack = feed.getByRole('article', { name: `Generated pack ${packName}` })
     await expect(pack).toBeVisible()
-    await expect(pack.getByRole('img', { name: /MIDI notes across/ })).toBeVisible()
+    await expect(pack.locator('.midi-roll:not(.midi-roll-compact)').getByRole('img')).toBeVisible()
     await expect(pack.getByText('n/a', { exact: true })).toHaveCount(0)
     await expect(pack.getByRole('button', { name: 'Preview' })).toBeEnabled()
 
+    const feedStyle = await pack.locator('.midi-roll:not(.midi-roll-compact) .midi-roll-surface').evaluate(el => ({ height: getComputedStyle(el).height, background: getComputedStyle(el).backgroundColor, border: getComputedStyle(el).borderRadius }))
+    expect(feedStyle).toEqual(generatorStyle)
+    if (process.env.ICEPUNK_CAPTURE_DIR) await pack.screenshot({ path: path.join(process.env.ICEPUNK_CAPTURE_DIR, 'midi-feed.png') })
+
     const secondMidi = pack.getByRole('button', { name: /^Select / }).nth(1)
-    // The second card is visible in the carousel and has already requested its
-    // preview. Selecting it must take the shared cache, not fetch it again.
+    // Visible thumbnails preload once and share their cache with the main roll.
+    await expect(secondMidi.getByRole('img')).toBeVisible()
     await expect.poll(() => secondPreviewUrlRequests.length).toBe(1)
-    await feedPage.waitForTimeout(200)
-    const previewRequestsBeforeSelect = secondPreviewUrlRequests.length
-    const midiRequestsBeforeSelect = midiObjectRequests.length
     await secondMidi.click()
     await expect(secondMidi).toHaveAttribute('aria-current', 'true')
-    await expect(pack.getByRole('img', { name: /MIDI notes across/ })).toBeVisible()
+    await expect(pack.locator('.midi-roll:not(.midi-roll-compact)').getByRole('img')).toBeVisible()
     await expect(pack.getByText('n/a', { exact: true })).toHaveCount(0)
     await expect(pack.getByRole('button', { name: 'Preview' })).toBeEnabled()
-    expect(secondPreviewUrlRequests.length).toBe(previewRequestsBeforeSelect)
-    expect(midiObjectRequests.length).toBe(midiRequestsBeforeSelect)
+    await expect.poll(() => secondPreviewUrlRequests.length).toBe(1)
+    await expect.poll(() => midiObjectRequests.filter((url) => url === secondObjectUrl).length).toBe(1)
+    await pack.getByRole('button', { name: /^Select / }).nth(0).click()
+    await secondMidi.click()
+    await expect(secondMidi).toHaveAttribute('aria-current', 'true')
+    expect(secondPreviewUrlRequests.length).toBe(1)
+    expect(midiObjectRequests.filter((url) => url === secondObjectUrl).length).toBe(1)
+    await pack.getByRole('button', { name: 'Preview', exact: true }).click()
+    await expect(pack.getByRole('button', { name: 'Stop', exact: true })).toBeVisible()
+    await pack.getByRole('button', { name: 'Stop', exact: true }).click()
+    await expect(pack.getByRole('button', { name: 'Preview', exact: true })).toBeEnabled()
   } finally {
     await feedPage.close()
   }

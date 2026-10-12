@@ -1,10 +1,10 @@
-import { EtherealShadowBackground } from "@/components/ui/ethereal-shadow";
 import SketchThemeClient from "./SketchThemeClient";
+import StudioIntro from "./StudioIntro";
 
 export default function SketchThemeLayout() {
   return (
-    <EtherealShadowBackground>
-      <SketchThemeClient />
-    </EtherealShadowBackground>
+    <main className="ice-studio">
+      <SketchThemeClient intro={<StudioIntro />} />
+    </main>
   );
 }

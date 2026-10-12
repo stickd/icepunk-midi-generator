@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
-import CustomDatasetControls from "./CustomDatasetControls";
+const CustomDatasetControls = dynamic(() => import("./CustomDatasetControls"));
 
 export type GenerationSourceState = {
   source: GenerationSource;
@@ -54,9 +54,9 @@ export default function RandomGeneratePanel({
   const canGenerate = !isCustom || Boolean(sourceState.tempAnalysisId) || hasDatasetSelection;
 
   return (
-    <div className="grid gap-5">
+    <div className="studio-source-panel">
       {/* Top Switch Bar */}
-      <div className="flex justify-center pt-1">
+      <div className="studio-source-header"><span className="studio-eyebrow">01 / SELECT YOUR SOURCE</span>
         <SegmentedControl
           onChange={(source) => onSourceStateChange({ source })}
           options={sourceOptions}
@@ -64,22 +64,17 @@ export default function RandomGeneratePanel({
         />
       </div>
 
-      {/* Prominent 3D Orbital Loader Ring */}
       {!isCustom && (
-        <div className="flex items-center justify-center py-4">
-          <div className="loader">
-            <div className="dot" />
-            <div className="dot" />
-            <div className="dot" />
-          </div>
+        <div className="studio-signal" aria-hidden="true">
+          <div className="studio-signal-ring" /><span className="studio-signal-star">✳</span>
+          <span className="studio-signal-tag">FACTORY / ORIGINAL DNA</span>
         </div>
       )}
-
-      {/* Section Title & Subtitle */}
+      {/* Source description */}
       <div className="text-center">
-        <h2 className="text-lg font-semibold text-ice-primary">Create from Source</h2>
+        <h3 className="studio-source-title">{isCustom ? "Your sound. Reimagined." : "Start with a little ice."}</h3>
         <p className="mt-0.5 text-xs text-ice-secondary">
-          Choose the factory dataset or analyze your own MIDI files first.
+          {isCustom ? "Upload your MIDI references or choose a saved dataset." : "Fresh melodies. Frozen textures. A new direction, every time."}
         </p>
       </div>
 
@@ -113,7 +108,7 @@ export default function RandomGeneratePanel({
       {/* Hero Generate Trigger CTA Area */}
       <div className="relative flex flex-col items-center justify-center pt-2">
         <Button
-          className="relative px-8 py-3 text-base shadow-[0_0_25px_rgba(132,146,255,0.25)] hover:shadow-[0_0_35px_rgba(132,146,255,0.4)] active:scale-95"
+          className="studio-generate-button"
           disabled={!canGenerate}
           onClick={onOpenCreatePack}
           size="lg"
@@ -136,6 +131,7 @@ export default function RandomGeneratePanel({
         </Button>
       </div>
 
+      <div className="studio-generator-footnote"><span>EXPORT .MID</span><span>MADE FOR YOUR DAW ↗</span></div>
       {isCustom && !canGenerate ? (
         <ToastNotification
           message="Upload and analyze MIDI files, or pick a saved dataset, before generating from Custom."

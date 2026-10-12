@@ -3,6 +3,8 @@ import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
 import { GeneratedMidiItem } from "@/lib/api";
 import { useGeneratedMidiPreview } from "@/hooks/useGeneratedMidiPreview";
 
+jest.mock("./BrowserPianoRoll", () => ({ __esModule: true, default: () => <div>Shared piano roll</div> }));
+
 jest.mock("@/hooks/useGeneratedMidiPreview", () => ({
   useGeneratedMidiPreview: jest.fn(() => ({
     error: null,
@@ -54,6 +56,15 @@ const mockItems: GeneratedMidiItem[] = [
 ];
 
 describe("MidiThumbnailCarousel", () => {
+  it("minimal feed navigation never downloads unselected thumbnail previews", () => {
+    useGeneratedMidiPreviewMock.mockClear();
+    const onSelect = jest.fn();
+    render(<MidiThumbnailCarousel variant="minimal" activeIndex={0} items={mockItems} onSelect={onSelect} packId="test-pack" />);
+    expect(useGeneratedMidiPreviewMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Select pattern_2.mid" }));
+    expect(onSelect).toHaveBeenCalledWith(1);
+    expect(useGeneratedMidiPreviewMock).not.toHaveBeenCalled();
+  });
   const observers: Array<{ callback: IntersectionObserverCallback; disconnect: jest.Mock }> = [];
 
   beforeEach(() => {

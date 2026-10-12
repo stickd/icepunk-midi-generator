@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Card, UserAvatar } from "@/components/ui";
+import { Button, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import { useGeneratedMidiPreview } from "@/hooks/useGeneratedMidiPreview";
 import { getGeneratedItemDownloadUrl, getGeneratedPackDownloadUrl } from "@/lib/api";
@@ -156,266 +156,63 @@ function GenerationFeedCard({
   }, []);
 
   return (
-    <article
-      aria-label={`Generated pack ${generation.title}`}
-      className="transition-all duration-300 ease-out transform-gpu"
-      ref={cardRef}
-    >
-      <Card className="group overflow-hidden p-0 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-white/[0.035] hover:shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
-        {/* Feed Card User & Title Header */}
-        <div className="border-b border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
-          <div className="flex items-start justify-between gap-3">
-            {generation.username.toLowerCase() === "guest" ? (
-              <div className="flex min-w-0 items-center gap-2.5">
-                <UserAvatar
-                  sizeClassName="h-8 w-8 text-xs"
-                  username={generation.username}
-                />
-
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-ice-primary">
-                    {generation.username}
-                  </p>
-                  <p className="text-[11px] text-ice-muted">{generation.timeAgo}</p>
-                </div>
-              </div>
-            ) : (
-              <Link
-                className="group/user flex min-w-0 items-center gap-2.5 outline-none"
-                href={`/u/${encodeURIComponent(generation.username)}`}
-                title={`View ${generation.username}'s profile`}
-              >
-                <UserAvatar
-                  sizeClassName="h-8 w-8 text-xs transition-transform duration-150 group-hover/user:scale-105"
-                  username={generation.username}
-                />
-
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-ice-primary transition-colors duration-150 group-hover/user:text-ice-accent">
-                    {generation.username}
-                  </p>
-                  <p className="text-[11px] text-ice-muted">{generation.timeAgo}</p>
-                </div>
-              </Link>
-            )}
-          </div>
-
-          <h3 className="mt-2 line-clamp-1 text-base font-bold leading-tight tracking-[-0.01em] text-ice-primary">
-            {generation.title}
-          </h3>
-
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-ice-muted">
-            <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5">
-              {generation.midiCount} MIDI
-            </span>
-            {generation.bpm !== null && generation.bpm !== undefined ? (
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5">
-                {generation.bpm} BPM
-              </span>
-            ) : null}
-            <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5">
-              {generation.downloads} downloads
-            </span>
-            <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5">
-              {generation.sound}
-            </span>
+    <article aria-label={`Generated pack ${generation.title}`} className="feed-pack" ref={cardRef}>
+      <header className="feed-pack-header">
+        <div className="feed-pack-author">
+          <UserAvatar sizeClassName="h-7 w-7 text-xs" username={generation.username} />
+          {generation.username === "guest" ? <span>{generation.username}</span> : <Link href={`/u/${encodeURIComponent(generation.username)}`}>{generation.username}</Link>}
+          <span className="feed-pack-time">{generation.timeAgo}</span>
+        </div>
+        <h3>{generation.title}</h3>
+        <div className="feed-pack-meta"><span>{generation.midiCount} MIDI</span><span>{generation.type === "DRUMS" ? "Drums" : "Melody"}</span>{generation.bpm != null && <span>{generation.bpm} BPM</span>}</div>
+      </header>
+      <div className="feed-pack-score">
+        <div className="feed-pack-file"><span title={activeItem?.fileName}>{activeItem?.fileName ?? generation.title}</span><span>{String(activeIndex + 1).padStart(2, "0")} / {items.length}</span></div>
+        <BrowserPianoRoll
+          isPlaying={isThisPlaying}
+          midiData={activePreview.preview?.data}
+          midiFile={null}
+          midiMessage={activePreview.error ?? (isPreviewEligible ? undefined : "Preview loads when this pack becomes visible.")}
+          midiStatus={activePreview.status}
+          playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
+        />
+        <div className="feed-pack-transport">
+          <span className="feed-pack-duration">{formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds)}</span>
+          <div>
+            <Button disabled={!activeItem || activePreview.status === "idle" || activePreview.status === "loading"} onClick={togglePreview} size="sm" type="button" variant={isThisPlaying ? "primary" : "secondary"}>
+              {isThisLoading || activePreview.status === "loading" ? "Loading..." : activePreview.status === "error" ? "Retry preview" : <><span aria-hidden="true">{isThisPlaying ? "■" : "▶"}</span>{isThisPlaying ? "Stop" : "Preview"}</>}
+            </Button>
+            <Button aria-label={`Download ${activeItem?.fileName ?? generation.title}`} disabled={!activeItem} onClick={handleMidiDownload} size="sm" title={isLoggedIn ? "Download MIDI" : "Log in to download MIDI"} type="button" variant="ghost">Download ↓</Button>
           </div>
         </div>
-
-        {/* Piano Roll Window matching Generator Visualizer Style */}
-        <div className="p-3">
-          <div className="overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.04] shadow-[var(--ice-shadow-card)] backdrop-blur-2xl">
-            {/* Top Window Header Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/[0.25] px-3.5 py-2.5">
-              <span className="truncate text-xs font-medium tracking-[0.02em] text-ice-primary/90">
-                {activeItem?.fileName ?? generation.title}
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Badge tone="accent">
-                  {generation.type === "DRUMS" ? "Drums" : "Melody"}
-                </Badge>
-                {generation.bpm !== null && generation.bpm !== undefined ? (
-                  <Badge>{generation.bpm} BPM</Badge>
-                ) : null}
-                {generation.pitch !== null && generation.pitch !== undefined ? (
-                  <Badge>pitch {generation.pitch}</Badge>
-                ) : null}
-                {generation.octaves !== null && generation.octaves !== undefined ? (
-                  <Badge>{generation.octaves} oct</Badge>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Piano Roll Visualizer */}
-            <BrowserPianoRoll
-              isPlaying={isThisPlaying}
-              midiData={activePreview.preview?.data}
-              midiFile={null}
-              midiMessage={activePreview.error ?? (isPreviewEligible ? undefined : "Preview loads when this pack becomes visible.")}
-              midiStatus={activePreview.status}
-              playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
-            />
-
-            {/* Bottom Window Metadata & Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] bg-black/[0.2] px-3.5 py-2.5">
-              <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-[0.06em] text-ice-muted">
-                <span>
-                  <strong className="text-ice-secondary">
-                    {activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"}
-                  </strong>{" "}
-                  notes
-                </span>
-                <span>
-                  <strong className="text-ice-secondary">
-                    {activePreview.preview?.data.trackCount ?? activeItem?.trackCount ?? "n/a"}
-                  </strong>{" "}
-                  tracks
-                </span>
-                <span>
-                  duration{" "}
-                  <strong className="text-ice-secondary">
-                    {formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds ?? null)}
-                  </strong>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  disabled={!activeItem || activePreview.status === "idle" || activePreview.status === "loading"}
-                  onClick={togglePreview}
-                  size="sm"
-                  type="button"
-                  variant={isThisPlaying ? "primary" : "secondary"}
-                >
-                  {isThisLoading || activePreview.status === "loading" ? (
-                    "Loading..."
-                  ) : activePreview.status === "error" ? (
-                    "Retry preview"
-                  ) : (
-                    <>
-                      <span aria-hidden="true">{isThisPlaying ? "■ " : "▶ "}</span>
-                      {isThisPlaying ? "Stop" : "Preview"}
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  aria-label={`Download ${activeItem?.fileName ?? generation.title}`}
-                  disabled={!activeItem}
-                  onClick={handleMidiDownload}
-                  size="sm"
-                  title={isLoggedIn ? "Download MIDI" : "Log in to download MIDI"}
-                  type="button"
-                  variant="secondary"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Download
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Thumbnail Carousel for Pack Items */}
-          {hasMultipleItems ? (
-            <div className="mt-2.5">
-              <MidiThumbnailCarousel
-                activeIndex={activeIndex}
-                items={items}
-                label="Pack MIDIs"
-                onSelect={handleSelectItem}
-              packId={generation.id}
-              />
-            </div>
-          ) : hasMultipleItems ? (
-            <div className="mt-2.5 h-16 w-full animate-pulse rounded-lg border border-white/[0.06] bg-black/20" />
-          ) : null}
-
-        {isThisSource && playback.message ? (
-          <p className="mt-1 text-center text-[11px] text-ice-muted" role="status">
-            {playback.message}
-          </p>
-        ) : null}
-
-        {/* Details Toggle & Pack ZIP Download */}
-        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-white/[0.05] pt-2.5">
-          <button
-            aria-expanded={showDetails}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-ice-muted transition-colors duration-150 ease-out hover:bg-white/[0.04] hover:text-ice-primary"
-            onClick={handleDetailsToggle}
-            type="button"
-          >
-            <span>Details</span>
-            <svg
-              aria-hidden="true"
-              className={`h-3 w-3 transition-transform duration-200 ease-out ${
-                showDetails ? "rotate-180" : ""
-              }`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              viewBox="0 0 24 24"
-            >
-              <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-
-          <button
-            className="inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white"
-            onClick={() => {
-              if (!isLoggedIn) {
-                onRequireLogin?.();
-                onStubStatus("Sign up or log in to keep creating and downloading free of charge!");
-                return;
-              }
-              getGeneratedPackDownloadUrl(generation.id)
-                .then(({ url }) => window.location.assign(url))
-                .catch(() => onStubStatus("ZIP download is unavailable."));
-            }}
-            type="button"
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>Download ZIP</span>
-          </button>
-        </div>
-
-        {showDetails ? (
-          <div className="mt-2 grid gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3 text-xs text-ice-muted">
-            <div className="flex items-center justify-between gap-3">
-              <span>Generated</span>
-              <span className="truncate text-right text-ice-secondary">
-                {formatUploadedAt(generation.uploadedAt)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <span>Visibility</span>
-              <span className="text-ice-secondary">Public</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <span>Notes</span>
-              <span className="text-ice-secondary">{activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"}</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <span>Duration</span>
-              <span className="text-ice-secondary">{formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds)}</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <span>Item BPM</span>
-              <span className="text-ice-secondary">{activeItem?.bpm ?? "n/a"}</span>
-            </div>
-          </div>
-        ) : null}
       </div>
-    </Card>
-  </article>
+      {hasMultipleItems && isPreviewEligible ? <MidiThumbnailCarousel activeIndex={activeIndex} items={items} label="Pack MIDIs" onSelect={handleSelectItem} packId={generation.id} /> : null}
+      {isThisSource && playback.message ? <p className="feed-pack-message" role="status">{playback.message}</p> : null}
+      <footer className="feed-pack-footer">
+        <button aria-expanded={showDetails} onClick={handleDetailsToggle} type="button">Details {showDetails ? "−" : "+"}</button>
+        <span>{generation.downloads} downloads</span>
+        <button onClick={() => {
+          if (!isLoggedIn) { onRequireLogin?.(); onStubStatus("Sign up or log in to keep creating and downloading free of charge!"); return; }
+          getGeneratedPackDownloadUrl(generation.id).then(({ url }) => window.location.assign(url)).catch(() => onStubStatus("ZIP download is unavailable."));
+        }} type="button">Download ZIP ↗</button>
+      </footer>
+      {showDetails ? <dl className="feed-pack-details">
+        <div><dt>Generated</dt><dd>{formatUploadedAt(generation.uploadedAt)}</dd></div>
+        <div><dt>Visibility</dt><dd>Public</dd></div>
+        <div><dt>Notes / tracks</dt><dd>{activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"} notes · {activePreview.preview?.data.trackCount ?? activeItem?.trackCount ?? "n/a"} tracks</dd></div>
+        <div><dt>Item BPM</dt><dd>{activeItem?.bpm ?? "n/a"}</dd></div>
+      </dl> : null}
+    </article>
   );
 }
 
-export default memo(GenerationFeedCard);
+// Ignore another pack's transport clock, but always propagate actions/settings.
+function sameFeedCard(previous: GenerationFeedCardProps, next: GenerationFeedCardProps) {
+  if (previous.generation !== next.generation || previous.soundEngine !== next.soundEngine || previous.onStubStatus !== next.onStubStatus || previous.isLoggedIn !== next.isLoggedIn || previous.onRequireLogin !== next.onRequireLogin || previous.previewVisibilityRoot !== next.previewVisibilityRoot) return false;
+  const ownsClock = next.generation.items?.some(item => next.playback.activeSourceId === `${next.generation.id}:${item.id}`);
+  return (Object.keys(next.playback) as Array<keyof typeof next.playback>).every(key =>
+    key === "positionSeconds" && !ownsClock || previous.playback[key] === next.playback[key],
+  );
+}
+
+export default memo(GenerationFeedCard, sameFeedCard);
