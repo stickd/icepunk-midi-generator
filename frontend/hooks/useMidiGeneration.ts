@@ -45,7 +45,7 @@ export function useMidiGeneration(
       if (error instanceof Error) {
         if (error.message.includes("Guest daily generation limit reached")) {
           setStatus(
-            "You've used your guest generation limit. Log in or create an account to unlock unlimited generations.",
+            "You've reached today's guest limit of 3 packs. Log in or create an account to unlock 5 packs per day.",
           );
           onGuestLimitReached?.();
           return;
@@ -53,7 +53,7 @@ export function useMidiGeneration(
 
         if (error.message.includes("User daily generation limit reached")) {
           setStatus(
-            "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
+            "You've reached today's limit of 5 packs. Please come back tomorrow.",
           );
           return;
         }

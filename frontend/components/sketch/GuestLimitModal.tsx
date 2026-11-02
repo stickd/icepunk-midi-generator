@@ -32,7 +32,7 @@ export default function GuestLimitModal({
           Free guest limit reached
         </h2>
         <p className="mt-2 text-sm text-ice-secondary">
-          Create a free account to generate unlimited MIDI packs.
+          Create a free account to generate up to 5 MIDI packs each day.
         </p>
         <div className="mt-7 flex flex-wrap justify-end gap-2">
           <Button

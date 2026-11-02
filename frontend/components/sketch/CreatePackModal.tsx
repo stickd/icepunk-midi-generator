@@ -18,7 +18,7 @@ type CreatePackModalProps = {
 
 export default function CreatePackModal({ onClose, onNext }: CreatePackModalProps) {
   const dialogRef = useDialogFocus(onClose);
-  const [amount, setAmount] = useState(17);
+  const [amount, setAmount] = useState(10);
   const [packName, setPackName] = useState(() => generateRandomPackName());
 
   return (
@@ -53,7 +53,7 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
             <input
               className="w-full accent-[color:var(--ice-accent)]"
               id="midi-amount"
-              max={34}
+              max={10}
               min={1}
               onChange={(event) => setAmount(Number(event.currentTarget.value))}
               type="range"
@@ -96,7 +96,7 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
 
           </div>
 
-          <p className="text-xs text-ice-secondary">Packs created while logged in are automatically published to the community feed.</p>
+          <p className="text-xs text-ice-secondary">Up to 10 MIDI patterns per pack. Packs created while logged in are automatically published to the community feed.</p>
           <div className="flex justify-end">
             <Button
               onClick={() => onNext({ amount, packName, type: "melody" })}

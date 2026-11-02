@@ -12,7 +12,7 @@ public class GenerationRequest {
     private GenerationSource source = GenerationSource.FACTORY;
 
     @Min(1)
-    @Max(34)
+    @Max(10)
     private int amount = 10;
 
     @Size(max = 120)

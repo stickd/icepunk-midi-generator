@@ -96,7 +96,7 @@ describe("useMidiGeneration", () => {
     });
 
     expect(result.current.status).toBe(
-      "You've used your guest generation limit. Log in or create an account to unlock unlimited generations.",
+      "You've reached today's guest limit of 3 packs. Log in or create an account to unlock 5 packs per day.",
     );
     expect(onUnauthorized).not.toHaveBeenCalled();
     expect(result.current.isGenerating).toBe(false);
@@ -112,7 +112,7 @@ describe("useMidiGeneration", () => {
     });
 
     expect(result.current.status).toBe(
-      "You've reached today's generation limit. Log in or create an account to unlock unlimited generations.",
+      "You've reached today's limit of 5 packs. Please come back tomorrow.",
     );
   });
 

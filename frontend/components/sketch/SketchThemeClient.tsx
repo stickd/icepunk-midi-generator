@@ -86,6 +86,7 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
     isGenerating,
     lastGeneration,
     resetGeneration,
+    setStatus: setGenerationStatus,
     status: generationStatus,
     handleGenerateMidi,
   } = useMidiGeneration(clearToken, undefined, () => {
@@ -101,7 +102,11 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
       if (isAborted) return;
       getGenerationUsage(token, controller.signal)
         .then((data) => {
-          if (!isAborted) setUsage(data);
+          if (isAborted) return;
+          setUsage(data);
+          if (lastGeneration && data.limit > 0 && data.used >= data.limit) {
+            setGenerationStatus(`You've reached today's limit of ${data.limit} packs. Please come back tomorrow.`);
+          }
         })
         .catch(() => {
           if (!isAborted) setUsage(null);
@@ -113,7 +118,7 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
       clearTimeout(timerId);
       controller.abort();
     };
-  }, [token, lastGeneration]);
+  }, [token, lastGeneration, setGenerationStatus]);
 
   const activeSourceState = sourceStateSession === token
     ? sourceState
@@ -293,17 +298,21 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
         />
       </div>
 
-      {status ? (() => {
-        const isSuccessToast = status.includes("generated") || status.includes("ready") || status.includes("logged in");
-        const isErrorToast = status.includes("failed") || status.includes("expired") || status.includes("busy");
+      {generationStatus || status ? (() => {
+        const toastMessage = generationStatus || status;
+        const isSuccessToast = toastMessage.includes("generated") || toastMessage.includes("ready") || toastMessage.includes("logged in");
+        const isErrorToast = toastMessage.includes("failed") || toastMessage.includes("expired") || toastMessage.includes("busy") || toastMessage.includes("limit");
         const toastType = isSuccessToast ? "success" : isErrorToast ? "error" : "info";
         const toastTitle = isSuccessToast ? "Success" : isErrorToast ? "Notice" : "Account Required";
 
         return (
           <div className="fixed top-6 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 px-4 pointer-events-auto">
             <ToastNotification
-              message={status}
-              onClose={() => setStatus("")}
+              message={toastMessage}
+              onClose={() => {
+                setStatus("");
+                setGenerationStatus("");
+              }}
               title={toastTitle}
               type={toastType}
             />

@@ -154,7 +154,7 @@ traffic:
 - **Registration**: 3 per hour per IP
 - **Login**: 5 per 15 minutes per IP
 - **Guest generation**: 3 per day per IP
-- **Authenticated generation**: 7 per day per user
+- **Authenticated generation**: 5 per day per user
 
 Every e2e worker hits the backend from the same machine, so these budgets are
 shared across the *entire* test run, not per-test. To stay well under them:

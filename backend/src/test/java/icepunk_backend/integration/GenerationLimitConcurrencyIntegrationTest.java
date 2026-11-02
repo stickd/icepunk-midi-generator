@@ -51,22 +51,20 @@ import static org.mockito.Mockito.when;
  * {@code checkGuestLimit} call has a check-then-act window that concurrent
  * requests can slip through, so the increment guard must hold the line.
  *
- * <p>The configured guest cap is {@code GUEST_DAILY_LIMIT = 5} (see
+ * <p>The configured guest cap is {@code GUEST_DAILY_LIMIT = 3} (see
  * {@code GenerationLimitService}). The guest test fires more concurrent
  * requests than the cap and asserts that exactly the cap succeeds, the rest
  * are rejected with {@link GenerationLimitException}, and the global counter
  * advances only for the successful (uploaded) generations.
  *
- * <p>Registered users have no daily cap by design (generation is free) —
- * {@code checkUserLimit}/{@code incrementUserUsage} are intentional no-ops.
- * The user test instead asserts that concurrent requests are never rejected
- * and every one of them advances the global counter, pinning that "no
- * accidental rate limiting" contract under concurrency.
+ * <p>Registered users have their own five-per-day cap. The locked increment
+ * path is the enforcement point for concurrent requests.
  */
 class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContainerTest {
 
     /** Mirrors {@code GenerationLimitService.GUEST_DAILY_LIMIT}. */
-    private static final int GUEST_DAILY_LIMIT = 5;
+    private static final int GUEST_DAILY_LIMIT = 3;
+    private static final int USER_DAILY_LIMIT = 5;
 
     private static final String GUEST_IP = "203.0.113.7";
     private static final String USER_EMAIL = "racer@example.com";
@@ -139,7 +137,7 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
     }
 
     @Test
-    void concurrentUserGenerationsAreNeverRateLimited() throws Exception {
+    void concurrentUserGenerationsDoNotExceedDailyLimit() throws Exception {
         User seed = new User("racer", USER_EMAIL, "hash");
         seed.setGenerationDate(LocalDate.now());
         seed.setGenerationsToday(0);
@@ -156,11 +154,15 @@ class GenerationLimitConcurrencyIntegrationTest extends AbstractPostgresContaine
             return null;
         });
 
-        assertEquals(CONCURRENT_REQUESTS, result.succeeded(),
-                "registered users have no daily generation cap; none should be rejected");
-        assertEquals(0, result.rejected(), "registered users must not be rejected by the guest cap");
-        assertEquals(CONCURRENT_REQUESTS, generationStatsService.getTotalGenerations(),
-                "global counter must advance for every successful (uploaded) generation");
+        assertEquals(USER_DAILY_LIMIT, result.succeeded(),
+                "only the daily cap of registered generations may succeed under concurrency");
+        assertEquals(CONCURRENT_REQUESTS - USER_DAILY_LIMIT, result.rejected(),
+                "every registered request above the cap must be rejected");
+        assertEquals(USER_DAILY_LIMIT,
+                userRepository.findByEmail(USER_EMAIL).orElseThrow().getGenerationsToday(),
+                "persisted user usage must not exceed the cap");
+        assertEquals(USER_DAILY_LIMIT, generationStatsService.getTotalGenerations(),
+                "global counter must advance only for successful generations");
     }
 
     /**

@@ -43,7 +43,7 @@ class GenerationLimitServiceTest {
     @Test
     void rejectsGuestUsageWhenDailyLimitIsReached() {
         GuestUsage usage = new GuestUsage("127.0.0.1");
-        usage.setGenerationsToday(5);
+        usage.setGenerationsToday(3);
         when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
 
         assertThrows(
@@ -83,60 +83,64 @@ class GenerationLimitServiceTest {
         GenerationLimitService.GenerationUsage result = service.getGuestUsage("127.0.0.1");
 
         assertEquals(2, result.used());
-        assertEquals(5, result.limit());
+        assertEquals(3, result.limit());
     }
 
     @Test
     void getGuestUsageIgnoresStaleCountFromAPreviousDay() {
         GuestUsage usage = new GuestUsage("127.0.0.1");
-        usage.setGenerationsToday(5);
+        usage.setGenerationsToday(3);
         usage.setGenerationDate(LocalDate.now().minusDays(1));
         when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
 
         GenerationLimitService.GenerationUsage result = service.getGuestUsage("127.0.0.1");
 
         assertEquals(0, result.used());
-        assertEquals(5, result.limit());
-    }
-
-    // Registered users have no enforced daily generation limit by product design
-    // (generation is free; credits gate a future "keep private" feature, not
-    // generation quota). checkUserLimit/incrementUserUsage/getUserUsage are
-    // intentionally no-ops — the tests below pin that contract so a future
-    // change can't silently reintroduce or half-implement enforcement.
-
-    @Test
-    void checkUserLimitNeverThrowsRegardlessOfUsage() {
-        User user = new User("nikul", "nikul@example.com", "hash");
-        user.setGenerationsToday(Integer.MAX_VALUE);
-
-        service.checkUserLimit(user);
-
-        verifyNoInteractions(userRepository);
+        assertEquals(3, result.limit());
     }
 
     @Test
-    void incrementUserUsageDoesNotTouchTheRepository() {
+    void rejectsUserUsageWhenDailyLimitIsReached() {
         User user = new User("nikul", "nikul@example.com", "hash");
-        user.setGenerationsToday(0);
-        user.setGenerationDate(LocalDate.now().minusDays(1));
+        user.setGenerationsToday(5);
+
+        assertThrows(GenerationLimitException.class, () -> service.checkUserLimit(user));
+    }
+
+    @Test
+    void incrementsUserUsageAfterSuccessfulGeneration() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(4);
+        when(userRepository.findByEmailForUpdate(user.getEmail())).thenReturn(Optional.of(user));
 
         service.incrementUserUsage(user);
 
-        assertEquals(0, user.getGenerationsToday());
-        assertEquals(LocalDate.now().minusDays(1), user.getGenerationDate());
-        verifyNoInteractions(userRepository);
+        assertEquals(5, user.getGenerationsToday());
+        verify(userRepository).save(user);
     }
 
     @Test
-    void getUserUsageAlwaysReturnsZeroUsedAndZeroLimit() {
+    void resetsStaleUserUsageBeforeIncrementing() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(5);
+        user.setGenerationDate(LocalDate.now().minusDays(1));
+        when(userRepository.findByEmailForUpdate(user.getEmail())).thenReturn(Optional.of(user));
+
+        service.incrementUserUsage(user);
+
+        assertEquals(1, user.getGenerationsToday());
+        assertEquals(LocalDate.now(), user.getGenerationDate());
+    }
+
+    @Test
+    void getUserUsageReturnsTodaysCountAndLimit() {
         User user = new User("nikul", "nikul@example.com", "hash");
         user.setGenerationsToday(4);
         user.setGenerationDate(LocalDate.now());
 
         GenerationLimitService.GenerationUsage result = service.getUserUsage(user);
 
-        assertEquals(0, result.used());
-        assertEquals(0, result.limit());
+        assertEquals(4, result.used());
+        assertEquals(5, result.limit());
     }
 }

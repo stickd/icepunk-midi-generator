@@ -32,22 +32,19 @@ export default function SketchTopNav({
         <span className="studio-logo" aria-hidden="true"><Image alt="" height={64} priority src="/icepunk-mark.svg" width={64} /></span> iCEPUNK<span className="studio-wordmark-label">MIDI LAB</span>
       </Link>
 
-      <div className="studio-nav-links"><Link href="/#workspace">Studio <span>↗</span></Link><Link href="/#community">Discover</Link></div>
+      <div className="studio-nav-links">
+        <Link href="/#workspace">Studio <span>↗</span></Link>
+        <Link href="/desktop">Desktop</Link>
+      </div>
       <div className="studio-account flex flex-wrap items-center gap-3">
-        {!token ? (
+        {usage ? (
           <Badge
-            title={
-              usage
-                ? `${usage.used} of ${usage.limit} used today`
-                : undefined
-            }
+            title={`${usage.used} of ${usage.limit} used today`}
             tone="accent"
           >
-            {usage
-              ? `${Math.max(0, usage.limit - usage.used)} left today`
-              : "5/day"}
+            {`${Math.max(0, usage.limit - usage.used)} left today`}
           </Badge>
-        ) : null}
+        ) : token ? <Badge tone="accent">5/day</Badge> : <Badge tone="accent">3/day</Badge>}
 
         {me ? (
           <Link
