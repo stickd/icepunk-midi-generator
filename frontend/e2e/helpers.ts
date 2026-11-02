@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test'
+import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -15,7 +16,7 @@ export function apiUrl(): string {
 export function uniqueUser(prefix: string) {
   // Backend enforces a 40-char max username (RegisterRequest.java), so keep the
   // whole thing compact regardless of how long the caller's prefix is.
-  const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 1_000_000).toString(36)}`
+  const suffix = `${Date.now().toString(36)}${randomBytes(4).toString('hex')}`
   const shortPrefix = prefix.slice(0, 20)
 
   return {

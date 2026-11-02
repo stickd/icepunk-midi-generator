@@ -20,14 +20,13 @@ import {
   UserPackItem,
   UserProfileResponse,
 } from "@/lib/api";
-import { Button, EmptyState, Panel, Skeleton, ToastNotification, UserAvatar } from "@/components/ui";
+import { Button, EmptyState, Panel, Skeleton, ToastNotification } from "@/components/ui";
 import AuthModal from "@/components/AuthModal";
 import GenerationFeedCard from "@/components/sketch/GenerationFeedCard";
 import { toFeedGeneration } from "@/components/sketch/feedTypes";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
 import PackCard from "./PackCard";
 import ProfileHeader from "./ProfileHeader";
-import ProfileStats from "./ProfileStats";
 
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
 

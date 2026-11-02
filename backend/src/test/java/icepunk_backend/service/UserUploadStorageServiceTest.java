@@ -57,6 +57,16 @@ class UserUploadStorageServiceTest {
     }
 
     @Test
+    void uploadDropsUnsafeExtensionCharactersFromObjectKey() throws Exception {
+        service.upload(42L, "avatar.png/../../outside", "image/png", 1, new ByteArrayInputStream(new byte[]{1}));
+
+        ArgumentCaptor<PutObjectRequest> requestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(s3Client).putObject(requestCaptor.capture(), any(RequestBody.class));
+
+        assertTrue(requestCaptor.getValue().key().matches("user_uploads/42/[0-9a-f-]{36}"));
+    }
+
+    @Test
     void uploadConvertsS3TimeoutToStorageTimeoutException() {
         doThrow(ApiCallTimeoutException.builder().message("api call timed out").build())
                 .when(s3Client)

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { loginViaUi, readSeedUser } from './helpers'
 
-test('a generated 17-MIDI pack loads only selected and visible piano-roll previews', async ({ page }) => {
+test('a generated 10-MIDI pack loads only selected and visible piano-roll previews', async ({ page }) => {
   const user = readSeedUser()
   await loginViaUi(page, user.email, user.password)
   const previewUrlRequests: string[] = []
@@ -21,7 +21,7 @@ test('a generated 17-MIDI pack loads only selected and visible piano-roll previe
   await expect(page.locator('.midi-roll:not(.midi-roll-compact)').getByRole('img', { name: /MIDI notes across/ })).toBeVisible()
   await expect(page.getByText('n/a', { exact: true })).toHaveCount(0)
 
-  // The default modal creates 17 items. The carousel mounts at most six thumbnails;
+  // The default modal creates 10 items. The carousel mounts at most six thumbnails;
   // the selected item shares its request with its thumbnail through the stable cache.
   await expect.poll(() => previewUrlRequests.length).toBeGreaterThan(0)
   expect(previewUrlRequests.length).toBeLessThanOrEqual(6)
@@ -36,5 +36,5 @@ test('a generated 17-MIDI pack loads only selected and visible piano-roll previe
     buttons.map((button) => button.getAttribute('aria-label')),
   )).not.toEqual(initialThumbnailNames)
   await expect.poll(() => previewUrlRequests.length).toBeGreaterThan(requestsBeforeNavigation)
-  expect(previewUrlRequests.length).toBeLessThan(17)
+  expect(previewUrlRequests.length).toBeLessThan(10)
 })

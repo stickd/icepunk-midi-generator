@@ -18,6 +18,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -91,10 +94,14 @@ public class UserUploadStorageService {
     }
 
     private StoredUpload storeLocally(String key, byte[] bytes) {
+        Path root = Paths.get(System.getProperty("user.dir"), "user_uploads").toAbsolutePath().normalize();
+        Path targetPath = root.resolve(key).normalize();
+        if (!targetPath.startsWith(root)) {
+            throw new StorageException("Avatar upload failed. Please try again.");
+        }
         try {
-            java.nio.file.Path targetPath = java.nio.file.Paths.get(System.getProperty("user.dir"), "user_uploads", key);
-            java.nio.file.Files.createDirectories(targetPath.getParent());
-            java.nio.file.Files.write(targetPath, bytes);
+            Files.createDirectories(targetPath.getParent());
+            Files.write(targetPath, bytes);
 
             String localPublicUrl = "http://localhost:8081/user-uploads/" + key;
             log.info("Stored upload locally for key={}, publicUrl={}", key, localPublicUrl);
@@ -133,7 +140,8 @@ public class UserUploadStorageService {
             return "";
         }
 
-        return filename.substring(dot).toLowerCase(Locale.ROOT);
+        String extension = filename.substring(dot).toLowerCase(Locale.ROOT);
+        return extension.matches("\\.[a-z0-9]{1,10}") ? extension : "";
     }
 
     public record StoredUpload(String objectKey) {

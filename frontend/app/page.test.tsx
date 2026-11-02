@@ -62,7 +62,7 @@ describe("Home page", () => {
     });
     mockGenerateMidiPack.mockReset();
     mockGenerateMidiPack.mockResolvedValue({
-      amount: 17,
+      amount: 10,
       bpm: 146,
       createdAt: "2026-07-03T12:00:00Z",
       downloadUrl: "/generated-packs/pack-1/download",
@@ -165,7 +165,7 @@ describe("Home page", () => {
     await waitFor(() => {
       expect(mockGenerateMidiPack).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 17,
+          amount: 10,
           packName: expect.any(String),
           source: "CUSTOM_UPLOAD",
           tempAnalysisId: "temp-analysis-1",
