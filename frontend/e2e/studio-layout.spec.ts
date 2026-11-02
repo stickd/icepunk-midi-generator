@@ -9,7 +9,7 @@ test('studio fits desktop and compact screens without horizontal scrolling', asy
     await page.setViewportSize({ width, height: 960 })
     await page.goto('/')
     await page.evaluate(() => document.fonts.ready)
-    await expect(page.getByRole('heading', { name: 'Cold by nature. Sound by design.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Cold by nature. Endless by sound.' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
     if (captureDir) await page.screenshot({ path: path.join(captureDir, width === 1440 ? 'icepunk-desktop.png' : 'icepunk-mobile.png'), fullPage: true })
   }
