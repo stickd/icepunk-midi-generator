@@ -130,6 +130,18 @@ function soundSourceKey(settings: NormalizedSoundEngineSettings) {
 }
 
 async function startTone(Tone: ToneModule) {
+  // iOS Safari can report a resumed context yet keep its output route muted until
+  // one buffer source has started inside a user gesture. This silent one-frame
+  // source unlocks that route without adding an audible click.
+  const rawContext = Tone.getContext().rawContext;
+  if (rawContext.state !== "running") {
+    const buffer = rawContext.createBuffer(1, 1, rawContext.sampleRate);
+    const source = rawContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(rawContext.destination);
+    source.start(0);
+  }
+
   await Promise.race([
     Tone.start(),
     new Promise((_, reject) => {
@@ -159,6 +171,24 @@ export function useBrowserMidiPlayback() {
 
   useEffect(() => {
     preloadBrowserMidiPlayback();
+
+    // Do this on the very first touch, not only when Play is pressed. Safari's
+    // audio permission is tied to a synchronous touch event and can otherwise
+    // be lost while React loads or parses a MIDI file.
+    const unlockOnGesture = () => {
+      const Tone = toneModuleCache ?? ToneRuntime;
+      void startTone(Tone).catch(() => undefined);
+      window.removeEventListener("pointerdown", unlockOnGesture);
+      window.removeEventListener("touchend", unlockOnGesture);
+    };
+
+    window.addEventListener("pointerdown", unlockOnGesture, { passive: true });
+    window.addEventListener("touchend", unlockOnGesture, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockOnGesture);
+      window.removeEventListener("touchend", unlockOnGesture);
+    };
   }, []);
 
   const stopPositionLoop = useCallback(() => {
@@ -498,7 +528,8 @@ export function useBrowserMidiPlayback() {
         if (playAbortControllerRef.current?.signal.aborted) return;
         cleanup();
         setStatus("error");
-        setMessage("Browser MIDI playback failed.");
+        const audioBlocked = error instanceof Error && error.message === "AUDIO_START_TIMEOUT";
+        setMessage(audioBlocked ? "Audio is blocked by this browser. Tap Play once more." : "Browser MIDI playback failed.");
       }
     },
     [cleanup, startPositionLoop, status],
