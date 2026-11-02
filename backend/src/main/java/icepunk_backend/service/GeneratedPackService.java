@@ -501,6 +501,7 @@ public class GeneratedPackService {
                 pack.getName(),
                 owner == null ? null : owner.getId(),
                 owner == null ? "guest" : owner.getUsername(),
+                ownerAvatarUrl(owner),
                 pack.getSourceType().name(),
                 pack.getGenerationType().name(),
                 pack.getBpm(),
@@ -512,6 +513,13 @@ public class GeneratedPackService {
                 packDownloadPath(pack.getId()),
                 sortedItems(pack.getItems()).stream().map(this::toItemResponse).toList()
         );
+    }
+
+    private String ownerAvatarUrl(User owner) {
+        if (owner == null || owner.getProfilePictureUrl() == null || owner.getProfilePictureUrl().isBlank()) {
+            return null;
+        }
+        return "/users/" + owner.getId() + "/avatar";
     }
 
     private GeneratedMidiItemResponse toItemResponse(GeneratedPackItem item) {

@@ -4,6 +4,7 @@ export type FeedGeneration = {
   visibility?: "PUBLIC" | "PRIVATE";
   id: string;
   username: string;
+  avatarUrl?: string | null;
   timeAgo: string;
   title: string;
   midiCount: number;
@@ -56,6 +57,7 @@ export function toFeedGeneration(item: PublicGeneratedPackFeedItem): FeedGenerat
     pitch: item.pitch,
     octaves: item.octaves,
     uploadedAt: item.createdAt,
+    avatarUrl: item.ownerAvatarUrl ?? null,
     username: item.ownerUsername ?? "Anonymous",
   };
 }

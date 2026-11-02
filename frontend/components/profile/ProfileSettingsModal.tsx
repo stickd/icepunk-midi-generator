@@ -99,6 +99,7 @@ export default function ProfileSettingsModal({
     try {
       const me = await uploadAvatar(token, file);
       setAvatarUrl(me.profilePictureUrl ?? "");
+      saveProfileSettings(username, { avatarUrl: me.profilePictureUrl ?? "" });
       setImgError(false);
       onAvatarUpdated(me.profilePictureUrl);
       setStatusType("success");
@@ -115,7 +116,7 @@ export default function ProfileSettingsModal({
   async function handleSave() {
     if (!token) return;
 
-    saveProfileSettings(username, { auraRingId: selectedRing });
+    saveProfileSettings(username, { avatarUrl: avatarUrl.trim(), auraRingId: selectedRing });
 
     try {
       const me = await updateProfilePictureUrl(token, avatarUrl.trim());

@@ -137,7 +137,12 @@ public class UserProfileService {
 
         if (profilePictureUrl != null) {
             String normalizedUrl = profilePictureUrl.trim();
-            user.setProfilePictureUrl(normalizedUrl.isEmpty() ? null : normalizedUrl);
+            // The frontend receives uploaded avatars through /users/{id}/avatar.
+            // Saving settings afterwards must not replace the private object key with
+            // that read URL, otherwise the avatar can no longer be loaded on refresh.
+            if (!isOwnAvatarReadUrl(user, normalizedUrl)) {
+                user.setProfilePictureUrl(normalizedUrl.isEmpty() ? null : normalizedUrl);
+            }
         }
 
         userRepository.save(user);
@@ -306,6 +311,14 @@ public class UserProfileService {
 
     private boolean isAvatarObjectKey(String value) {
         return value.startsWith("avatars/");
+    }
+
+    private boolean isOwnAvatarReadUrl(User user, String value) {
+        if (value.isBlank()) {
+            return false;
+        }
+        String path = "/users/" + user.getId() + "/avatar";
+        return value.equals(path) || value.endsWith(path);
     }
 
     private String contentTypeForAvatar(String objectKey) {

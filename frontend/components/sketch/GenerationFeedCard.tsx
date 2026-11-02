@@ -160,7 +160,7 @@ function GenerationFeedCard({
     <article aria-label={`Generated pack ${generation.title}`} className="feed-pack" ref={cardRef}>
       <header className="feed-pack-header">
         <div className="feed-pack-author">
-          <UserAvatar sizeClassName="h-7 w-7 text-xs" username={generation.username} />
+          <UserAvatar avatarUrl={generation.avatarUrl} sizeClassName="h-7 w-7 text-xs" username={generation.username} />
           {generation.username === "guest" ? <span>{generation.username}</span> : <Link href={`/u/${encodeURIComponent(generation.username)}`}>{generation.username}</Link>}
           <span className="feed-pack-time">{generation.timeAgo}</span>
         </div>

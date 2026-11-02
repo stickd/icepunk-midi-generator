@@ -12,6 +12,7 @@ public record PublicGeneratedPackFeedItem(
         String name,
         Long ownerId,
         String ownerUsername,
+        String ownerAvatarUrl,
         String source,
         String type,
         Integer bpm,

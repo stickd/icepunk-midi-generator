@@ -146,6 +146,7 @@ export type PublicGeneratedPackFeedItem = {
   name: string;
   ownerId: number | null;
   ownerUsername: string;
+  ownerAvatarUrl: string | null;
   source: GenerationSource;
   type: GenerationType;
   bpm: number | null;
@@ -462,7 +463,13 @@ export async function getPublicGeneratedPackFeed(
 
   const feed = (await response.json()) as PublicGeneratedPackFeedResponse;
 
-  return feed;
+  return {
+    ...feed,
+    items: feed.items.map((item) => ({
+      ...item,
+      ownerAvatarUrl: item.ownerAvatarUrl ? apiUrl(item.ownerAvatarUrl) : null,
+    })),
+  };
 }
 
 export async function getUserGeneratedPacksFeed(
@@ -492,7 +499,13 @@ export async function getUserGeneratedPacksFeed(
 
   const feed = (await response.json()) as PublicGeneratedPackFeedResponse;
 
-  return feed;
+  return {
+    ...feed,
+    items: feed.items.map((item) => ({
+      ...item,
+      ownerAvatarUrl: item.ownerAvatarUrl ? apiUrl(item.ownerAvatarUrl) : null,
+    })),
+  };
 }
 
 export function getPublicUploadMidiPreviewUrl(projectId: number) {
