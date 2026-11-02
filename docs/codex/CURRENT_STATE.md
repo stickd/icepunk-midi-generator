@@ -1,5 +1,27 @@
 # Current State
 
+## Session update — 2026-11-02
+
+Current work is on `redesign/icepunk-glass`. Email verification, Redis auth/report
+limits, deployment hardening, account deletion/export, Terms recording, report UI
+and database-backed ADMIN moderation are implemented. Operational instructions
+are in `docs/ACCOUNT_DELETION_OPERATIONS.md`, `docs/ADMIN_OPERATIONS.md` and
+`docs/LEGAL_OPERATOR_CONFIGURATION.md`. Real operator/provider details remain a
+deployment prerequisite.
+
+Verification: backend `./mvnw clean test`: 260 tests, zero failures/errors/skips.
+Frontend clean regression: 102 tests passed, lint zero errors (9 existing warnings),
+production build passed, production dependency audit zero vulnerabilities.
+Subsequent auth-rate-limit UI and public-generation/feed checks also passed.
+
+Product decision superseding the earlier private-by-default UI: signed-in studio
+generation explicitly requests PUBLIC and refreshes the feed after success.
+The API still supports explicit PRIVATE requests and has a conservative default.
+Docker app containers have been rebuilt. Refresh every open browser tab after
+deploying; old tabs retain their previous generation request settings.
+
+The historical snapshot below predates this session.
+
 - Last updated: 2026-07-08
 - Current branch: `dev`
 - Latest commits at update time:

@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.exception.ServerBusyException;
 import icepunk_backend.model.GeneratedPackStatus;
 import icepunk_backend.repository.GeneratedPackRepository;
+import icepunk_backend.repository.UserRepository;
+import icepunk_backend.service.EmailService;
+import icepunk_backend.service.AuthRateLimitService;
 import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.GeneratedPackTransactionService;
 import icepunk_backend.service.MidiGenerationService;
@@ -73,6 +76,15 @@ class ApiFlowsE2ETest {
     @Autowired
     private GeneratedPackRepository generatedPackRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private EmailService emailService;
+
+    @MockitoBean
+    private AuthRateLimitService authRateLimitService;
+
     @MockitoBean
     private MidiGenerationService midiGenerationService;
 
@@ -88,18 +100,19 @@ class ApiFlowsE2ETest {
     // --- Auth flows -------------------------------------------------------
 
     @Test
-    void registerReturnsJwt() throws Exception {
-        mockMvc.perform(registerBody("alice", "alice@example.com", "secret123")
+    void registerReturnsVerificationRequiredWithoutJwt() throws Exception {
+        mockMvc.perform(registerBody("alice", "alice@example.com", "safe-password-123")
                         .header("X-Forwarded-For", "198.51.100.1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", matchesPattern(JWT_PATTERN)));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.token").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.verificationRequired").value(true));
     }
 
     @Test
     void loginReturnsJwt() throws Exception {
-        register("bob", "bob@example.com", "secret123", "198.51.100.2");
+        register("bob", "bob@example.com", "safe-password-123", "198.51.100.2");
 
-        String body = objectMapper.writeValueAsString(loginPayload("bob@example.com", "secret123"));
+        String body = objectMapper.writeValueAsString(loginPayload("bob@example.com", "safe-password-123"));
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,7 +160,7 @@ class ApiFlowsE2ETest {
         entityManager.clear();
 
         mockMvc.perform(get("/generated-packs/" + packId))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         mockMvc.perform(get("/generation-stats"))
                 .andExpect(status().isOk())
@@ -157,7 +170,7 @@ class ApiFlowsE2ETest {
     @Test
     void authenticatedUserGenerateDoesNotExposeDownloadUrlAndIncrementsCounter() throws Exception {
         stubSuccessfulGeneration();
-        String token = register("carol", "carol@example.com", "secret123", "198.51.100.11");
+        String token = register("carol", "carol@example.com", "safe-password-123", "198.51.100.11");
         TestTransaction.flagForCommit();
         TestTransaction.end();
         TestTransaction.start();
@@ -252,13 +265,23 @@ class ApiFlowsE2ETest {
     private String register(String username, String email, String password, String ip) throws Exception {
         String response = mockMvc.perform(registerBody(username, email, password)
                         .header("X-Forwarded-For", ip))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
         JsonNode node = objectMapper.readTree(response);
-        return node.get("token").asText();
+        assertEquals(true, node.get("verificationRequired").asBoolean());
+        var user = userRepository.findByEmail(email).orElseThrow();
+        user.setVerified(true);
+        userRepository.saveAndFlush(user);
+        String loginResponse = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Forwarded-For", ip)
+                        .content(objectMapper.writeValueAsString(loginPayload(email, password))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(loginResponse).get("token").asText();
     }
 
     private MockHttpServletRequestBuilder registerBody(String username, String email, String password)
@@ -270,7 +293,7 @@ class ApiFlowsE2ETest {
     }
 
     private java.util.Map<String, String> registerPayload(String username, String email, String password) {
-        return java.util.Map.of("username", username, "email", email, "password", password);
+        return java.util.Map.of("username", username, "email", email, "password", password, "termsAccepted", "true");
     }
 
     private java.util.Map<String, String> loginPayload(String identifier, String password) {

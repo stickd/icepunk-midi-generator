@@ -49,6 +49,7 @@ public class UserUploadService {
     private final long maxMidiSizeBytes;
     private final long maxSampleSizeBytes;
     private final MidiUploadValidator midiUploadValidator;
+    private final SampleUploadValidator sampleUploadValidator;
 
     @Autowired
     public UserUploadService(
@@ -56,19 +57,22 @@ public class UserUploadService {
             UserUploadedProjectRepository projectRepository,
             @Value("${uploads.midi.max-size-bytes}") long maxMidiSizeBytes,
             @Value("${uploads.sample.max-size-bytes}") long maxSampleSizeBytes,
-            MidiUploadValidator midiUploadValidator
+            MidiUploadValidator midiUploadValidator,
+            SampleUploadValidator sampleUploadValidator
     ) {
         this.storageService = storageService;
         this.projectRepository = projectRepository;
         this.maxMidiSizeBytes = maxMidiSizeBytes;
         this.maxSampleSizeBytes = maxSampleSizeBytes;
         this.midiUploadValidator = midiUploadValidator;
+        this.sampleUploadValidator = sampleUploadValidator;
     }
 
     UserUploadService(UserUploadStorageService storageService, UserUploadedProjectRepository projectRepository,
                       long maxMidiSizeBytes, long maxSampleSizeBytes) {
         this(storageService, projectRepository, maxMidiSizeBytes, maxSampleSizeBytes,
-                new MidiUploadValidator(maxMidiSizeBytes, 64, 100_000, 50_000, 10_000_000, 3600, 1000));
+                new MidiUploadValidator(maxMidiSizeBytes, 64, 100_000, 50_000, 10_000_000, 3600, 1000),
+                new SampleUploadValidator());
     }
 
     @Transactional(readOnly = true)
@@ -172,6 +176,7 @@ public class UserUploadService {
         validateExtension(file, Set.of(".mp3", ".wav"), "Sample file must use .mp3 or .wav extension.");
         validateMimeType(file, SAMPLE_MIME_TYPES, "Sample file type is not supported.");
         validateSize(file, maxSampleSizeBytes, "Sample file is too large.");
+        sampleUploadValidator.validate(file);
     }
 
     private void validateFile(MultipartFile file, String label) {

@@ -257,7 +257,7 @@ export default function SoundEngineCard({
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Volume */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-ice-muted font-medium">🔊</span>
+              <svg aria-hidden="true" className="h-4 w-4 text-ice-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 5 6 9H3v6h3l5 4V5Z" strokeLinejoin="round"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" strokeLinecap="round"/></svg>
               <input
                 aria-label="Volume"
                 className="h-1.5 w-20 cursor-pointer rounded-lg accent-[color:var(--ice-accent)]"

@@ -109,9 +109,9 @@ You need the full stack up first:
 docker compose up -d --wait
 
 # provision the MinIO bucket (one-time per fresh volume)
-docker run --rm --network host \
+docker run --rm --network host --entrypoint mc \
   -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
-  minio/mc mb --ignore-existing local/icepunk-zips
+  dappros/minio:RELEASE.2025-09-07T16-13-09Z mb --ignore-existing local/icepunk-zips
 
 # python venv for the generator (must live at the repo root, see CLAUDE.md)
 python3 -m venv venv && venv/bin/pip install -r requirements.txt

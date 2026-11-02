@@ -98,7 +98,10 @@ function GeneratedMidiThumbnail({
           ? "scale-[1.04] border-[color:var(--ice-accent-border)] bg-white/[0.04] ring-2 ring-[color:var(--ice-accent-border)] shadow-[0_0_16px_rgba(120,150,255,0.35)]"
           : "border-white/[0.08] bg-black/20 hover:scale-[1.02] hover:border-white/[0.2]"
       }`}
-      onClick={() => onSelect(index)}
+      onClick={() => {
+        if (preview.status === "error") preview.retry();
+        onSelect(index);
+      }}
       ref={buttonRef}
       title={item.fileName ?? `MIDI ${index + 1}`}
       type="button"

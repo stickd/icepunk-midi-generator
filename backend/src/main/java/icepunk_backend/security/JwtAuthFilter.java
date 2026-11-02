@@ -64,7 +64,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .or(() -> userRepository.findByUsernameIgnoreCase(email))
                     .orElse(null);
 
-            if (user == null) {
+            boolean deletionRetry = user != null
+                    && "DELETION_PENDING".equals(user.getAccountStatus())
+                    && "DELETE".equals(request.getMethod())
+                    && (request.getContextPath() + "/account").equals(request.getRequestURI());
+            if (user == null || (!user.isActive() && !deletionRetry)) {
+                rejectInvalidToken(response);
+                return;
+            }
+            if (!Boolean.TRUE.equals(user.getVerified())) {
                 rejectInvalidToken(response);
                 return;
             }
@@ -73,7 +81,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(
                             user.getEmail(),
                             null,
-                            Collections.emptyList()
+                            Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                                    "ADMIN".equals(user.getRole()) ? "ROLE_ADMIN" : "ROLE_USER"))
                     );
 
             authToken.setDetails(

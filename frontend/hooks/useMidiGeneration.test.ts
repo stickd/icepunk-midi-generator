@@ -68,6 +68,8 @@ describe("useMidiGeneration", () => {
   });
 
   it("passes the stored token to generateMidiPack for authenticated users", async () => {
+    const refreshed = jest.fn();
+    window.addEventListener("icepunk-feed-refresh", refreshed);
     window.localStorage.setItem(TOKEN_KEY, "jwt-abc");
     mockGenerateMidiPack.mockResolvedValue(generatedResponse({ totalGenerations: 1 }));
 
@@ -78,6 +80,9 @@ describe("useMidiGeneration", () => {
     });
 
     expect(mockGenerateMidiPack).toHaveBeenCalledWith(factoryRequest, "jwt-abc");
+    expect(result.current.status).toBe("MIDI pack generated and published to the community feed.");
+    expect(refreshed).toHaveBeenCalledTimes(1);
+    window.removeEventListener("icepunk-feed-refresh", refreshed);
   });
 
   it("shows a friendly message and does not log out on a guest daily-limit error", async () => {

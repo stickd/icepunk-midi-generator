@@ -54,7 +54,7 @@ public class GeneratedPack {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private GeneratedPackVisibility visibility = GeneratedPackVisibility.PUBLIC;
+    private GeneratedPackVisibility visibility = GeneratedPackVisibility.PRIVATE;
 
     @Column(nullable = false, unique = true, length = 1024)
     private String zipObjectKey;

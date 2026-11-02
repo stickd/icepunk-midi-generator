@@ -1,0 +1,1 @@
+package icepunk_backend.repository; import icepunk_backend.model.ContentReport; import org.springframework.data.jpa.repository.JpaRepository; import java.util.UUID; public interface ContentReportRepository extends JpaRepository<ContentReport,UUID>{}

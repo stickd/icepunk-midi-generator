@@ -2,6 +2,14 @@
 
 Full-stack MIDI pack generator for dark, cold melodic loops inspired by the iCEPUNK sound. The app combines a Python MIDI pattern engine, a Spring Boot API, PostgreSQL, S3-compatible object storage, and a Next.js frontend.
 
+## Email verification
+
+Email/password accounts must verify their email before they can log in. Configure `RESEND_API_KEY`, `EMAIL_FROM`, and `FRONTEND_URL` in deployment; never commit them. Optional controls: `EMAIL_VERIFICATION_EXPIRY_MINUTES` (default `60`), `EMAIL_VERIFICATION_RESEND_LIMIT` (default `3`), and `EMAIL_VERIFICATION_RESEND_WINDOW_MINUTES` (default `15`).
+
+Authentication security: tokens are kept in browser `localStorage` for the current bearer-token API and expire after two hours by default (`JWT_EXPIRATION=7200000`). This avoids a disruptive cookie/CSRF migration, but production must maintain a strict CSP and XSS hygiene. Login, registration, and verification resend throttles are Redis-backed and shared across replicas. Set the `AUTH_*` limits in `.env.production`; if Redis is unavailable, those endpoints fail closed with a retry response. Production must terminate HTTPS at the reverse proxy before exposing the app, so HSTS is effective.
+
+The verification link contains a high-entropy, one-time token. PostgreSQL stores only its SHA-256 hash. Existing accounts are marked verified by the Flyway migration so deployment does not lock them out.
+
 ## Stack
 
 - Frontend: Next.js, React, TypeScript, Tailwind CSS
@@ -334,7 +342,7 @@ MINIO_API_PORT=9010
 MINIO_CONSOLE_PORT=9011
 
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
-JWT_EXPIRATION=86400000
+JWT_EXPIRATION=7200000
 ICEPUNK_GENERATOR_TIMEOUT_SECONDS=60
 ICEPUNK_GENERATOR_MAX_CONCURRENT=2
 GENERATED_ZIP_RETENTION_DAYS=2
@@ -515,6 +523,7 @@ Pick one before the first `prod` deploy:
 - The production compose creates the MinIO bucket without anonymous/public read access; downloads are streamed through the backend.
 - For real production, rotate any secrets that were ever committed to git history.
 - The production Spring profile (`prod`) must be activated by setting `SPRING_PROFILES_ACTIVE=prod` in the deployment environment or compose file.
+
 # Security configuration
 
 Uploads accept only structurally valid Standard MIDI files (`.mid`/`.midi`), never empty files.
@@ -527,3 +536,8 @@ Swagger/OpenAPI is available outside `prod`; production disables Springdoc and d
 `JWT_SECRET` is required in `prod` and must contain at least 32 random bytes. Generate one with
 `[Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Maximum 256 }))` (PowerShell) or
 `openssl rand -base64 64` (Linux/macOS). Do not commit it. The development default is deliberately insecure.
+
+# Production deployment
+
+For the canonical Docker/Caddy, HTTPS, MinIO least-privilege, backup/restore,
+monitoring, and rollback process, see [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md).

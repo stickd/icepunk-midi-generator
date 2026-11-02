@@ -8,6 +8,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import icepunk_backend.service.EmailService;
+import icepunk_backend.service.AuthRateLimitService;
+import icepunk_backend.repository.UserRepository;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -32,9 +36,44 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityConfigTest {
+    @MockitoBean
+    private icepunk_backend.service.AccountDeletionService deletion;
+    @Autowired
+    private icepunk_backend.security.JwtService jwt;
+
+    @Test
+    void pendingAccountCanOnlyRepeatOwnDeletion() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/account"))
+                .andExpect(status().isUnauthorized());
+        var user = new icepunk_backend.model.User("delete-http", "delete-http@example.test", "hash");
+        user.setVerified(true);
+        user = userRepository.saveAndFlush(user);
+        String token = jwt.generateToken(user.getEmail());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/account")
+                .header("Authorization", "Bearer " + token)).andExpect(status().isAccepted());
+        user.setAccountStatus("DELETION_PENDING");
+        userRepository.saveAndFlush(user);
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/account")
+                .header("Authorization", "Bearer " + token)).andExpect(status().isAccepted());
+        org.mockito.Mockito.verify(deletion, org.mockito.Mockito.times(2)).request(user.getEmail());
+        for (String path : java.util.List.of("/generate", "/uploads/projects", "/users/me/profile", "/users/me/avatar")) {
+            mockMvc.perform(post(path).header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/generated-packs/00000000-0000-0000-0000-000000000001/visibility")
+                .header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+    }
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private EmailService emailService;
+
+    @MockitoBean
+    private AuthRateLimitService authRateLimitService;
 
     @Test
     void publicEndpointIsReachableWithoutToken() throws Exception {
@@ -87,15 +126,30 @@ class SecurityConfigTest {
     void authenticatedAvatarUploadPassesSecurity() throws Exception {
         MvcResult register = mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"avataruser\",\"email\":\"avataruser@example.com\",\"password\":\"secret123\"}"))
-                .andExpect(status().isOk())
+                        .content("{\"username\":\"avataruser\",\"email\":\"avataruser@example.com\",\"password\":\"safe-password-123\",\"termsAccepted\":true}"))
+                .andExpect(status().isAccepted())
                 .andReturn();
 
-        String token = register.getResponse().getContentAsString()
+        var registeredUser = userRepository.findByEmail("avataruser@example.com").orElseThrow();
+        registeredUser.setVerified(true);
+        userRepository.saveAndFlush(registeredUser);
+        String token = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"identifier\":\"avataruser@example.com\",\"password\":\"safe-password-123\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()
                 .replaceFirst(".*\"token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
 
         mockMvc.perform(multipart("/users/me/avatar")
                         .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registrationRequiresTwelveCharacterPassword() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"shortpass\",\"email\":\"shortpass@example.com\",\"password\":\"too-short\"}"))
                 .andExpect(status().isBadRequest());
     }
 

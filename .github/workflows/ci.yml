@@ -162,6 +162,7 @@ jobs:
           TRUSTED_PROXY_CIDRS=172.30.0.0/24
           S3_PRESIGN_ENDPOINT=https://example.com
           NEXT_PUBLIC_API_URL=https://example.com
+          NEXT_PUBLIC_STORAGE_ORIGIN=https://example.com
           EOF
           docker compose -f docker-compose.production.yml --env-file /tmp/compose-validate.env config -q
 
@@ -192,9 +193,9 @@ jobs:
 
       - name: Provision the MinIO bucket
         run: |
-          docker run --rm --network host \
+          docker run --rm --network host --entrypoint mc \
             -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
-            minio/mc mb --ignore-existing local/icepunk-zips
+            dappros/minio:RELEASE.2025-09-07T16-13-09Z mb --ignore-existing local/icepunk-zips
 
       - name: Set up the Python venv for the MIDI generator
         run: |
@@ -273,9 +274,9 @@ jobs:
 
       - name: Provision the MinIO bucket
         run: |
-          docker run --rm --network host \
+          docker run --rm --network host --entrypoint mc \
             -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9010 \
-            minio/mc mb --ignore-existing local/icepunk-zips
+            dappros/minio:RELEASE.2025-09-07T16-13-09Z mb --ignore-existing local/icepunk-zips
 
       - name: Set up the Python venv for the MIDI generator
         run: |

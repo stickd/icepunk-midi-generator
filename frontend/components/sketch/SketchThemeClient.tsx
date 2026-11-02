@@ -16,6 +16,7 @@ import RandomGeneratePanel, {
   GenerationSourceState,
 } from "./RandomGeneratePanel";
 import SketchTopNav from "./SketchTopNav";
+import SoundEngineCard from "./SoundEngineCard";
 import { useSketchAuth } from "./useSketchAuth";
 import { ToastNotification } from "@/components/ui";
 
@@ -39,49 +40,6 @@ const GeneratedPackVisualizer = dynamic(loadGeneratedPackVisualizer, {
   ssr: false,
 });
 
-const SoundEngineCard = dynamic(() => import("./SoundEngineCard"), {
-  ssr: false,
-});
-
-function SoundEngineShell({
-  settings,
-  onIntent,
-}: {
-  settings: SoundEngineSettings;
-  onIntent: () => void;
-}) {
-  return (
-    <div
-      className="studio-dock-shell fixed bottom-3 left-1/2 z-40 -translate-x-1/2"
-      onClick={onIntent}
-      onFocus={onIntent}
-      onTouchStart={onIntent}
-      role="button"
-      tabIndex={0}
-      aria-label="Open sound engine"
-      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onIntent(); } }}
-    >
-      <div className="w-[calc(100vw-1.5rem)] max-w-4xl rounded-2xl border border-white/[0.08] bg-[#070914]/94 px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(132,146,255,0.05)] backdrop-blur-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-ice-primary">
-              Sound Engine
-            </span>
-            <span className="text-xs font-medium text-ice-secondary">
-              {settings.preset}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs font-medium text-ice-muted">
-            <span>BPM <strong className="text-white">{settings.bpm ?? 146}</strong></span>
-            <span>VOL <strong className="text-white">{Math.round((settings.volume ?? 0.8) * 100)}%</strong></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
   const [status, setStatus] = useState("");
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
@@ -91,6 +49,7 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
     clearToken,
     email,
     handleAuth,
+    handleResendVerification,
     handleLogout,
     isAuthenticating,
     me,
@@ -115,15 +74,9 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
     bpm: 146,
     pitch: 0,
     octaves: 0,
-    isLooping: false,
+    isLooping: true,
   });
   const [activeMidiSource, setActiveMidiSource] = useState<BrowserMidiSource>(null);
-  const [isSoundEngineMounted, setIsSoundEngineMounted] = useState(false);
-
-  const triggerSoundEngineMount = useCallback(() => {
-    setIsSoundEngineMounted(true);
-  }, []);
-
   const playback = useBrowserMidiPlayback();
   const stopPlayback = playback.stop;
   const updatePlaybackSettings = playback.updateSettings;
@@ -139,8 +92,6 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
     setActiveModal(null);
     setShowGuestLimitModal(true);
   });
-
-  const isSoundEngineActive = isSoundEngineMounted || playback.isPlaying;
 
   useEffect(() => {
     let isAborted = false;
@@ -200,7 +151,7 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
       source: activeSourceState.source,
       tempAnalysisId: activeSourceState.tempAnalysisId,
       tempAnalysisAccessToken: activeSourceState.tempAnalysisAccessToken,
-      type: draft.type === "drums" ? "DRUMS" : "MELODY",
+      type: "MELODY",
     };
     setLastRequest(request);
 
@@ -332,21 +283,14 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
           />
         </div>
 
-        {/* Floating Master Bottom Sound Engine Dock */}
-        {isSoundEngineActive ? (
-          <SoundEngineCard
-            isPlaying={playback.isPlaying}
-            onChange={handleSoundEngineChange}
-            onPlayToggle={toggleMasterPlayback}
-            onStop={stopPlayback}
-            settings={soundEngine}
-          />
-        ) : (
-          <SoundEngineShell
-            onIntent={triggerSoundEngineMount}
-            settings={soundEngine}
-          />
-        )}
+        {/* Keep core controls ready on first paint: no interaction-gated loading. */}
+        <SoundEngineCard
+          isPlaying={playback.isPlaying}
+          onChange={handleSoundEngineChange}
+          onPlayToggle={toggleMasterPlayback}
+          onStop={stopPlayback}
+          settings={soundEngine}
+        />
       </div>
 
       {status ? (() => {
@@ -390,6 +334,7 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
           mode={authMode}
           onClose={() => setAuthMode(null)}
           onSubmit={handleAuth}
+          onResend={handleResendVerification}
           password={password}
           setEmail={setEmail}
           setPassword={setPassword}

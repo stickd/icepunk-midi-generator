@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   authUser,
+  resendVerification,
   DatasetPreset,
   deleteDatasetPreset,
   getDatasetPresets,
@@ -138,7 +139,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
     bpm: 146,
     pitch: 0,
     octaves: 0,
-    isLooping: false,
+    isLooping: true,
   });
   const [isSoundEngineMounted, setIsSoundEngineMounted] = useState(false);
 
@@ -186,7 +187,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
     items: [],
     status: "idle",
   });
-  const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "register" | "verify" | null>(null);
   const [authStatus, setAuthStatus] = useState("");
   const [email, setEmail] = useState("");
   const [authUsername, setAuthUsername] = useState("");
@@ -211,7 +212,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
   }
 
   async function handleAuth() {
-    if (!authMode) return;
+    if (!authMode || authMode === "verify") return;
 
     try {
       setIsAuthenticating(true);
@@ -225,6 +226,20 @@ export default function ProfileView({ username }: ProfileViewProps) {
       const response = await authUser(authMode, body);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          setAuthStatus("Too many attempts. Please wait before trying again.");
+          return;
+        }
+        if (response.status === 403) {
+          const error = await response.json().catch(() => null);
+          if (error?.code === "EMAIL_UNVERIFIED") {
+            setPassword("");
+            setAuthStatus("Please verify your email before continuing.");
+            setAuthMode("verify");
+            return;
+          }
+        }
+
         if (response.status === 409) {
           setAuthStatus("Username or email is already taken.");
           return;
@@ -245,6 +260,13 @@ export default function ProfileView({ username }: ProfileViewProps) {
       }
 
       const data = await response.json();
+      if (authMode === "register" && data.verificationRequired) {
+        setPassword("");
+        setAuthUsername("");
+        setAuthStatus("Verification email sent.");
+        setAuthMode("verify");
+        return;
+      }
       localStorage.setItem(TOKEN_KEY, data.token);
       notifyTokenChanged();
       setToastMessage("You are logged in.");
@@ -253,6 +275,18 @@ export default function ProfileView({ username }: ProfileViewProps) {
       setEmail("");
       setAuthUsername("");
       setPassword("");
+    } catch {
+      setAuthStatus("Backend is not available right now.");
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    try {
+      setIsAuthenticating(true);
+      const response = await resendVerification(email);
+      setAuthStatus(response.ok ? "If needed, a fresh verification email has been sent." : "Please wait before requesting another email.");
     } catch {
       setAuthStatus("Backend is not available right now.");
     } finally {
@@ -755,6 +789,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
           mode={authMode}
           onClose={() => setAuthMode(null)}
           onSubmit={handleAuth}
+          onResend={handleResendVerification}
           password={password}
           setEmail={setEmail}
           setPassword={setPassword}

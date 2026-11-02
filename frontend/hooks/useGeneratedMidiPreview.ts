@@ -113,11 +113,14 @@ function acquirePreview(input: PreviewInput, consumer: symbol) {
   if (cached) return { key, preview: cached, promise: Promise.resolve(cached) };
 
   let inflight = inflightPreviews.get(key);
-  if (!inflight) {
+  if (!inflight || inflight.controller.signal.aborted) {
     const controller = new AbortController();
     const promise = enqueuePreviewLoad(() => fetchGeneratedMidi(input, controller.signal), controller.signal)
       .finally(() => {
-        inflightPreviews.delete(key);
+        // A remount may already have replaced an aborted request.
+        if (inflightPreviews.get(key)?.controller === controller) {
+          inflightPreviews.delete(key);
+        }
       });
 
     inflight = { consumers: new Set(), controller, promise };

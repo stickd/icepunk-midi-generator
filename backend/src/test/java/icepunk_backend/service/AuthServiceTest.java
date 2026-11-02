@@ -2,9 +2,8 @@ package icepunk_backend.service;
 
 import icepunk_backend.dto.LoginRequest;
 import icepunk_backend.dto.RegisterRequest;
-import icepunk_backend.exception.EmailAlreadyExistsException;
+import icepunk_backend.exception.EmailDeliveryException;
 import icepunk_backend.exception.InvalidCredentialsException;
-import icepunk_backend.exception.UsernameAlreadyExistsException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.security.JwtService;
@@ -24,13 +23,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 /*
  * | EP                          | Input                       | Expected                          |
  * |-----------------------------|-----------------------------|-----------------------------------|
  * | email normalization         | "  Foo@Bar.COM "            | saved email = "foo@bar.com"       |
- * | duplicate email             | existsByEmail = true        | EmailAlreadyExistsException       |
- * | duplicate username          | existsByUsername = true      | UsernameAlreadyExistsException    |
+ * | duplicate email             | existsByEmail = true        | neutral no-op / recovery          |
+ * | duplicate username          | existsByUsername = true      | neutral no-op                     |
  * | password hashing            | raw password                | stored hash != raw, BCrypt match  |
  * | register success            | valid request               | returns JWT from jwtService       |
  * | login unknown email         | findByEmail empty           | InvalidCredentialsException       |
@@ -42,15 +42,17 @@ class AuthServiceTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final JwtService jwtService = mock(JwtService.class);
+    private final EmailVerificationService emailVerificationService = mock(EmailVerificationService.class);
 
     private final AuthService authService =
-            new AuthService(userRepository, passwordEncoder, jwtService);
+            new AuthService(userRepository, passwordEncoder, jwtService, emailVerificationService);
 
     private RegisterRequest registerRequest(String username, String email, String password) {
         RegisterRequest request = mock(RegisterRequest.class);
         when(request.getUsername()).thenReturn(username);
         when(request.getEmail()).thenReturn(email);
         when(request.getPassword()).thenReturn(password);
+        when(request.isTermsAccepted()).thenReturn(true);
         return request;
     }
 
@@ -73,24 +75,59 @@ class AuthServiceTest {
         verify(userRepository).save(saved.capture());
         assertEquals("foo@bar.com", saved.getValue().getEmail());
         assertEquals("bob", saved.getValue().getUsername());
+        assertEquals(false, saved.getValue().getVerified());
+        verify(emailVerificationService).createAndSend(saved.getValue());
     }
 
     @Test
-    void registerRejectsDuplicateEmail() {
+    void registerRecoversDuplicateUnverifiedEmail() {
         when(userRepository.existsByEmail("foo@bar.com")).thenReturn(true);
+        User user = new User("bob", "foo@bar.com", passwordEncoder.encode("secret123"));
+        user.setVerified(false);
+        when(userRepository.findByEmail("foo@bar.com")).thenReturn(Optional.of(user));
 
-        assertThrows(EmailAlreadyExistsException.class,
-                () -> authService.register(registerRequest("bob", "foo@bar.com", "secret123")));
+        authService.register(registerRequest("bob", "foo@bar.com", "secret123"));
         verify(userRepository, never()).save(any());
+        verify(emailVerificationService).createAndSend(user);
     }
 
     @Test
-    void registerRejectsDuplicateUsername() {
+    void registerDoesNotRevealDuplicateVerifiedEmail() {
+        when(userRepository.existsByEmail("foo@bar.com")).thenReturn(true);
+        User user = new User("bob", "foo@bar.com", passwordEncoder.encode("secret123"));
+        user.setVerified(true);
+        when(userRepository.findByEmail("foo@bar.com")).thenReturn(Optional.of(user));
+
+        authService.register(registerRequest("bob", "foo@bar.com", "secret123"));
+        verify(userRepository, never()).save(any());
+        verify(emailVerificationService, never()).createAndSend(any());
+    }
+
+    @Test
+    void failedInitialDeliveryCanBeRecoveredByRetryingRegistration() {
+        when(userRepository.existsByEmail("foo@bar.com")).thenReturn(false, true);
+        when(userRepository.existsByUsername("bob")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        doThrow(new EmailDeliveryException()).doNothing()
+                .when(emailVerificationService).createAndSend(any(User.class));
+
+        assertThrows(EmailDeliveryException.class,
+                () -> authService.register(registerRequest("bob", "foo@bar.com", "secret123")));
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        when(userRepository.findByEmail("foo@bar.com")).thenReturn(Optional.of(saved.getValue()));
+        authService.register(registerRequest("bob", "foo@bar.com", "secret123"));
+
+        verify(emailVerificationService, org.mockito.Mockito.times(2)).createAndSend(saved.getValue());
+    }
+
+    @Test
+    void registerDoesNotRevealDuplicateUsername() {
         when(userRepository.existsByEmail("foo@bar.com")).thenReturn(false);
         when(userRepository.existsByUsername("bob")).thenReturn(true);
 
-        assertThrows(UsernameAlreadyExistsException.class,
-                () -> authService.register(registerRequest("bob", "foo@bar.com", "secret123")));
+        authService.register(registerRequest("bob", "foo@bar.com", "secret123"));
         verify(userRepository, never()).save(any());
     }
 
@@ -114,11 +151,8 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("foo@bar.com")).thenReturn(false);
         when(userRepository.existsByUsername("bob")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
-        when(jwtService.generateToken("foo@bar.com")).thenReturn("jwt-token");
-
         String token = authService.register(registerRequest("bob", "foo@bar.com", "secret123"));
-
-        assertEquals("jwt-token", token);
+        assertEquals(null, token);
     }
 
     @Test
@@ -133,6 +167,7 @@ class AuthServiceTest {
     @Test
     void loginSucceedsWithUsernameInsteadOfEmail() {
         User user = new User("bob", "foo@bar.com", passwordEncoder.encode("secret123"));
+        user.setVerified(true);
         when(userRepository.findByEmail("bob")).thenReturn(Optional.empty());
         when(userRepository.findByUsernameIgnoreCase("bob")).thenReturn(Optional.of(user));
         when(jwtService.generateToken("foo@bar.com")).thenReturn("jwt-token");
@@ -154,6 +189,7 @@ class AuthServiceTest {
     @Test
     void loginReturnsJwtTokenOnSuccess() {
         User user = new User("bob", "foo@bar.com", passwordEncoder.encode("secret123"));
+        user.setVerified(true);
         when(userRepository.findByEmail("foo@bar.com")).thenReturn(Optional.of(user));
         when(jwtService.generateToken("foo@bar.com")).thenReturn("jwt-token");
 

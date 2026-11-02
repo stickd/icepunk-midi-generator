@@ -1,7 +1,9 @@
 import { Button, FieldLabel, Input } from "@/components/ui";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
+import Link from "next/link";
+import { useState } from "react";
 
-type AuthMode = "login" | "register";
+type AuthMode = "login" | "register" | "verify";
 
 type AuthModalProps = {
   mode: AuthMode;
@@ -15,6 +17,7 @@ type AuthModalProps = {
   setPassword: (value: string) => void;
   onSubmit: () => void;
   onClose: () => void;
+  onResend?: () => void;
 };
 
 export default function AuthModal({
@@ -29,8 +32,10 @@ export default function AuthModal({
   setPassword,
   onSubmit,
   onClose,
+  onResend,
 }: AuthModalProps) {
   const dialogRef = useDialogFocus(onClose);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   return (
     <div
       ref={(element) => { dialogRef.current = element; }}
@@ -44,10 +49,11 @@ export default function AuthModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-semibold tracking-[-0.01em] text-ice-primary" id="auth-modal-title">
-              {mode === "login" ? "Welcome back" : "Create account"}
+              {mode === "login" ? "Welcome back" : mode === "verify" ? "Check your email" : "Create account"}
             </h2>
             <p className="mt-2 text-sm text-ice-secondary">
-              {mode === "login"
+              {mode === "verify" ? "If your account needs verification, open the link in your email, then log in to continue."
+                : mode === "login"
                 ? "Login to generate your next MIDI pack."
                 : "Start generating cold melodic ideas."}
             </p>
@@ -63,7 +69,11 @@ export default function AuthModal({
           </button>
         </div>
 
-        <form className="mt-7 grid gap-4" onSubmit={(event) => { event.preventDefault(); if (!isSubmitting) onSubmit(); }}>
+        {mode === "verify" ? <div className="mt-7 grid gap-4">
+          <p className="text-sm text-ice-secondary">Use the email address entered during registration.</p>
+          <Button className="w-full" disabled={isSubmitting} onClick={onResend} size="lg" type="button" variant="primary">{isSubmitting ? "Please wait..." : "Resend verification email"}</Button>
+          {authStatus && <p className="rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] px-4 py-3 text-center text-sm text-[color:var(--ice-accent-text)]">{authStatus}</p>}
+        </div> : <form className="mt-7 grid gap-4" onSubmit={(event) => { event.preventDefault(); if (!isSubmitting && (mode !== "register" || termsAccepted)) onSubmit(); }}>
           {mode === "register" && (
             <FieldLabel>
               Username
@@ -89,6 +99,7 @@ export default function AuthModal({
             <Input
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Password"
+              minLength={mode === "register" ? 12 : undefined}
               type="password"
               value={password}
             />
@@ -96,7 +107,7 @@ export default function AuthModal({
 
           <Button
             className="mt-2 w-full"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (mode === "register" && !termsAccepted)}
             size="lg"
             type="submit"
             variant="primary"
@@ -104,12 +115,14 @@ export default function AuthModal({
             {isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Register"}
           </Button>
 
+          {mode === "register" && <label className="flex gap-2 text-xs text-ice-secondary"><input checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} type="checkbox" />I accept the <Link className="text-[color:var(--ice-accent)]" href="/terms" target="_blank">Terms of Service</Link>. See <Link className="text-[color:var(--ice-accent)]" href="/datenschutz" target="_blank">Privacy Policy</Link>.</label>}
+
           {authStatus && (
             <p className="rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] px-4 py-3 text-center text-sm text-[color:var(--ice-accent-text)]">
               {authStatus}
             </p>
           )}
-        </form>
+        </form>}
       </div>
     </div>
   );

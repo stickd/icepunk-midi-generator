@@ -139,6 +139,7 @@ describe("lib/api", () => {
 
       const [url] = fetchMock.mock.calls[0];
       expect(url).toBe("http://localhost:8081/auth/register");
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).termsAccepted).toBe(true);
     });
 
     it("authUser dispatches to loginUser in login mode", async () => {

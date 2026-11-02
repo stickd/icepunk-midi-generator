@@ -201,9 +201,10 @@ public class GeneratedPackService {
         GeneratedPackTransactionService.Context context = transactionService.createPendingPack(owner, request, generatedFiles.midiFiles());
         try {
             validateExpectedMidiCount(request, generatedFiles.midiFiles());
+            List<MidiMetadataExtractor.MidiMetadata> metadata = new ArrayList<>();
             for (int index = 0; index < context.items().size(); index++) {
                 Path midiFile = generatedFiles.midiFiles().get(index);
-                validateGeneratedMidi(midiFile);
+                metadata.add(extractGeneratedMidiMetadata(midiFile));
                 storageService.uploadMidi(midiFile, context.items().get(index).key());
             }
             storageService.uploadZip(generatedFiles.zipPath(), context.zipKey());
@@ -213,7 +214,13 @@ public class GeneratedPackService {
             GeneratedPack ready = packRepository.findWithItemsById(context.packId())
                     .filter(pack -> pack.getStatus() == icepunk_backend.model.GeneratedPackStatus.READY)
                     .orElseThrow(() -> new IllegalStateException("Generated pack was not finalized"));
-            return toPackResponse(ready, sortedItems(ready.getItems()));
+            List<GeneratedPackItem> readyItems = sortedItems(ready.getItems());
+            for (int index = 0; index < readyItems.size(); index++) {
+                applyMetadata(readyItems.get(index), metadata.get(index));
+            }
+            itemRepository.saveAll(readyItems);
+            itemRepository.flush();
+            return toPackResponse(ready, readyItems);
         } catch (RuntimeException exception) {
             handleStagedFailure(context.packId(), failureCode(exception), exception);
             throw exception;
@@ -243,13 +250,24 @@ public class GeneratedPackService {
         }
     }
 
-    private void validateGeneratedMidi(Path midiFile) {
+    private MidiMetadataExtractor.MidiMetadata extractGeneratedMidiMetadata(Path midiFile) {
         try {
-            metadataExtractor.extractRequired(midiFile);
+            return metadataExtractor.extractRequired(midiFile);
         } catch (RuntimeException exception) {
             throw new GeneratedPackIntegrityException("MIDI_VALIDATION_FAILED",
                     "Generated MIDI failed integrity validation", exception);
         }
+    }
+
+    private void applyMetadata(GeneratedPackItem item, MidiMetadataExtractor.MidiMetadata metadata) {
+        item.setDurationSeconds(metadata.durationSeconds());
+        item.setNoteCount(metadata.noteCount());
+        item.setTrackCount(metadata.trackCount());
+        item.setMinPitch(metadata.minPitch());
+        item.setMaxPitch(metadata.maxPitch());
+        item.setAvgPitch(metadata.avgPitch());
+        item.setBpm(metadata.bpm());
+        item.setMetadata(Map.of("preview", previewToMetadata(metadata.preview())));
     }
 
     private static final class GeneratedPackIntegrityException extends RuntimeException {

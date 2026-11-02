@@ -1,6 +1,6 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
-import { getMe, TOKEN_KEY } from "@/lib/api";
+import { authUser, getMe, TOKEN_KEY } from "@/lib/api";
 import { useSketchAuth } from "./useSketchAuth";
 
 jest.mock("@/lib/api", () => {
@@ -14,10 +14,20 @@ jest.mock("@/lib/api", () => {
 });
 
 const mockGetMe = getMe as jest.Mock;
+const mockAuthUser = authUser as jest.Mock;
 
 describe("useSketchAuth", () => {
+  it("explains registration rate limiting instead of blaming account data", async () => {
+    mockAuthUser.mockResolvedValue({ ok: false, status: 429 });
+    const { result } = renderHook(() => useSketchAuth({ setStatus: jest.fn() }));
+    await act(async () => { result.current.setAuthMode("register"); });
+    await act(async () => { await result.current.handleAuth(); });
+    expect(result.current.authStatus).toBe("Too many attempts. Please wait before trying again.");
+    expect(result.current.authMode).toBe("register");
+  });
   beforeEach(() => {
     mockGetMe.mockReset();
+    mockAuthUser.mockReset();
     window.localStorage.clear();
   });
 
@@ -44,5 +54,29 @@ describe("useSketchAuth", () => {
 
     expect(window.localStorage.getItem(TOKEN_KEY)).toBe("jwt-abc");
     expect(result.current.token).toBe("jwt-abc");
+  });
+
+  it("moves an unverified login into the verification flow with the email intact", async () => {
+    mockAuthUser.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ code: "EMAIL_UNVERIFIED" }),
+    });
+    const { result } = renderHook(() => useSketchAuth({ setStatus: jest.fn() }));
+
+    await act(async () => {
+      result.current.setAuthMode("login");
+      result.current.setEmail("pending@example.com");
+      result.current.setPassword("secret123");
+    });
+    await act(async () => {
+      await result.current.handleAuth();
+    });
+
+    await waitFor(() => {
+      expect(result.current.authMode).toBe("verify");
+      expect(result.current.authStatus).toBe("Please verify your email before continuing.");
+      expect(result.current.email).toBe("pending@example.com");
+    });
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ReportAction from "@/components/ReportAction";
 import {
   getPublicUploadMidiPreviewUrl,
   setProjectLiked,
@@ -83,6 +84,7 @@ export default function PackCard({ pack, token, onAuthRequired, playback, soundE
 
   return (
     <Card className="group overflow-hidden">
+      <ReportAction targetType="UPLOAD" targetId={pack.id} isPublic={true} />
       <div className="border-b border-white/[0.06] transition-[filter] duration-200 ease-out group-hover:brightness-125">
         <BrowserPianoRoll
           isPlaying={isThisPlaying}

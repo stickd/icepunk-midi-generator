@@ -31,6 +31,20 @@ public class User {
     @Column(nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(nullable = false, length = 32)
+    private String accountStatus = "ACTIVE";
+
+    @Column(nullable = false, length = 32)
+    private String role = "USER";
+
+    public String getRole() { return role; }
+
+    public String getAccountStatus() { return accountStatus; }
+
+    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
+
+    public boolean isActive() { return "ACTIVE".equals(accountStatus); }
+
     private Integer generationsToday = 0;
     private LocalDate generationDate = LocalDate.now();
 

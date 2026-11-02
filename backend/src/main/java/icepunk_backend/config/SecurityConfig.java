@@ -63,10 +63,14 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             // Configure endpoint authorization rules
             .authorizeHttpRequests(auth -> auth
 
+                    .requestMatchers("/admin/**").hasRole("ADMIN")
+
                     // Public endpoints accessible without authentication
                     .requestMatchers(
                             "/auth/register",
                             "/auth/login",
+                            "/auth/verify-email",
+                            "/auth/resend-verification",
                             "/generate",
                             "/generation-stats",
                             "/generation-usage",

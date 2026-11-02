@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Badge, Button, UserAvatar } from "@/components/ui";
 import type { AuthMode } from "./useSketchAuth";
 import type { GenerationUsageResponse, MeResponse } from "@/lib/api";
@@ -28,7 +29,7 @@ export default function SketchTopNav({
         className="studio-wordmark"
         href="/"
       >
-        <span className="studio-logo" aria-hidden="true">✳</span> iCEPUNK<span className="studio-wordmark-label">MIDI LAB</span>
+        <span className="studio-logo" aria-hidden="true"><Image alt="" height={64} priority src="/icepunk-mark.svg" width={64} /></span> iCEPUNK<span className="studio-wordmark-label">MIDI LAB</span>
       </Link>
 
       <div className="studio-nav-links"><Link href="/#workspace">Studio <span>↗</span></Link><Link href="/#community">Discover</Link></div>

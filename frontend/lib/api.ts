@@ -3,6 +3,10 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 export const TOKEN_KEY = "icepunk_token";
 
+export function submitContentReport(body: { targetType: "GENERATED_PACK" | "UPLOAD"; targetId: string; category: string; description?: string }, token: string) {
+  return fetch(`${API_URL}/reports`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body), signal: withTimeout() });
+}
+
 export function normalizeAuthToken(value?: string | null) {
   const token = value?.trim();
   return token && token !== "undefined" && token !== "null" ? token : null;
@@ -54,7 +58,7 @@ export async function registerUser(body: RegisterBody) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, termsAccepted: true }),
     signal: withTimeout(),
   });
 }
@@ -68,6 +72,14 @@ export async function authUser(
   }
 
   return registerUser(body as RegisterBody);
+}
+
+export async function resendVerification(email: string) {
+  return fetch(`${API_URL}/auth/resend-verification`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }), signal: withTimeout() });
+}
+
+export async function verifyEmail(token: string) {
+  return fetch(`${API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`, { signal: withTimeout() });
 }
 
 export type GenerationStatsResponse = {

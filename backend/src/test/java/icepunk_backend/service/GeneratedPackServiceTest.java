@@ -144,6 +144,41 @@ class GeneratedPackServiceTest {
     }
 
     @Test
+    void stagedFlowPersistsExtractedMetadataBeforeReturningThePack() throws Exception {
+        GeneratedPackTransactionService tx = mock(GeneratedPackTransactionService.class);
+        GeneratedPackCleanupService cleanup = mock(GeneratedPackCleanupService.class);
+        GeneratedPackService staged = new GeneratedPackService(packRepository, itemRepository, storageService,
+                metadataExtractor, tx, cleanup);
+        Path dir = Files.createDirectories(tempDir.resolve("staged-metadata"));
+        Path midi = Files.writeString(dir.resolve("track.mid"), "midi");
+        Path zip = Files.writeString(dir.resolve("pack.zip"), "zip");
+        UUID packId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        when(tx.createPendingPack(any(), any(), any())).thenReturn(new GeneratedPackTransactionService.Context(
+                packId, "zip", List.of(new GeneratedPackTransactionService.Item(itemId, "item-key"))));
+        when(tx.finalizeReady(packId)).thenReturn(true);
+        GeneratedPack pack = readyPack(packId);
+        GeneratedPackItem item = new GeneratedPackItem();
+        item.setId(itemId); item.setPack(pack); item.setItemIndex(0); item.setFileName("track.mid");
+        pack.getItems().add(item);
+        when(packRepository.findWithItemsById(packId)).thenReturn(Optional.of(pack));
+        MidiPreviewResponse preview = new MidiPreviewResponse(List.of(new MidiPreviewNoteResponse(60, 0, 0.5, 100)), false);
+        when(metadataExtractor.extractRequired(midi)).thenReturn(new MidiMetadataExtractor.MidiMetadata(
+                0.5, 1, 1, 60, 60, 60.0, 120, preview));
+        GenerationRequest request = factoryRequest(); request.setAmount(1);
+
+        GeneratedPackResponse response = staged.persistGeneratedPack(null, request,
+                new MidiGenerationService.GeneratedFiles(dir, zip, List.of(midi)));
+
+        assertEquals(0.5, response.items().get(0).durationSeconds());
+        assertEquals(1, response.items().get(0).noteCount());
+        assertEquals(60, response.items().get(0).minPitch());
+        assertEquals(1, response.items().get(0).preview().notes().size());
+        verify(itemRepository).saveAll(List.of(item));
+        verify(itemRepository).flush();
+    }
+
+    @Test
     void fewerOrMoreOrZeroMidiFilesFailBeforeAnyUpload() throws Exception {
         assertCountMismatch(5, 4);
         assertCountMismatch(5, 6);

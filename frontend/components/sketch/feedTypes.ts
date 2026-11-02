@@ -1,6 +1,7 @@
 import type { GeneratedMidiItem, GenerationType, PublicGeneratedPackFeedItem } from "@/lib/api";
 
 export type FeedGeneration = {
+  visibility?: "PUBLIC" | "PRIVATE";
   id: string;
   username: string;
   timeAgo: string;
@@ -39,6 +40,7 @@ export function formatRelativeTime(uploadedAt: string) {
 export function toFeedGeneration(item: PublicGeneratedPackFeedItem): FeedGeneration {
   const safeItems = Array.isArray(item.items) ? item.items : [];
   return {
+    visibility: item.visibility,
     downloads: 0,
     id: item.packId ?? `pack-${Math.random()}`,
     items: safeItems.map((m) => ({

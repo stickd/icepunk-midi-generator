@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
 
     /** Every versioned migration currently in db/migration. */
-    private static final int EXPECTED_MIGRATION_COUNT = 7;
+    private static final int EXPECTED_MIGRATION_COUNT = 11;
     private static final int PRE_STAGED_LIFECYCLE_MIGRATION_COUNT = 5;
 
     /** Expected table → column set, mirroring the JPA entities. */
@@ -43,7 +43,7 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
             "users", Set.of(
                     "id", "username", "email", "password_hash",
                     "generations_today", "generation_date",
-                    "bio", "credits", "verified", "created_at", "profile_picture_url"),
+                    "bio", "credits", "verified", "created_at", "profile_picture_url", "account_status", "role"),
             "generation_stats", Set.of(
                     "id", "total_generations"),
             "guest_usage", Set.of(
@@ -64,6 +64,8 @@ class FlywayMigrationIntegrationTest extends AbstractPostgresContainerTest {
                     "avg_pitch", "bpm", "metadata", "created_at"),
             "dataset_presets", Set.of(
                     "id", "owner_id", "name", "analysis_object_key", "source_midi_count", "created_at")
+            , "email_verification_tokens", Set.of(
+                    "id", "user_id", "token_hash", "created_at", "expires_at", "used_at")
     );
 
     @Autowired

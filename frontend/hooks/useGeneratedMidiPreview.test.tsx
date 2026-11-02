@@ -103,6 +103,19 @@ describe("useGeneratedMidiPreview", () => {
     expect(getGeneratedItemPreviewUrlMock).toHaveBeenCalledWith("pack-1", "selected", null, expect.any(AbortSignal));
   });
 
+  it("restarts an aborted request when a card immediately remounts", async () => {
+    getGeneratedItemPreviewUrlMock.mockImplementationOnce((_pack, _item, _token, signal) =>
+      new Promise((_resolve, reject) => {
+        signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      }),
+    );
+    const first = render(<PreviewProbe itemId="remounted" />);
+    first.unmount();
+    render(<PreviewProbe itemId="remounted" />);
+    await waitFor(() => expect(screen.getByTestId("preview-remounted")).toHaveTextContent("ready:1:2:2.5"));
+    expect(getGeneratedItemPreviewUrlMock).toHaveBeenCalledTimes(2);
+  });
+
   it("does not request MIDI for an offscreen card", async () => {
     render(<PreviewProbe enabled={false} itemId="offscreen" />);
 

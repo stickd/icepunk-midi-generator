@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { Button, SegmentedControl, ToastNotification } from "@/components/ui";
 import { GenerationSource } from "@/lib/api";
 const CustomDatasetControls = dynamic(() => import("./CustomDatasetControls"));
@@ -66,7 +67,7 @@ export default function RandomGeneratePanel({
 
       {!isCustom && (
         <div className="studio-signal" aria-hidden="true">
-          <div className="studio-signal-ring" /><span className="studio-signal-star">✳</span>
+          <div className="studio-signal-ring" /><span className="studio-signal-star"><Image alt="" height={64} priority src="/icepunk-mark.svg" width={64} /></span>
           <span className="studio-signal-tag">FACTORY / ORIGINAL DNA</span>
         </div>
       )}

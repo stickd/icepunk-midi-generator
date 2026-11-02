@@ -42,6 +42,23 @@ class JwtAuthFilterTest {
     }
 
     @Test
+    void pendingDeletionRejectsPreviouslyIssuedToken() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+        User user = new User("pending", "pending@example.test", "hash");
+        user.setVerified(true);
+        user.setAccountStatus("DELETION_PENDING");
+        when(request.getHeader("Authorization")).thenReturn("Bearer old-token");
+        when(jwtService.extractEmail("old-token")).thenReturn(user.getEmail());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        filter.doFilterInternal(request, response, chain);
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(response).sendError(401, "Invalid or expired authentication token.");
+        org.mockito.Mockito.verifyNoInteractions(chain);
+    }
+
+    @Test
     void noHeaderContinuesChainWithoutAuth() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -61,8 +78,9 @@ class JwtAuthFilterTest {
         FilterChain chain = mock(FilterChain.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer good-token");
         when(jwtService.extractEmail("good-token")).thenReturn("foo@bar.com");
-        when(userRepository.findByEmail("foo@bar.com"))
-                .thenReturn(Optional.of(new User("bob", "foo@bar.com", "hash")));
+        User user = new User("bob", "foo@bar.com", "hash");
+        user.setVerified(true);
+        when(userRepository.findByEmail("foo@bar.com")).thenReturn(Optional.of(user));
 
         filter.doFilterInternal(request, response, chain);
 

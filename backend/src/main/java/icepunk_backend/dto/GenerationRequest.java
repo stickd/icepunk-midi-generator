@@ -36,7 +36,7 @@ public class GenerationRequest {
     private String tempAnalysisAccessToken;
     private List<UUID> datasetIds;
     private boolean includeFactoryPool = false;
-    private PublishMode publishMode = PublishMode.PUBLIC;
+    private PublishMode publishMode = PublishMode.PRIVATE;
 
     public GenerationSource getSource() {
         return source;

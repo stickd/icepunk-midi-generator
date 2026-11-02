@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ReportAction from "@/components/ReportAction";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, UserAvatar } from "@/components/ui";
 import { SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
@@ -189,6 +190,7 @@ function GenerationFeedCard({
       {hasMultipleItems && isPreviewEligible ? <MidiThumbnailCarousel activeIndex={activeIndex} items={items} label="Pack MIDIs" onSelect={handleSelectItem} packId={generation.id} /> : null}
       {isThisSource && playback.message ? <p className="feed-pack-message" role="status">{playback.message}</p> : null}
       <footer className="feed-pack-footer">
+        <ReportAction targetType="GENERATED_PACK" targetId={generation.id} isPublic={generation.visibility === "PUBLIC"} />
         <button aria-expanded={showDetails} onClick={handleDetailsToggle} type="button">Details {showDetails ? "−" : "+"}</button>
         <span>{generation.downloads} downloads</span>
         <button onClick={() => {

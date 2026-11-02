@@ -6,8 +6,8 @@
   --background: #05060a;
   --foreground: rgba(248, 250, 255, 0.94);
 
-  --ice-bg: #05060a;
-  --ice-bg-canvas: #070914;
+  --ice-bg: #030b14;
+  --ice-bg-canvas: #071827;
 
   --ice-surface: rgba(255, 255, 255, 0.055);
   --ice-surface-strong: rgba(255, 255, 255, 0.085);
@@ -17,9 +17,9 @@
   --ice-text-secondary: rgba(207, 216, 242, 0.72);
   --ice-text-muted: rgba(172, 184, 218, 0.42);
 
-  --ice-accent: rgb(132, 146, 255);
-  --ice-accent-2: rgb(110, 231, 255);
-  --ice-accent-3: rgb(191, 140, 255);
+  --ice-accent: rgb(142, 222, 255);
+  --ice-accent-2: rgb(91, 190, 255);
+  --ice-accent-3: rgb(180, 235, 255);
 
   --ice-accent-text: rgba(212, 220, 255, 0.96);
   --ice-accent-soft: rgba(132, 146, 255, 0.16);
@@ -49,8 +49,8 @@
   --color-ice-primary: var(--ice-text-primary);
   --color-ice-secondary: var(--ice-text-secondary);
   --color-ice-muted: var(--ice-text-muted);
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), 'Geist Mono', "SF Mono", ui-monospace, monospace;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --font-mono: var(--font-dm-mono), "SF Mono", ui-monospace, monospace;
 }
 
 body {
@@ -62,8 +62,9 @@ body {
 
 html, body, input, button, select, textarea, optgroup {
   font-family:
-    var(--font-geist-sans),
-    system-ui,
+    var(--font-inter),
+    -apple-system,
+    BlinkMacSystemFont,
     sans-serif;
   letter-spacing: 0.01em;
   text-rendering: optimizeLegibility;

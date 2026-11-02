@@ -10,7 +10,9 @@ FROM node:22-slim AS build
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL=http://localhost:8081
+ARG NEXT_PUBLIC_STORAGE_ORIGIN=http://localhost:9010
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_STORAGE_ORIGIN=$NEXT_PUBLIC_STORAGE_ORIGIN
 
 COPY --from=deps /app/node_modules node_modules
 COPY . .
@@ -21,9 +23,13 @@ FROM node:22-slim AS runtime
 
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL=http://localhost:8081
+ARG NEXT_PUBLIC_STORAGE_ORIGIN=http://localhost:9010
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_STORAGE_ORIGIN=$NEXT_PUBLIC_STORAGE_ORIGIN
 
 COPY package.json package-lock.json ./
 COPY --from=deps /app/node_modules node_modules

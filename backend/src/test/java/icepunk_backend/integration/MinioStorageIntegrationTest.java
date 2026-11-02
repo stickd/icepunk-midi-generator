@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MinIOContainer;
+import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
@@ -48,7 +49,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MinioStorageIntegrationTest {
 
     /** Matches the image used in {@code docker-compose.yml}. */
-    static final MinIOContainer MINIO = new MinIOContainer("minio/minio");
+    static final MinIOContainer MINIO = new MinIOContainer(DockerImageName
+            .parse("dappros/minio:RELEASE.2025-09-07T16-13-09Z")
+            .asCompatibleSubstituteFor("minio/minio"));
 
     static {
         MINIO.start();

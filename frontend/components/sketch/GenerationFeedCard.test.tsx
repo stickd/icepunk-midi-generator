@@ -134,6 +134,14 @@ describe("GenerationFeedCard", () => {
     return { playback, settings, ...view };
   }
 
+  test("only public generated cards expose Report", () => {
+    const view = renderCard({ ...generation(), visibility: "PUBLIC" });
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+    view.unmount();
+    renderCard({ ...generation(), visibility: "PRIVATE" });
+    expect(screen.queryByRole("button", { name: "Report" })).not.toBeInTheDocument();
+  });
+
   function revealCards() {
     act(() => {
       observers.forEach(({ callback }) => callback(

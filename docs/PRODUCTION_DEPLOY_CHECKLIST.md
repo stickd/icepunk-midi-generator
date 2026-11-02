@@ -1,5 +1,10 @@
 # IcePunk production deploy checklist
 
+The canonical deployment, backup/restore, proxy/TLS and rollback instructions
+are now in [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md). This file is
+kept only as a quick operator checklist; when it conflicts with the runbook,
+the runbook wins.
+
 ## DNS
 
 - [ ] Point frontend domain to the frontend host.
@@ -114,7 +119,7 @@ Frontend:
   proxy_set_header Host $host;
   ```
   Do not expose backend port 8081 publicly. The application ignores all forwarded headers unless the TCP peer matches `TRUSTED_PROXY_CIDRS`.
-- [ ] This deployment uses an in-memory auth limiter and is supported as a **single backend instance**. A horizontally scaled deployment must replace it with a shared Redis/database limiter before enabling more replicas.
+- [ ] Authentication throttling uses internal Redis with TTL-bound keys and AOF persistence. Redis rate-limit data is non-critical and may be lost during disaster recovery.
 - [ ] Keep only ports `80` and `443` public.
 - [ ] Enable firewall rules.
 - [ ] Add fail2ban or equivalent SSH protection.

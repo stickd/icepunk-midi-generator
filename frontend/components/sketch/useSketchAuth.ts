@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   authUser,
+  resendVerification,
   getMe,
   MeResponse,
   normalizeAuthToken,
   TOKEN_KEY,
 } from "@/lib/api";
 
-export type AuthMode = "login" | "register" | null;
+export type AuthMode = "login" | "register" | "verify" | null;
 
 const TOKEN_CHANGE_EVENT = "icepunk-token-change";
 
@@ -94,7 +95,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
   }, []);
 
   const handleAuth = useCallback(async () => {
-    if (!authMode) return;
+    if (!authMode || authMode === "verify") return;
 
     try {
       setIsAuthenticating(true);
@@ -110,9 +111,18 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
       const response = await authUser(authMode, body);
 
       if (!response.ok) {
-        if (response.status === 409) {
-          setAuthStatus("Username or email is already taken.");
+        if (response.status === 429) {
+          setAuthStatus("Too many attempts. Please wait before trying again.");
           return;
+        }
+        if (response.status === 403) {
+          const error = await response.json().catch(() => null);
+          if (error?.code === "EMAIL_UNVERIFIED") {
+            setPassword("");
+            setAuthStatus("Please verify your email before continuing.");
+            setAuthMode("verify");
+            return;
+          }
         }
 
         if (response.status === 401) {
@@ -130,6 +140,10 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
       }
 
       const data = await response.json();
+      if (authMode === "register" && data.verificationRequired) {
+        setPassword(""); setUsername(""); setAuthStatus("If verification is needed, check your email."); setAuthMode("verify");
+        return;
+      }
       saveToken(data.token);
       setStatus("You are logged in.");
       setAuthStatus("");
@@ -143,6 +157,15 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
       setIsAuthenticating(false);
     }
   }, [authMode, email, password, saveToken, setStatus, username]);
+
+  const handleResendVerification = useCallback(async () => {
+    try {
+      setIsAuthenticating(true);
+      const response = await resendVerification(email);
+      setAuthStatus(response.ok ? "If needed, a fresh verification email has been sent." : "Please wait before requesting another email.");
+    } catch { setAuthStatus("Backend is not available right now."); }
+    finally { setIsAuthenticating(false); }
+  }, [email]);
 
   const handleLogout = useCallback(() => {
     clearToken();
@@ -163,6 +186,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
     email,
     handleAuth,
     handleLogout,
+    handleResendVerification,
     isAuthenticating,
     me,
     password,

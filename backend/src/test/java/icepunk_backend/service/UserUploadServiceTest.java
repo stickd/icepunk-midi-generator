@@ -52,7 +52,7 @@ class UserUploadServiceTest {
                 .thenReturn(new UserUploadStorageService.StoredUpload(
                         "user_uploads/42/midi.mid"
                 ));
-        when(storageService.upload(eq(42L), eq("kick.wav"), eq("audio/wav"), eq(5L), any(InputStream.class)))
+        when(storageService.upload(eq(42L), eq("kick.wav"), eq("audio/wav"), eq((long) validWav().length), any(InputStream.class)))
                 .thenReturn(new UserUploadStorageService.StoredUpload(
                         "user_uploads/42/kick.wav"
                 ));
@@ -70,7 +70,7 @@ class UserUploadServiceTest {
                 "  Frozen Lead  ",
                 "UNLISTED",
                 file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
-                file("sample", "kick.wav", "audio/wav", new byte[]{1, 2, 3, 4, 5})
+                file("sample", "kick.wav", "audio/wav", validWav())
         );
 
         assertEquals(7L, response.getId());
@@ -102,7 +102,7 @@ class UserUploadServiceTest {
                 "Frozen Lead",
                 "PRIVATE",
                 file("midi", "lead.txt", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
-                file("sample", "kick.wav", "audio/wav", new byte[]{1})
+                file("sample", "kick.wav", "audio/wav", validWav())
         ));
 
         assertEquals("Only .mid and .midi files are supported.", exception.getMessage());
@@ -123,6 +123,20 @@ class UserUploadServiceTest {
         assertEquals("Sample file type is not supported.", exception.getMessage());
         verify(storageService, never()).upload(any(), any(), any(), anyLong(), any(InputStream.class));
         verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void sampleWithMatchingExtensionButInvalidBinarySignatureIsRejected() throws Exception {
+        UploadValidationException exception = assertThrows(UploadValidationException.class, () -> service.uploadProject(
+                owner,
+                "Frozen Lead",
+                "PRIVATE",
+                file("midi", "lead.mid", "audio/midi", ValidMidiFixtures.singleNoteStandardMidi()),
+                file("sample", "kick.wav", "audio/wav", new byte[]{1, 2, 3, 4})
+        ));
+
+        assertEquals("Sample file content does not match its declared format.", exception.getMessage());
+        verify(storageService, never()).upload(any(), any(), any(), anyLong(), any(InputStream.class));
     }
 
     @Test
@@ -283,5 +297,9 @@ class UserUploadServiceTest {
 
     private MockMultipartFile file(String name, String filename, String contentType, byte[] content) {
         return new MockMultipartFile(name, filename, contentType, content);
+    }
+
+    private static byte[] validWav() {
+        return new byte[]{'R', 'I', 'F', 'F', 4, 0, 0, 0, 'W', 'A', 'V', 'E'};
     }
 }

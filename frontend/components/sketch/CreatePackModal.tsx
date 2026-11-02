@@ -8,7 +8,7 @@ import { useDialogFocus } from "@/hooks/useDialogFocus";
 export type CreatePackDraft = {
   amount: number;
   packName: string;
-  type: "melody" | "drums";
+  type: "melody";
 };
 
 type CreatePackModalProps = {
@@ -20,7 +20,6 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
   const dialogRef = useDialogFocus(onClose);
   const [amount, setAmount] = useState(17);
   const [packName, setPackName] = useState(() => generateRandomPackName());
-  const [type, setType] = useState<CreatePackDraft["type"]>("melody");
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-xl">
@@ -95,36 +94,12 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
               </div>
             </FieldLabel>
 
-            <fieldset>
-              <legend className="mb-2 text-sm text-ice-secondary">Type</legend>
-              <div className="flex justify-center gap-8">
-                <label className="inline-flex items-center gap-2 text-sm text-ice-primary">
-                  <input
-                    checked={type === "melody"}
-                    className="accent-[color:var(--ice-accent)]"
-                    name="pack-type"
-                    onChange={() => setType("melody")}
-                    type="radio"
-                  />
-                  Melody
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm text-ice-primary">
-                  <input
-                    checked={type === "drums"}
-                    className="accent-[color:var(--ice-accent)]"
-                    name="pack-type"
-                    onChange={() => setType("drums")}
-                    type="radio"
-                  />
-                  Drums
-                </label>
-              </div>
-            </fieldset>
           </div>
 
+          <p className="text-xs text-ice-secondary">Packs created while logged in are automatically published to the community feed.</p>
           <div className="flex justify-end">
             <Button
-              onClick={() => onNext({ amount, packName, type })}
+              onClick={() => onNext({ amount, packName, type: "melody" })}
               type="button"
               variant="primary"
             >

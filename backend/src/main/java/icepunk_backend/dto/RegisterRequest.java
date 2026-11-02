@@ -3,6 +3,7 @@ package icepunk_backend.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.AssertTrue;
 
 public class RegisterRequest {
 
@@ -16,8 +17,10 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank
-    @Size(min = 6, max = 128)
+    @Size(min = 12, max = 128)
     private String password;
+    @AssertTrue(message = "Terms acceptance is required")
+    private boolean termsAccepted;
 
     public String getUsername() {
         return username;
@@ -30,4 +33,6 @@ public class RegisterRequest {
     public String getPassword() {
         return password;
     }
+    public boolean isTermsAccepted() { return termsAccepted; }
+    public void setTermsAccepted(boolean termsAccepted) { this.termsAccepted = termsAccepted; }
 }

@@ -38,7 +38,9 @@ export function useMidiGeneration(
 
       onGenerated?.(data.totalGenerations);
       notifyFeedRefresh();
-      setStatus("MIDI pack generated. Download links are ready.");
+      setStatus(token && request.publishMode === "PUBLIC"
+        ? "MIDI pack generated and published to the community feed."
+        : "MIDI pack generated. Download links are ready.");
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes("Guest daily generation limit reached")) {

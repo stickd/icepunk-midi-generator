@@ -6,6 +6,9 @@ import icepunk_backend.service.DatasetPresetStorageService;
 import icepunk_backend.service.GeneratedPackStorageService;
 import icepunk_backend.service.MidiGenerationService;
 import icepunk_backend.service.TempAnalysisService;
+import icepunk_backend.service.EmailService;
+import icepunk_backend.service.AuthRateLimitService;
+import icepunk_backend.repository.UserRepository;
 import icepunk_backend.support.ValidMidiFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -58,6 +61,15 @@ class DatasetFlowsE2ETest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private EmailService emailService;
+
+    @MockitoBean
+    private AuthRateLimitService authRateLimitService;
+
     @MockitoBean
     private TempAnalysisService tempAnalysisService;
 
@@ -78,7 +90,7 @@ class DatasetFlowsE2ETest {
 
     @Test
     void userCanSaveAnalyzedDatasetGenerateFromItAndSeeItInMyPacks() throws Exception {
-        String token = register("dana", "dana@example.com", "secret123", "198.51.100.30");
+        String token = register("dana", "dana@example.com", "safe-password-123", "198.51.100.30");
         TestTransaction.flagForCommit();
         TestTransaction.end();
         TestTransaction.start();
@@ -164,8 +176,8 @@ class DatasetFlowsE2ETest {
 
     @Test
     void generatingFromAnotherUsersDatasetIsRejected() throws Exception {
-        String ownerToken = register("erin", "erin@example.com", "secret123", "198.51.100.31");
-        String intruderToken = register("frank", "frank@example.com", "secret123", "198.51.100.32");
+        String ownerToken = register("erin", "erin@example.com", "safe-password-123", "198.51.100.31");
+        String intruderToken = register("frank", "frank@example.com", "safe-password-123", "198.51.100.32");
 
         Path analysisFile = Files.writeString(
                 tempDir.resolve("analysis.json"), TWO_FILE_ANALYSIS, StandardCharsets.UTF_8
@@ -227,18 +239,29 @@ class DatasetFlowsE2ETest {
 
     private String register(String username, String email, String password, String ip) throws Exception {
         String body = objectMapper.writeValueAsString(Map.of(
-                "username", username, "email", email, "password", password
+                "username", username, "email", email, "password", password, "termsAccepted", "true"
         ));
 
         String response = mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Forwarded-For", ip)
                         .content(body))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
-        return objectMapper.readTree(response).get("token").asText();
+        var responseNode = objectMapper.readTree(response);
+        assertTrue(responseNode.get("verificationRequired").asBoolean());
+        var user = userRepository.findByEmail(email).orElseThrow();
+        user.setVerified(true);
+        userRepository.saveAndFlush(user);
+        String loginResponse = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Forwarded-For", ip)
+                        .content(objectMapper.writeValueAsString(Map.of("identifier", email, "password", password))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(loginResponse).get("token").asText();
     }
 }
