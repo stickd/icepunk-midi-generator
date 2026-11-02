@@ -210,11 +210,13 @@ button[data-variant=primary]:hover { background: #c2e5ff; box-shadow: none; }
   .studio-container { padding: 20px 18px 280px; }
   .ice-studio + footer { padding-bottom: calc(340px + env(safe-area-inset-bottom)); }
   .studio-nav { gap: 12px; padding-bottom: 20px; }
-  .studio-nav { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-  .studio-mobile-desktop { justify-self: end; }
-  .studio-account { grid-column: 1 / -1; justify-content: flex-end; }
+  .studio-nav { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .studio-wordmark { grid-column: 1 / -1; }
+  .studio-mobile-desktop { justify-self: start; min-height: 32px; padding-inline: 11px; }
+  .studio-account { grid-column: 2; justify-content: flex-end; min-width: 0; }
   .studio-wordmark { font-size: 20px; gap: 7px; }
   .studio-wordmark-label, .studio-account > span { display: none; }
+  .studio-account > a { gap: 0; font-size: 0; }
   .studio-account { gap: 8px; }
   .studio-account button { padding-inline: 12px; font-size: 10px; }
   .studio-intro { padding: 38px 0 34px; grid-template-columns: 1fr; gap: 10px; }

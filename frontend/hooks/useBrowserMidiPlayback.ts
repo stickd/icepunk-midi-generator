@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as ToneRuntime from "tone";
 
 type ToneModule = typeof import("tone");
 type MidiClass = typeof import("@tonejs/midi").Midi;
@@ -29,15 +30,15 @@ const SAMPLE_ROOT_NOTE = "C4";
 const POSITION_FRAME_MS = 33;
 const DEFAULT_BPM = 146;
 
-let toneModulePromise: Promise<ToneModule> | null = null;
-let toneModuleCache: ToneModule | null = null;
+// Keep Tone in the initial client bundle so an iPhone can resume its AudioContext
+// in the same Play tap. Safari rejects resumes deferred until after a dynamic import.
+let toneModulePromise: Promise<ToneModule> | null = Promise.resolve(ToneRuntime);
+let toneModuleCache: ToneModule | null = ToneRuntime;
 let midiModulePromise: Promise<{ Midi: MidiClass }> | null = null;
 
 export function preloadBrowserMidiPlayback() {
-  toneModulePromise ??= import("tone").then((module) => {
-    toneModuleCache = module;
-    return module;
-  });
+  toneModulePromise ??= Promise.resolve(ToneRuntime);
+  toneModuleCache ??= ToneRuntime;
   midiModulePromise ??= import("@tonejs/midi") as Promise<{ Midi: MidiClass }>;
 }
 
@@ -346,7 +347,10 @@ export function useBrowserMidiPlayback() {
       }
 
       try {
-        const toneStartPromise = toneModuleCache ? startTone(toneModuleCache) : null;
+        // Start/resume audio before any awaited MIDI parsing or network work. iOS Safari
+        // only honours this when it originates directly from the user's Play gesture.
+        const Tone = toneModuleCache ?? ToneRuntime;
+        const toneStartPromise = startTone(Tone);
         setStatus("loading");
         setMessage("Preparing browser playback...");
         setActiveSourceId(sourceId);
@@ -359,7 +363,7 @@ export function useBrowserMidiPlayback() {
         setPositionSeconds(0);
 
         preloadBrowserMidiPlayback();
-        const [{ Midi }, Tone] = await Promise.all([
+        const [{ Midi }] = await Promise.all([
           midiModulePromise as Promise<{ Midi: MidiClass }>,
           toneModulePromise as Promise<ToneModule>,
         ]);
@@ -367,11 +371,7 @@ export function useBrowserMidiPlayback() {
         if (!isCurrentPlayback()) return;
 
         activeToneRef.current = Tone;
-        if (toneStartPromise) {
-          await toneStartPromise;
-        } else {
-          await startTone(Tone);
-        }
+        await toneStartPromise;
         if (!isCurrentPlayback()) return;
 
         const midiBuffer = await readMidiSource(midiSource, controller.signal);
