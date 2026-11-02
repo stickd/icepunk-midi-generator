@@ -43,6 +43,11 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      # Redis starts as root only long enough to drop privileges to its bundled
+      # `redis` user. Retain the two capabilities required for that transition.
+      - SETGID
+      - SETUID
     logging: *production-logging
 
   minio:
