@@ -146,7 +146,7 @@ export type PublicGeneratedPackFeedItem = {
   name: string;
   ownerId: number | null;
   ownerUsername: string;
-  ownerAvatarUrl: string | null;
+  ownerAvatarUrl?: string | null;
   source: GenerationSource;
   type: GenerationType;
   bpm: number | null;
