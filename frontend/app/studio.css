@@ -42,6 +42,7 @@ button:not(:disabled), a { cursor: pointer; }
 .studio-logo img { width: 29px; height: 29px; object-fit: cover; object-position: center; mix-blend-mode: screen; }
 .studio-wordmark-label { align-self: center; font-family: var(--font-dm-mono), monospace; font-size: 9px; letter-spacing: .13em; color: #9fc6dd; border-left: 1px solid #b6e8ff32; margin-left: 10px; padding-left: 16px; }
 .studio-nav-links { display: flex; gap: 32px; font-size: 12px; color: #b6c5c8; }
+.studio-mobile-desktop { display: none; }
 .studio-nav-links a:first-child { color: #e6faf1; }
 .studio-nav-links span { padding-left: 6px; color: #c4ffe7; }
 .studio-guest { display: none; }
@@ -204,11 +205,14 @@ button[data-variant=primary]:hover { background: #c2e5ff; box-shadow: none; }
 ::selection { background: #a9d9ff; color: #091c2b; }
 :focus-visible { outline-color: #8ecbff; }
 @media (min-width: 1600px) { .studio-intro { padding: 64px 0; } }
-@media (max-width: 1100px) { .studio-container { padding: 24px 28px 170px; } .studio-nav-links { display: none; } .studio-workspace { gap: 22px; } .studio-source-header { flex-wrap: wrap; } .studio-section-title > .studio-eyebrow { display: none; } }
+@media (max-width: 1100px) { .studio-container { padding: 24px 28px 170px; } .studio-nav-links { display: none; } .studio-mobile-desktop { display: inline-flex; min-height: 36px; align-items: center; border: 1px solid #8ecbff4d; border-radius: 999px; padding: 0 13px; color: #ccecff; font-size: 11px; font-weight: 600; transition: border-color .18s ease, background .18s ease; } .studio-mobile-desktop:hover { border-color: #8ecbff99; background: #8ecbff12; } .studio-workspace { gap: 22px; } .studio-source-header { flex-wrap: wrap; } .studio-section-title > .studio-eyebrow { display: none; } }
 @media (max-width: 760px) {
   .studio-container { padding: 20px 18px 280px; }
   .ice-studio + footer { padding-bottom: calc(340px + env(safe-area-inset-bottom)); }
   .studio-nav { gap: 12px; padding-bottom: 20px; }
+  .studio-nav { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .studio-mobile-desktop { justify-self: end; }
+  .studio-account { grid-column: 1 / -1; justify-content: flex-end; }
   .studio-wordmark { font-size: 20px; gap: 7px; }
   .studio-wordmark-label, .studio-account > span { display: none; }
   .studio-account { gap: 8px; }

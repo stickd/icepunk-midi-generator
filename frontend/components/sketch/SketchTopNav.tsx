@@ -36,6 +36,9 @@ export default function SketchTopNav({
         <Link href="/#workspace">Studio <span>↗</span></Link>
         <Link href="/desktop">Desktop</Link>
       </div>
+      <Link className="studio-mobile-desktop" href="/desktop">
+        Desktop
+      </Link>
       <div className="studio-account flex flex-wrap items-center gap-3">
         {usage ? (
           <Badge

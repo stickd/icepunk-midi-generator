@@ -110,7 +110,11 @@ describe("Home page", () => {
     expect(screen.getByRole("button", { name: "Generate" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Community" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Studio/i })).toHaveAttribute("href", "/#workspace");
-    expect(screen.getByRole("link", { name: "Desktop" })).toHaveAttribute("href", "/desktop");
+    const desktopLinks = screen.getAllByRole("link", { name: "Desktop" });
+    expect(desktopLinks).toHaveLength(2);
+    desktopLinks.forEach((link) => {
+      expect(link).toHaveAttribute("href", "/desktop");
+    });
     expect(screen.getByRole("tab", { name: "Factory" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Custom" })).toBeInTheDocument();
 
