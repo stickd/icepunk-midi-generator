@@ -7,6 +7,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${siteUrl}/`, lastModified, changeFrequency: "weekly", priority: 1 },
     { url: `${siteUrl}/desktop`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${siteUrl}/guides/fl-studio-midi`, lastModified },
+    { url: `${siteUrl}/guides/ableton-midi`, lastModified },
     { url: `${siteUrl}/impressum`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${siteUrl}/datenschutz`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${siteUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.2 },

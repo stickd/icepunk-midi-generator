@@ -110,7 +110,11 @@ describe("Home page", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Community" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Studio/i })).toHaveAttribute("href", "/#workspace");
+    expect(screen.getByRole("heading", { name: "How ICEPUNK works." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Questions, answered." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Import an ICEPUNK MIDI idea/i })).toHaveAttribute("href", "/guides/fl-studio-midi");
+    expect(screen.getByRole("link", { name: /Start arranging a downloaded/i })).toHaveAttribute("href", "/guides/ableton-midi");
+    expect(screen.getByRole("link", { name: /^Studio ↗$/i })).toHaveAttribute("href", "/#workspace");
     const desktopLinks = screen.getAllByRole("link", { name: "Desktop" });
     expect(desktopLinks).toHaveLength(2);
     desktopLinks.forEach((link) => {
@@ -165,7 +169,7 @@ describe("Home page", () => {
     expect(await screen.findByText(/Custom generation is ready/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Generate" }));
-    fireEvent.click(within(screen.getByRole("dialog", { name: "Create pack" })).getByRole("button", { name: /Next/i }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Create pack" })).getByRole("button", { name: /Next/i }));
 
     await waitFor(() => {
       expect(mockGenerateMidiPack).toHaveBeenCalledWith(
