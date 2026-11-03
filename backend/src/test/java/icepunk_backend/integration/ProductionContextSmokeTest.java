@@ -1,6 +1,7 @@
 package icepunk_backend.integration;
 
 import icepunk_backend.BackendApplication;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,6 +42,13 @@ class ProductionContextSmokeTest {
 
     static {
         POSTGRES.start();
+        // The test profile disables Flyway for H2 unit tests. This isolated
+        // production-profile PostgreSQL database must use the real migration
+        // chain before Hibernate validates the schema.
+        Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .load()
+                .migrate();
         MINIO.start();
         try (S3Client client = S3Client.builder()
                 .endpointOverride(URI.create(MINIO.getS3URL()))
@@ -59,6 +67,10 @@ class ProductionContextSmokeTest {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.datasource.driver-class-name", POSTGRES::getDriverClassName);
+        // application-test.properties disables Flyway for H2-based unit tests.
+        // This smoke test uses a disposable real PostgreSQL instance and validates
+        // the production schema, so the production migrations must run first.
+        registry.add("spring.flyway.enabled", () -> "true");
         registry.add("jwt.secret", () -> "production-smoke-test-secret-at-least-32-bytes");
         registry.add("jwt.expiration", () -> "86400000");
         registry.add("auth.rate-limit.login-ip-limit", () -> "5");

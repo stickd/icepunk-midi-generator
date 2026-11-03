@@ -25,20 +25,23 @@ public class EmailVerificationService {
     private final EmailService emailService;
     private final int expiryMinutes;
     private final int cleanupRetentionHours;
+    private final boolean autoVerify;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
     public EmailVerificationService(EmailVerificationTokenRepository tokens, UserRepository users, EmailService emailService,
             @Value("${email.verification.expiry-minutes:60}") int expiryMinutes,
-            @Value("${email.verification.cleanup-retention-hours:24}") int cleanupRetentionHours) {
+            @Value("${email.verification.cleanup-retention-hours:24}") int cleanupRetentionHours,
+            @Value("${email.verification.auto-verify:false}") boolean autoVerify) {
         this.tokens = tokens; this.users = users; this.emailService = emailService; this.expiryMinutes = expiryMinutes;
         this.cleanupRetentionHours = cleanupRetentionHours;
+        this.autoVerify = autoVerify;
     }
 
     /** Compatibility constructor retained for focused unit tests. */
     public EmailVerificationService(EmailVerificationTokenRepository tokens, UserRepository users, EmailService emailService,
             int expiryMinutes) {
-        this(tokens, users, emailService, expiryMinutes, 24);
+        this(tokens, users, emailService, expiryMinutes, 24, false);
     }
 
     @Transactional
@@ -49,6 +52,14 @@ public class EmailVerificationService {
         String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         tokens.save(new EmailVerificationToken(user, hash(rawToken), now, now.plusMinutes(Math.max(1, expiryMinutes))));
         emailService.sendVerificationEmail(user.getEmail(), rawToken);
+        if (autoVerify) {
+            user.setVerified(true);
+            // Registration has already completed its repository save by this point, so
+            // callers can supply a detached entity. Persist the test-only state
+            // explicitly rather than relying on JPA dirty checking.
+            users.save(user);
+            tokens.invalidateActiveForUser(user, now);
+        }
     }
 
     @Transactional

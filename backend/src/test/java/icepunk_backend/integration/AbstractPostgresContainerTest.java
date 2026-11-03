@@ -1,5 +1,6 @@
 package icepunk_backend.integration;
 
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -34,6 +35,13 @@ public abstract class AbstractPostgresContainerTest {
 
     static {
         POSTGRES.start();
+        // The test profile disables Flyway for H2 unit tests. Apply the real
+        // production migrations synchronously before any Hibernate validation
+        // context is created against this shared PostgreSQL container.
+        Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .load()
+                .migrate();
     }
 
     @DynamicPropertySource

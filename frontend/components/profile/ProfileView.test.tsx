@@ -1,16 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import ProfileView from "./ProfileView";
 import {
-  getFavorites,
-  getMe,
   getUserGeneratedPacksFeed,
   getUserPacks,
   getUserProfile,
 } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
-  getFavorites: jest.fn(),
-  getMe: jest.fn(),
   getUserGeneratedPacksFeed: jest.fn(),
   getUserPacks: jest.fn(),
   getUserProfile: jest.fn(),
@@ -32,9 +28,6 @@ const getUserPacksMock = getUserPacks as jest.MockedFunction<typeof getUserPacks
 const getUserGeneratedPacksFeedMock = getUserGeneratedPacksFeed as jest.MockedFunction<
   typeof getUserGeneratedPacksFeed
 >;
-const getMeMock = getMe as jest.MockedFunction<typeof getMe>;
-const getFavoritesMock = getFavorites as jest.MockedFunction<typeof getFavorites>;
-
 describe("ProfileView", () => {
   beforeEach(() => {
     jest.resetAllMocks();
