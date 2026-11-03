@@ -99,4 +99,20 @@ class UserUploadStorageServiceTest {
 
         assertEquals("File upload failed. Please try again.", exception.getMessage());
     }
+
+    @Test
+    void uploadAvatarDoesNotFallBackToWritingAUserControlledLocalPath() {
+        doThrow(SdkClientException.builder().message("connection reset").build())
+                .when(s3Client)
+                .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        StorageException exception = assertThrows(StorageException.class, () -> service.uploadAvatar(
+                42L,
+                "avatar.png/../../outside",
+                "image/png",
+                new byte[]{1}
+        ));
+
+        assertEquals("Avatar upload failed. Please try again.", exception.getMessage());
+    }
 }
