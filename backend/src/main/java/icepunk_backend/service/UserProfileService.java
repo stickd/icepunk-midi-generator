@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -141,6 +143,9 @@ public class UserProfileService {
             // Saving settings afterwards must not replace the private object key with
             // that read URL, otherwise the avatar can no longer be loaded on refresh.
             if (!isOwnAvatarReadUrl(user, normalizedUrl)) {
+                if (!normalizedUrl.isEmpty() && !isSafeExternalAvatarUrl(normalizedUrl)) {
+                    throw new UploadValidationException("Avatar image URLs must use HTTPS.");
+                }
                 user.setProfilePictureUrl(normalizedUrl.isEmpty() ? null : normalizedUrl);
             }
         }
@@ -319,6 +324,15 @@ public class UserProfileService {
         }
         String path = "/users/" + user.getId() + "/avatar";
         return value.equals(path) || value.endsWith(path);
+    }
+
+    private boolean isSafeExternalAvatarUrl(String value) {
+        try {
+            URI uri = new URI(value);
+            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null;
+        } catch (URISyntaxException exception) {
+            return false;
+        }
     }
 
     private String contentTypeForAvatar(String objectKey) {

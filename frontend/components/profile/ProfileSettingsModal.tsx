@@ -44,6 +44,17 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function safeAvatarUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const isLocalDevelopmentUrl =
+      url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+    return url.protocol === "https:" || isLocalDevelopmentUrl ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProfileSettingsModal({
   isOpen,
   onClose,
@@ -76,6 +87,7 @@ export default function ProfileSettingsModal({
 
   const currentOption =
     AVATAR_RING_OPTIONS.find((opt) => opt.id === selectedRing) ?? AVATAR_RING_OPTIONS[0];
+  const avatarPreviewUrl = safeAvatarUrl(avatarUrl);
 
   async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -116,10 +128,17 @@ export default function ProfileSettingsModal({
   async function handleSave() {
     if (!token) return;
 
-    saveProfileSettings(username, { avatarUrl: avatarUrl.trim(), auraRingId: selectedRing });
+    const normalizedAvatarUrl = avatarUrl.trim();
+    if (normalizedAvatarUrl && !safeAvatarUrl(normalizedAvatarUrl)) {
+      setStatusType("error");
+      setStatusMessage("Avatar image URLs must use HTTPS.");
+      return;
+    }
+
+    saveProfileSettings(username, { avatarUrl: normalizedAvatarUrl, auraRingId: selectedRing });
 
     try {
-      const me = await updateProfilePictureUrl(token, avatarUrl.trim());
+      const me = await updateProfilePictureUrl(token, normalizedAvatarUrl);
       setImgError(false);
       onAvatarUpdated(me.profilePictureUrl);
       if (onUpdated) {
@@ -153,13 +172,13 @@ export default function ProfileSettingsModal({
                 className={`grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-[color:var(--ice-accent-soft)] text-2xl font-bold text-[color:var(--ice-accent-text)] ring-2 transition-all duration-300 ${currentOption.shadow}`}
                 style={{ borderColor: currentOption.color }}
               >
-                {avatarUrl && !imgError ? (
+                {avatarPreviewUrl && !imgError ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     alt={`${username}'s avatar`}
                     className="h-full w-full object-cover"
                     onError={() => setImgError(true)}
-                    src={avatarUrl}
+                    src={avatarPreviewUrl}
                   />
                 ) : (
                   username.slice(0, 1).toUpperCase()

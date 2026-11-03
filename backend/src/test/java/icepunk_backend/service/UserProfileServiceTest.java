@@ -5,6 +5,7 @@ import icepunk_backend.dto.MeResponse;
 import icepunk_backend.dto.UserPackListResponse;
 import icepunk_backend.dto.UserProfileResponse;
 import icepunk_backend.exception.ResourceNotFoundException;
+import icepunk_backend.exception.UploadValidationException;
 import icepunk_backend.model.ProjectLike;
 import icepunk_backend.model.UploadVisibility;
 import icepunk_backend.model.User;
@@ -228,6 +229,26 @@ class UserProfileServiceTest {
 
         MeResponse afterText = service.updateProfile("maco@example.com", "  cold algorithms  ", null);
         assertThat(afterText.bio()).isEqualTo("cold algorithms");
+    }
+
+    @Test
+    void updateProfileRejectsUnsafeAvatarUrl() {
+        when(userRepository.findByEmail("maco@example.com")).thenReturn(Optional.of(owner));
+
+        assertThatThrownBy(() -> service.updateProfile("maco@example.com", null, "javascript:alert(1)"))
+                .isInstanceOf(UploadValidationException.class)
+                .hasMessage("Avatar image URLs must use HTTPS.");
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateProfileAllowsHttpsAvatarUrl() {
+        when(userRepository.findByEmail("maco@example.com")).thenReturn(Optional.of(owner));
+        when(userRepository.save(owner)).thenReturn(owner);
+
+        MeResponse response = service.updateProfile("maco@example.com", null, "https://cdn.example.com/avatar.png");
+
+        assertThat(response.profilePictureUrl()).isEqualTo("https://cdn.example.com/avatar.png");
     }
 
     @Test

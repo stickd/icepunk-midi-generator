@@ -18,9 +18,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -87,27 +84,11 @@ public class UserUploadStorageService {
 
             s3Client.putObject(request, RequestBody.fromBytes(bytes));
             return new StoredUpload(key);
-        } catch (Exception exception) {
-            log.warn("S3 avatar upload failed, falling back to local disk storage for key={}: {}", key, exception.getMessage());
-            return storeLocally(key, bytes);
-        }
-    }
-
-    private StoredUpload storeLocally(String key, byte[] bytes) {
-        Path root = Paths.get(System.getProperty("user.dir"), "user_uploads").toAbsolutePath().normalize();
-        Path targetPath = root.resolve(key).normalize();
-        if (!targetPath.startsWith(root)) {
-            throw new StorageException("Avatar upload failed. Please try again.");
-        }
-        try {
-            Files.createDirectories(targetPath.getParent());
-            Files.write(targetPath, bytes);
-
-            String localPublicUrl = "http://localhost:8081/user-uploads/" + key;
-            log.info("Stored upload locally for key={}, publicUrl={}", key, localPublicUrl);
-            return new StoredUpload(localPublicUrl);
-        } catch (IOException e) {
-            log.error("Failed to store upload locally for key={}: {}", key, e.getMessage());
+        } catch (ApiCallTimeoutException | ApiCallAttemptTimeoutException exception) {
+            log.warn("S3 avatar upload timed out for bucket={} key={}: {}", bucket, key, exception.getMessage());
+            throw new StorageTimeoutException("Avatar upload timed out. Please try again.");
+        } catch (SdkException exception) {
+            log.error("S3 avatar upload failed for bucket={} key={}: {}", bucket, key, exception.getMessage());
             throw new StorageException("Avatar upload failed. Please try again.");
         }
     }
