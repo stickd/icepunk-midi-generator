@@ -17,7 +17,7 @@ export default defineConfig({
     timeout: 180_000,
     env: {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081',
-      NEXT_PUBLIC_STORAGE_ORIGIN: process.env.NEXT_PUBLIC_STORAGE_ORIGIN || 'http://localhost:9000',
+      NEXT_PUBLIC_STORAGE_ORIGIN: process.env.NEXT_PUBLIC_STORAGE_ORIGIN || 'http://localhost:9010',
       FEEDBACK_EMAIL_TEST_FALLBACK: 'true',
     },
   },
