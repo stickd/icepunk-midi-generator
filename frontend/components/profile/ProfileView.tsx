@@ -151,7 +151,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [authNotice, setAuthNotice] = useState(false);
+  const [authNotice] = useState(false);
 
   const me = token && meFetch?.token === token ? meFetch.me : null;
   const isOwnProfile = me !== null && me.username === username;

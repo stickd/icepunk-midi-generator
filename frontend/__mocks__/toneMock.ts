@@ -49,13 +49,15 @@ export function Frequency(note: unknown) {
 export class Gain extends StubNode {}
 export class Synth extends StubNode {}
 export class Sampler extends StubNode {
-  constructor(_options?: unknown) {
+  constructor(options?: unknown) {
     super();
+    void options;
   }
 }
 export class PolySynth extends StubNode {
-  constructor(..._args: unknown[]) {
+  constructor(...args: unknown[]) {
     super();
+    void args;
   }
 }
 

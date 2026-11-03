@@ -7,7 +7,7 @@ on:
   push:
     branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, redesign/icepunk-glass]
 
 # Cancel superseded runs on the same branch/PR so only the latest push is tested.
 concurrency:
@@ -127,6 +127,8 @@ jobs:
         run: npm run lint
 
       - name: Production build
+        env:
+          NEXT_PUBLIC_STORAGE_ORIGIN: https://storage.example.com
         run: npm run build
 
       - name: Unit and component tests (with coverage)
@@ -158,12 +160,21 @@ jobs:
           MINIO_ROOT_USER=dummy
           MINIO_ROOT_PASSWORD=dummy
           JWT_SECRET=dummy-not-a-real-secret
+          RESEND_API_KEY=dummy-resend-key
           EMAIL_FROM=ICEPUNK <accounts@example.com>
+          FRONTEND_URL=https://example.com
+          APP_DOMAIN=app.example.com
+          API_DOMAIN=api.example.com
+          FILES_DOMAIN=files.example.com
           CORS_ALLOWED_ORIGINS=https://example.com
           TRUSTED_PROXY_CIDRS=172.30.0.0/24
+          S3_ACCESS_KEY=dummy-access-key
+          S3_SECRET_KEY=dummy-secret-key
+          S3_BUCKET=icepunk-zips
+          S3_REGION=eu-central-1
           S3_PRESIGN_ENDPOINT=https://example.com
           NEXT_PUBLIC_API_URL=https://example.com
-          NEXT_PUBLIC_STORAGE_ORIGIN=https://example.com
+          NEXT_PUBLIC_STORAGE_ORIGIN=https://storage.example.com
           EOF
           docker compose -f docker-compose.production.yml --env-file /tmp/compose-validate.env config -q
 
