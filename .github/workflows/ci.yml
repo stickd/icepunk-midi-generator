@@ -326,6 +326,7 @@ jobs:
         working-directory: frontend
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8081
+          NEXT_PUBLIC_STORAGE_ORIGIN: http://localhost:9000
         run: npx playwright test
 
       - name: Upload Playwright report
