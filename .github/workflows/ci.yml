@@ -298,7 +298,7 @@ jobs:
       - name: Start the backend
         working-directory: backend
         run: |
-          EMAIL_DELIVERY_MODE=noop EMAIL_VERIFICATION_AUTO_VERIFY=true nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
+          EMAIL_DELIVERY_MODE=noop EMAIL_VERIFICATION_AUTO_VERIFY=true AUTH_LOGIN_IP_LIMIT=100 AUTH_LOGIN_IDENTIFIER_LIMIT=100 AUTH_REGISTER_IP_LIMIT=100 AUTH_REGISTER_EMAIL_LIMIT=100 nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
           echo $! > ../backend.pid
 
       - name: Wait for the backend to become healthy
