@@ -54,6 +54,10 @@ public class EmailVerificationService {
         emailService.sendVerificationEmail(user.getEmail(), rawToken);
         if (autoVerify) {
             user.setVerified(true);
+            // Registration has already completed its repository save by this point, so
+            // callers can supply a detached entity. Persist the test-only state
+            // explicitly rather than relying on JPA dirty checking.
+            users.save(user);
             tokens.invalidateActiveForUser(user, now);
         }
     }

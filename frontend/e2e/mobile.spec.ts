@@ -10,7 +10,7 @@ test('key controls are visible and usable at a mobile viewport', async ({ page }
 
   const viewportWidth = page.viewportSize()!.width
 
-  const title = page.getByRole('heading', { name: 'Generator', exact: true })
+  const title = page.locator('.studio-section-title h2')
   const generateButton = page.getByRole('button', { name: 'Generate' })
 
   await expect(title).toBeVisible()
