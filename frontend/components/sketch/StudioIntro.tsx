@@ -3,10 +3,8 @@ export default function StudioIntro() {
     <header className="studio-intro">
       <div className="studio-intro-copy">
         <p className="studio-eyebrow"><span /> A playground for cold sounds</p>
-        <h1>
-          <span className="sr-only">Free MIDI Melody Generator</span>
-          <span aria-hidden="true" className="studio-tagline">Cold by nature.<br /><span>Endless by sound.</span></span>
-        </h1>
+        <h1 className="studio-seo-heading">MIDI Melody Generator for Producers</h1>
+        <p className="studio-tagline">Cold by nature.<br /><span>Endless by sound.</span></p>
         <p className="studio-description">Generate MIDI melodies, preview ideas instantly and export MIDI directly into your DAW.</p>
         <div className="studio-capabilities"><span>MELODIC MIDI</span><i /><span>YOUR MIDI. YOUR SOUND.</span></div>
       </div>

@@ -4,20 +4,20 @@ import type { Metadata } from "next";
 import DesktopWaitlistForm from "@/components/DesktopWaitlistForm";
 
 export const metadata: Metadata = {
-  title: "Desktop MIDI Generator (Waitlist)",
+  title: "Desktop MIDI Generator for PC – Offline & Unlimited",
   description: "Join the iCEPUNK Desktop waitlist for unlimited local MIDI generation, offline projects and direct DAW handoff. Desktop is in development.",
   alternates: { canonical: "/desktop" },
   openGraph: {
     type: "website",
     siteName: "iCEPUNK",
-    title: "Desktop MIDI Generator Waitlist | iCEPUNK",
+    title: "Desktop MIDI Generator for PC – Offline & Unlimited | iCEPUNK",
     description: "Join the iCEPUNK Desktop waitlist for unlimited local MIDI generation, offline projects and direct DAW handoff.",
     url: "/desktop",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "iCEPUNK MIDI Generator for Producers" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Desktop MIDI Generator Waitlist | iCEPUNK",
+    title: "Desktop MIDI Generator for PC – Offline & Unlimited | iCEPUNK",
     description: "Join the iCEPUNK Desktop waitlist for unlimited local MIDI generation, offline projects and direct DAW handoff.",
     images: ["/opengraph-image"],
   },

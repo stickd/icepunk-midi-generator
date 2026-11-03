@@ -52,10 +52,8 @@ button:not(:disabled), a { cursor: pointer; }
 .studio-eyebrow { font-family: var(--font-dm-mono), monospace; font-size: 9px; font-weight: 400; letter-spacing: .15em; text-transform: uppercase; color: #a1b3b7; }
 .studio-intro .studio-eyebrow { display: flex; align-items: center; gap: 10px; color: #c4e8db; }
 .studio-eyebrow > span { width: 5px; height: 5px; border-radius: 50%; background: #c4ffe7; }
-.studio-intro h1 { margin-top: 22px; font-size: clamp(42px, 4.7vw, 70px); line-height: 1.05; font-weight: 500; letter-spacing: -.072em; }
-.studio-intro h1, .studio-source-title, .studio-discover h3, .studio-wordmark { font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif; }
-.studio-intro h1 > span { color: #9cccec; }
-.studio-intro .studio-tagline { display: block; color: var(--ice-text-primary); }
+.studio-intro .studio-seo-heading { margin-top: 20px; color: #a9cfee; font-family: var(--font-dm-mono), monospace; font-size: 10px; font-weight: 400; letter-spacing: .13em; line-height: 1.4; text-transform: uppercase; }
+.studio-intro .studio-tagline { display: block; margin-top: 14px; color: var(--ice-text-primary); font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif; font-size: clamp(42px, 4.7vw, 70px); font-weight: 500; letter-spacing: -.072em; line-height: 1.05; }
 .studio-intro .studio-tagline > span { color: #9cccec; }
 .studio-description { max-width: 390px; margin-top: 18px; font-size: 13px; line-height: 1.85; color: #a9babb; }
 .studio-capabilities { display: flex; align-items: center; gap: 14px; margin-top: 20px; font-family: var(--font-dm-mono), monospace; color: #819799; font-size: 8px; letter-spacing: .1em; }
@@ -189,10 +187,10 @@ input, select, textarea { accent-color: #c4ffe7; }
 .studio-signal-star { width: 104px; height: 104px; background: none; border: 0; border-radius: 0; box-shadow: none; transform: none; }
 .studio-signal-star img { width: 100%; height: 100%; mix-blend-mode: normal; transform: none; }
 .studio-signal-ring { border-color: #8ecbff18; box-shadow: none; }
-.studio-intro h1 { font-family: var(--font-display), sans-serif; font-size: clamp(27px, 3.3vw, 48px); line-height: 1.35; letter-spacing: -.045em; font-weight: 400; }
+.studio-intro .studio-tagline { font-family: var(--font-display), sans-serif; font-size: clamp(27px, 3.3vw, 48px); line-height: 1.35; letter-spacing: -.045em; font-weight: 400; }
 .studio-intro { grid-template-columns: minmax(0, 1fr); padding-block: 52px 44px; }
 .studio-intro-copy { width: 100%; }
-.studio-intro h1 { font-size: clamp(28px, 4.7vw, 68px); line-height: 1.25; letter-spacing: -.04em; }
+.studio-intro .studio-tagline { font-size: clamp(28px, 4.7vw, 68px); line-height: 1.25; letter-spacing: -.04em; }
 .studio-intro .studio-description { max-width: 620px; margin-top: 24px; }
 .studio-intro .studio-capabilities { margin-top: 24px; }
 .studio-description { font-size: 14px; line-height: 1.75; max-width: 430px; }
@@ -229,7 +227,7 @@ button[data-variant=primary]:hover { background: #c2e5ff; box-shadow: none; }
   .studio-account { gap: 8px; }
   .studio-account button { padding-inline: 12px; font-size: 10px; }
   .studio-intro { padding: 38px 0 34px; grid-template-columns: 1fr; gap: 10px; }
-  .studio-intro h1 { font-size: clamp(22px, 5.6vw, 38px); line-height: 1.45; letter-spacing: -.045em; }
+  .studio-intro .studio-tagline { font-size: clamp(22px, 5.6vw, 38px); line-height: 1.45; letter-spacing: -.045em; }
   .studio-intro .studio-eyebrow { font-size: 8px; }
   .studio-description { font-size: 12px; max-width: 330px; }
   .studio-art { display: none; }
