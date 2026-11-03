@@ -1,0 +1,260 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Badge, Button } from "@/components/ui";
+import {
+  GeneratedMidiItem,
+  GenerateMidiResponse,
+  getGeneratedItemDownloadUrl,
+  getGeneratedPackDownloadUrl,
+} from "@/lib/api";
+import { BrowserMidiSource, SoundEngineSettings, useBrowserMidiPlayback } from "@/hooks/useBrowserMidiPlayback";
+import { useGeneratedMidiPreview } from "@/hooks/useGeneratedMidiPreview";
+import BrowserPianoRoll from "./BrowserPianoRoll";
+import MidiThumbnailCarousel from "./MidiThumbnailCarousel";
+import SaveDatasetButton from "./SaveDatasetButton";
+
+type GeneratedPackVisualizerProps = {
+  generation: GenerateMidiResponse;
+  onNewGeneration: () => void;
+  onActiveMidiChange?: (midiSource: BrowserMidiSource) => void;
+  playback: ReturnType<typeof useBrowserMidiPlayback>;
+  soundEngine: SoundEngineSettings;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
+  tempAnalysisId?: string;
+  tempAnalysisAccessToken?: string;
+  token: string | null;
+  onStubStatus: (message: string) => void;
+};
+
+function formatDuration(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "n/a";
+  return `${value.toFixed(1)}s`;
+}
+
+export default function GeneratedPackVisualizer({
+  generation,
+  onActiveMidiChange,
+  onNewGeneration,
+  onRegenerate,
+  isRegenerating,
+  playback,
+  soundEngine,
+  tempAnalysisId,
+  tempAnalysisAccessToken,
+  token,
+  onStubStatus,
+}: GeneratedPackVisualizerProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const items = generation.items;
+  const activeItem: GeneratedMidiItem | null = items[activeIndex] ?? null;
+  const activePreview = useGeneratedMidiPreview(
+    activeItem
+      ? {
+          fileName: activeItem.fileName,
+          itemId: activeItem.id,
+          packId: generation.packId,
+          token,
+        }
+      : null,
+    Boolean(activeItem),
+  );
+  const isThisSource = Boolean(activeItem) && playback.activeSourceId === activeItem?.id;
+  const isThisLoading = isThisSource && playback.isLoading;
+  const isThisPlaying = isThisSource && playback.isPlaying;
+
+  const title = useMemo(
+    () => activeItem?.fileName ?? generation.name,
+    [activeItem, generation.name],
+  );
+
+  useEffect(() => {
+    onActiveMidiChange?.(activePreview.preview?.midiBuffer ?? null);
+  }, [activePreview.preview?.midiBuffer, onActiveMidiChange]);
+
+  const selectItem = useCallback((index: number) => {
+    if (index === activeIndex) {
+      if (activePreview.status === "error") activePreview.retry();
+      return;
+    }
+    if (isThisSource) {
+      playback.stop();
+    }
+    setActiveIndex(index);
+  }, [activeIndex, activePreview, isThisSource, playback]);
+
+  const togglePreview = useCallback(async () => {
+    if (!activeItem) return;
+
+    if (isThisPlaying) {
+      playback.stop();
+      return;
+    }
+
+    if (!activePreview.preview) {
+      activePreview.retry();
+      return;
+    }
+
+    playback.play(activePreview.preview.midiBuffer, soundEngine, activeItem.id);
+  }, [activeItem, activePreview, isThisPlaying, playback, soundEngine]);
+
+  async function downloadPack() {
+    try {
+      const access = await getGeneratedPackDownloadUrl(generation.packId, token);
+      window.location.assign(access.url);
+    } catch {
+      onStubStatus("Pack download is unavailable or you no longer have access.");
+    }
+  }
+
+  async function downloadItem() {
+    if (!activeItem) return;
+    try {
+      const access = await getGeneratedItemDownloadUrl(generation.packId, activeItem.id, token);
+      window.location.assign(access.url);
+    } catch {
+      onStubStatus("MIDI download is unavailable or you no longer have access.");
+    }
+  }
+
+  return (
+    <div className="grid gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition duration-150 ease-out hover:border-white/20 hover:bg-white/[0.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.15)]"
+            onClick={onNewGeneration}
+            type="button"
+          >
+            <svg className="h-3.5 w-3.5 text-ice-accent" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M19 12H5m0 0l6-6m-6 6l6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>New generation</span>
+          </button>
+
+          {onRegenerate ? (
+            <button
+              className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition duration-150 ease-out hover:border-white/20 hover:bg-white/[0.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.15)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isRegenerating}
+              onClick={onRegenerate}
+              type="button"
+            >
+              <svg className="h-3.5 w-3.5 text-ice-accent" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M4 4v5h5M20 20v-5h-5M4.5 15a8 8 0 0013.9 3.4M19.5 9A8 8 0 005.6 5.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>{isRegenerating ? "Regenerating..." : "Regenerate"}</span>
+            </button>
+          ) : null}
+
+          {generation.source === "CUSTOM_UPLOAD" ? (
+            <SaveDatasetButton onStubStatus={onStubStatus} tempAnalysisId={tempAnalysisId} tempAnalysisAccessToken={tempAnalysisAccessToken} token={token} />
+          ) : null}
+        </div>
+
+        <button
+          className="inline-flex items-center gap-2 rounded-full border border-[rgba(110,231,255,0.3)] bg-[rgba(110,231,255,0.1)] px-3.5 py-1.5 text-xs font-bold text-[#6ee7ff] shadow-[0_0_16px_rgba(110,231,255,0.2)] backdrop-blur-md transition duration-150 ease-out hover:bg-[rgba(110,231,255,0.2)] hover:shadow-[0_0_24px_rgba(110,231,255,0.35)] hover:text-white"
+          onClick={downloadPack}
+          type="button"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>Download whole pack (ZIP)</span>
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-[var(--ice-radius-card)] border border-white/[0.08] bg-white/[0.04] shadow-[var(--ice-shadow-card)] backdrop-blur-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/[0.25] px-4 py-3">
+          <span className="truncate text-xs font-medium tracking-[0.02em] text-ice-primary/90">
+            {title}
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge tone="accent">{generation.type === "DRUMS" ? "Drums" : "Melody"}</Badge>
+            {generation.bpm !== null ? <Badge>{generation.bpm} BPM</Badge> : null}
+            {generation.pitch !== null ? <Badge>pitch {generation.pitch}</Badge> : null}
+            {generation.octaves !== null ? <Badge>{generation.octaves} oct</Badge> : null}
+          </div>
+        </div>
+
+        {activeItem ? (
+          <BrowserPianoRoll
+            isPlaying={isThisPlaying}
+            midiData={activePreview.preview?.data}
+            midiFile={null}
+            midiMessage={activePreview.error ?? undefined}
+            midiStatus={activePreview.status}
+            playbackPositionSeconds={isThisSource ? playback.positionSeconds : 0}
+          />
+        ) : (
+          <div className="grid h-[210px] place-items-center bg-[color:var(--ice-bg-canvas)] p-4 text-center text-xs text-ice-muted">
+            No individual MIDI items were returned. The whole ZIP is still available above.
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] bg-black/[0.2] px-4 py-3">
+          <div className="flex flex-wrap gap-4 text-[10px] uppercase tracking-[0.06em] text-ice-muted">
+            <span>
+              <strong className="text-ice-secondary">{activePreview.preview?.data.notes.length ?? activeItem?.noteCount ?? "n/a"}</strong> notes
+            </span>
+            <span>
+              <strong className="text-ice-secondary">{activePreview.preview?.data.trackCount ?? activeItem?.trackCount ?? "n/a"}</strong> tracks
+            </span>
+            <span>
+              duration{" "}
+              <strong className="text-ice-secondary">
+                {formatDuration(activePreview.preview?.data.duration ?? activeItem?.durationSeconds ?? null)}
+              </strong>
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              disabled={!activeItem || activePreview.status === "loading"}
+              onClick={togglePreview}
+              size="sm"
+              type="button"
+              variant={isThisPlaying ? "primary" : "secondary"}
+            >
+              {isThisLoading || activePreview.status === "loading" ? (
+                "Loading..."
+              ) : activePreview.status === "error" ? (
+                "Retry preview"
+              ) : (
+                <>
+                  <span aria-hidden="true">{isThisPlaying ? "■ " : "▶ "}</span>
+                  {isThisPlaying ? "Stop" : "Preview"}
+                </>
+              )}
+            </Button>
+            <button
+              className={`inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-medium text-ice-primary transition-colors duration-150 ease-out hover:bg-white/[0.08] ${
+                activeItem ? "" : "pointer-events-none opacity-50"
+              }`}
+              disabled={!activeItem}
+              onClick={downloadItem}
+              type="button"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Download
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <MidiThumbnailCarousel
+        activeIndex={activeIndex}
+        items={items}
+        onSelect={selectItem}
+        packId={generation.packId}
+        token={token}
+      />
+
+      <p className="min-h-[18px] text-center text-xs text-ice-muted" role="status">
+        {isThisSource ? playback.message : ""}
+      </p>
+    </div>
+  );
+}

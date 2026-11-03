@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class GenerationLimitServiceTest {
@@ -64,20 +65,6 @@ class GenerationLimitServiceTest {
     }
 
     @Test
-    void resetsUserUsageOnNewDayWhenIncrementing() {
-        User user = new User("nikul", "nikul@example.com", "hash");
-        user.setGenerationsToday(7);
-        user.setGenerationDate(LocalDate.now().minusDays(1));
-        when(userRepository.findByEmailForUpdate("nikul@example.com")).thenReturn(Optional.of(user));
-
-        service.incrementUserUsage(user);
-
-        assertEquals(1, user.getGenerationsToday());
-        assertEquals(LocalDate.now(), user.getGenerationDate());
-        verify(userRepository).save(user);
-    }
-
-    @Test
     void createsGuestUsageForNewIpAddress() {
         when(guestUsageRepository.findByIpAddressForUpdate("127.0.0.2")).thenReturn(Optional.empty());
 
@@ -87,26 +74,73 @@ class GenerationLimitServiceTest {
     }
 
     @Test
-    void checkUserUsageDoesNotIncrementWhenLimitIsAvailable() {
-        User user = new User("nikul", "nikul@example.com", "hash");
-        user.setGenerationsToday(6);
-        when(userRepository.findByEmail("nikul@example.com")).thenReturn(Optional.of(user));
+    void getGuestUsageReturnsTodaysCountAndLimit() {
+        GuestUsage usage = new GuestUsage("127.0.0.1");
+        usage.setGenerationsToday(2);
+        usage.setGenerationDate(LocalDate.now());
+        when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
 
-        service.checkUserLimit(user);
+        GenerationLimitService.GenerationUsage result = service.getGuestUsage("127.0.0.1");
 
-        assertEquals(6, user.getGenerationsToday());
-        verify(userRepository, never()).save(user);
+        assertEquals(2, result.used());
+        assertEquals(3, result.limit());
+    }
+
+    @Test
+    void getGuestUsageIgnoresStaleCountFromAPreviousDay() {
+        GuestUsage usage = new GuestUsage("127.0.0.1");
+        usage.setGenerationsToday(3);
+        usage.setGenerationDate(LocalDate.now().minusDays(1));
+        when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
+
+        GenerationLimitService.GenerationUsage result = service.getGuestUsage("127.0.0.1");
+
+        assertEquals(0, result.used());
+        assertEquals(3, result.limit());
     }
 
     @Test
     void rejectsUserUsageWhenDailyLimitIsReached() {
         User user = new User("nikul", "nikul@example.com", "hash");
-        user.setGenerationsToday(7);
-        when(userRepository.findByEmail("nikul@example.com")).thenReturn(Optional.of(user));
+        user.setGenerationsToday(5);
 
-        assertThrows(
-                GenerationLimitException.class,
-                () -> service.checkUserLimit(user)
-        );
+        assertThrows(GenerationLimitException.class, () -> service.checkUserLimit(user));
+    }
+
+    @Test
+    void incrementsUserUsageAfterSuccessfulGeneration() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(4);
+        when(userRepository.findByEmailForUpdate(user.getEmail())).thenReturn(Optional.of(user));
+
+        service.incrementUserUsage(user);
+
+        assertEquals(5, user.getGenerationsToday());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void resetsStaleUserUsageBeforeIncrementing() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(5);
+        user.setGenerationDate(LocalDate.now().minusDays(1));
+        when(userRepository.findByEmailForUpdate(user.getEmail())).thenReturn(Optional.of(user));
+
+        service.incrementUserUsage(user);
+
+        assertEquals(1, user.getGenerationsToday());
+        assertEquals(LocalDate.now(), user.getGenerationDate());
+    }
+
+    @Test
+    void getUserUsageReturnsTodaysCountAndLimit() {
+        User user = new User("nikul", "nikul@example.com", "hash");
+        user.setGenerationsToday(4);
+        user.setGenerationDate(LocalDate.now());
+
+        GenerationLimitService.GenerationUsage result = service.getUserUsage(user);
+
+        assertEquals(4, result.used());
+        assertEquals(5, result.limit());
     }
 }

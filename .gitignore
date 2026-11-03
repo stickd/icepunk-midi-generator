@@ -3,6 +3,7 @@ midi_dataset/
 
 # Generated MIDI
 generated_midi/
+temp_analysis/
 *.mid
 *.zip
 
@@ -26,6 +27,8 @@ build/
 .env
 .env.local
 .env*
+!.env.production.example
+!.env.docker.example
 
 # Logs
 *.log
@@ -38,3 +41,24 @@ build/
 .DS_Store
 analysis_output/
 *:Zone.Identifier
+
+# Private notes
+protocol.md
+docs/python-engine-code-review.md
+
+# Playwright
+playwright-report/
+test-results/
+frontend/e2e/.seed-user.json
+
+# Jest coverage
+coverage/
+
+# AI tool scaffolding (local skill/hook caches, not project source)
+.agents/
+.claude/skills/
+.claude/settings.local.json
+.codex/
+.github/hooks/
+.github/skills/
+.impeccable/

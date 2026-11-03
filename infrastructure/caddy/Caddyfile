@@ -1,0 +1,49 @@
+{
+	# Caddy obtains and renews public TLS certificates. Keep operational logs in
+	# Docker's rotated json-file driver rather than exposing request bodies.
+	admin off
+}
+
+http://{$APP_DOMAIN}, http://{$API_DOMAIN}, http://{$FILES_DOMAIN} {
+	redir https://{host}{uri} permanent
+}
+
+https://{$APP_DOMAIN} {
+	reverse_proxy frontend:3000 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+https://{$API_DOMAIN} {
+	request_body {
+		max_size 220MB
+	}
+	reverse_proxy backend:8081 {
+		transport http {
+			read_timeout 90s
+			write_timeout 90s
+		}
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+# The MinIO console is deliberately not routed. Query strings are preserved by
+# Caddy's reverse_proxy, which is required for SigV4 presigned URLs.
+https://{$FILES_DOMAIN} {
+	reverse_proxy minio:9000 {
+		transport http {
+			read_timeout 90s
+			write_timeout 90s
+		}
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

@@ -2,6 +2,7 @@ package icepunk_backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(
@@ -30,8 +31,37 @@ public class User {
     @Column(nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(nullable = false, length = 32)
+    private String accountStatus = "ACTIVE";
+
+    @Column(nullable = false, length = 32)
+    private String role = "USER";
+
+    public String getRole() { return role; }
+
+    public String getAccountStatus() { return accountStatus; }
+
+    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
+
+    public boolean isActive() { return "ACTIVE".equals(accountStatus); }
+
     private Integer generationsToday = 0;
     private LocalDate generationDate = LocalDate.now();
+
+    @Column(length = 300)
+    private String bio;
+
+    @Column(length = 1024)
+    private String profilePictureUrl;
+
+    @Column(nullable = false)
+    private Integer credits = 0;
+
+    @Column(nullable = false)
+    private Boolean verified = false;
+
+    @Column(nullable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     public User() {
     }
@@ -90,5 +120,45 @@ public class User {
 
     public void setGenerationDate(LocalDate generationDate) {
         this.generationDate = generationDate;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public Integer getCredits() {
+        return credits;
+    }
+
+    public void setCredits(Integer credits) {
+        this.credits = credits;
+    }
+
+    public Boolean getVerified() {
+        return verified;
+    }
+
+    public void setVerified(Boolean verified) {
+        this.verified = verified;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -11,6 +11,11 @@ venv
 __pycache__
 *.pyc
 
+python/tests
+python/pytest.ini
+python/mypy.ini
+python/requirements-dev.txt
+
 generated_midi
 *.mid
 *.zip

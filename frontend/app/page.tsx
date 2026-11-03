@@ -1,22 +1,51 @@
-import FeedbackSection from "@/components/FeedbackSection";
-import Hero from "@/components/Hero";
-import HomeControls from "@/components/HomeControls";
-import Snowfall from "@/components/Snowfall";
+import type { Metadata } from "next";
+import SketchThemeLayout from "@/components/sketch/SketchThemeLayout";
+
+export const metadata: Metadata = {
+  title: { absolute: "Free MIDI Generator for Melodies & MIDI Packs | iCEPUNK" },
+  description: "Generate MIDI melodies and MIDI packs for your music. Preview, customize and export MIDI for FL Studio, Ableton, Logic and other DAWs.",
+  alternates: { canonical: "/" },
+};
+
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "iCEPUNK",
+    url: "https://icepunk.app",
+    logo: "https://icepunk.app/icepunk-mark.svg",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "iCEPUNK",
+    url: "https://icepunk.app",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "iCEPUNK MIDI Generator",
+    url: "https://icepunk.app",
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Web",
+    isAccessibleForFree: true,
+    description: "A MIDI melody generator for music producers. Generate, preview and export MIDI melodies and MIDI packs for your DAW.",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+    },
+  },
+];
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(56,189,248,0.18),transparent_38%)]" />
-
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(2,6,23,0)_0%,rgba(2,6,23,0.25)_100%)]" />
-
-      <Snowfall />
-
-      <Hero>
-        <HomeControls />
-      </Hero>
-
-      <FeedbackSection />
-    </main>
+    <>
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+        type="application/ld+json"
+      />
+      <SketchThemeLayout />
+    </>
   );
 }

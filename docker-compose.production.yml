@@ -1,6 +1,8 @@
+name: icepunk-prod
+
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16.11-bookworm
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-icepunk}
@@ -13,37 +15,83 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - backend-network
+    logging: &production-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory ${REDIS_MAXMEMORY:-128mb} --maxmemory-policy volatile-ttl
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+    mem_limit: ${REDIS_MEMORY_LIMIT:-256m}
+    cpus: ${REDIS_CPU_LIMIT:-0.25}
+    pids_limit: ${REDIS_PIDS_LIMIT:-64}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # Redis starts as root only long enough to drop privileges to its bundled
+      # `redis` user. Retain the two capabilities required for that transition.
+      - SETGID
+      - SETUID
+    logging: *production-logging
 
   minio:
-    image: minio/minio
+    image: dappros/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      # Allows browser requests to short-lived presigned URLs without making the
+      # bucket public. Keep this aligned with the backend's CORS allow-list.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      MINIO_API_CORS_ALLOW_CREDENTIALS_WITH_WILDCARD: "off"
     volumes:
       - minio_data:/data
     ports:
       - "${MINIO_BIND_ADDRESS:-127.0.0.1}:${MINIO_API_PORT:-9010}:9000"
       - "${MINIO_CONSOLE_BIND_ADDRESS:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9011}:9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - backend-network
+    logging: *production-logging
 
   create-minio-bucket:
-    image: minio/mc
+    image: dappros/minio:RELEASE.2025-09-07T16-13-09Z
     depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      until mc alias set local http://minio:9000 \"$${MINIO_ROOT_USER}\" \"$${MINIO_ROOT_PASSWORD}\"; do
-        echo 'Waiting for MinIO...';
-        sleep 2;
-      done;
-      mc mb --ignore-existing local/\"$${S3_BUCKET}\";
-      mc anonymous set download local/\"$${S3_BUCKET}\";
-      "
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/bootstrap/init-minio.sh"]
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       S3_BUCKET: ${S3_BUCKET:-icepunk-zips}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+    volumes:
+      - ./infrastructure/minio:/bootstrap:ro
+    networks:
+      - backend-network
 
   backend:
     build:
@@ -54,31 +102,174 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       create-minio-bucket:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
     environment:
       SERVER_PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-icepunk}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-icepunk}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7200000}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      APP_SECURITY_HSTS_ENABLED: "true"
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      EMAIL_FROM: ${EMAIL_FROM:?EMAIL_FROM is required}
+      EMAIL_VERIFICATION_EXPIRY_MINUTES: ${EMAIL_VERIFICATION_EXPIRY_MINUTES:-60}
+      EMAIL_VERIFICATION_RESEND_LIMIT: ${EMAIL_VERIFICATION_RESEND_LIMIT:-3}
+      EMAIL_VERIFICATION_RESEND_WINDOW_MINUTES: ${EMAIL_VERIFICATION_RESEND_WINDOW_MINUTES:-15}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:?TRUSTED_PROXY_CIDRS is required}
       ICEPUNK_GENERATOR_PROJECT_DIR: /app
       ICEPUNK_GENERATOR_PYTHON_PATH: /app/venv/bin/python3
-      ICEPUNK_GENERATOR_SCRIPT_NAME: icepunk_midi_generator.py
+      ICEPUNK_GENERATOR_SCRIPT_NAME: python/generate_midi.py
+      ICEPUNK_TEMP_ANALYZER_SCRIPT_NAME: python/temp_analyzer.py
       ICEPUNK_GENERATOR_TIMEOUT_SECONDS: ${ICEPUNK_GENERATOR_TIMEOUT_SECONDS:-60}
       ICEPUNK_GENERATOR_MAX_CONCURRENT: ${ICEPUNK_GENERATOR_MAX_CONCURRENT:-2}
+      DATASETS_TEMP_DIR: /app/temp_analysis
+      DATASETS_TEMP_MIDI_MAX_SIZE_BYTES: ${DATASETS_TEMP_MIDI_MAX_SIZE_BYTES:-2097152}
+      DATASETS_TEMP_RETENTION_HOURS: ${DATASETS_TEMP_RETENTION_HOURS:-24}
+      GENERATED_ZIP_RETENTION_DAYS: ${GENERATED_ZIP_RETENTION_DAYS:-2}
       S3_ENDPOINT: http://minio:9000
+      # Browser-reachable MinIO API origin used only in signed GET URLs. Keep the bucket private.
+      S3_PRESIGN_ENDPOINT: ${S3_PRESIGN_ENDPOINT:?S3_PRESIGN_ENDPOINT is required}
       S3_REGION: ${S3_REGION:-eu-central-1}
       S3_BUCKET: ${S3_BUCKET:-icepunk-zips}
-      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
-      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
-      S3_PUBLIC_URL: ${S3_PUBLIC_URL:?S3_PUBLIC_URL is required}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      S3_CONNECTION_TIMEOUT_SECONDS: ${S3_CONNECTION_TIMEOUT_SECONDS:-3}
+      S3_SOCKET_TIMEOUT_SECONDS: ${S3_SOCKET_TIMEOUT_SECONDS:-15}
+      S3_API_CALL_TIMEOUT_SECONDS: ${S3_API_CALL_TIMEOUT_SECONDS:-30}
+      S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS: ${S3_API_CALL_ATTEMPT_TIMEOUT_SECONDS:-20}
+      PRESIGNED_PREVIEW_TTL_SECONDS: ${PRESIGNED_PREVIEW_TTL_SECONDS:-600}
+      PRESIGNED_DOWNLOAD_TTL_SECONDS: ${PRESIGNED_DOWNLOAD_TTL_SECONDS:-180}
     ports:
       - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8081}:8081"
+    networks:
+      - backend-network
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-1536m}
+    cpus: ${BACKEND_CPU_LIMIT:-1.5}
+    pids_limit: ${BACKEND_PIDS_LIMIT:-256}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *production-logging
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+        NEXT_PUBLIC_STORAGE_ORIGIN: ${NEXT_PUBLIC_STORAGE_ORIGIN:?NEXT_PUBLIC_STORAGE_ORIGIN is required}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FEEDBACK_TO_EMAIL: ${FEEDBACK_TO_EMAIL:-}
+      FEEDBACK_FROM_EMAIL: ${FEEDBACK_FROM_EMAIL:-}
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    networks:
+      - backend-network
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-512m}
+    cpus: ${FRONTEND_CPU_LIMIT:-0.5}
+    pids_limit: ${FRONTEND_PIDS_LIMIT:-128}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *production-logging
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN is required}
+      FILES_DOMAIN: ${FILES_DOMAIN:?FILES_DOMAIN is required}
+    ports:
+      - "${PUBLIC_HTTP_PORT:-80}:80"
+      - "${PUBLIC_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - backend-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    logging: *production-logging
+
+  backup:
+    image: dappros/minio:RELEASE.2025-09-07T16-13-09Z
+    profiles: ["operations"]
+    environment:
+      S3_BUCKET: ${S3_BUCKET:-icepunk-zips}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_ACCESS_KEY: ${BACKUP_S3_ACCESS_KEY:-}
+      BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-icepunk-production}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+    volumes:
+      - ${BACKUP_LOCAL_DIR:-./backups}:/backups
+      - ./infrastructure/backup:/backup-scripts:ro
+    entrypoint: ["/bin/sh", "/backup-scripts/mirror-minio.sh"]
+    networks:
+      - backend-network
+    logging: *production-logging
 
 volumes:
   postgres_data:
   minio_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  # Reverse proxies can join this fixed private network without trusting public peers.
+  backend-network:
+    name: icepunk-prod-backend
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

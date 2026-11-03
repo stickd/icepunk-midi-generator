@@ -1,0 +1,16 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Public package facade intentionally re-exports its documented API.
+"midi_generator/__init__.py" = ["F401", "F403"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["midi_generator", "generate_midi.py"]
+check_untyped_defs = true
+warn_unused_ignores = true
