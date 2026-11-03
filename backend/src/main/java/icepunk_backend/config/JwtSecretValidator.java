@@ -20,19 +20,22 @@ public class JwtSecretValidator {
     private final String databasePassword;
     private final String s3AccessKey;
     private final String s3SecretKey;
+    private final boolean emailVerificationAutoVerify;
 
     public JwtSecretValidator(
             Environment environment,
             @Value("${jwt.secret:}") String jwtSecret,
             @Value("${spring.datasource.password:}") String databasePassword,
             @Value("${s3.access-key:}") String s3AccessKey,
-            @Value("${s3.secret-key:}") String s3SecretKey
+            @Value("${s3.secret-key:}") String s3SecretKey,
+            @Value("${email.verification.auto-verify:false}") boolean emailVerificationAutoVerify
     ) {
         this.environment = environment;
         this.jwtSecret = jwtSecret;
         this.databasePassword = databasePassword;
         this.s3AccessKey = s3AccessKey;
         this.s3SecretKey = s3SecretKey;
+        this.emailVerificationAutoVerify = emailVerificationAutoVerify;
     }
 
     @PostConstruct
@@ -46,6 +49,9 @@ public class JwtSecretValidator {
         }
         if (isUnsafe(s3AccessKey, 8) || isUnsafe(s3SecretKey, 16)) {
             throw new IllegalStateException("S3 application credentials must be non-placeholder production credentials.");
+        }
+        if (emailVerificationAutoVerify) {
+            throw new IllegalStateException("EMAIL_VERIFICATION_AUTO_VERIFY must be disabled in production.");
         }
     }
 

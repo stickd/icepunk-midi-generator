@@ -298,7 +298,7 @@ jobs:
       - name: Start the backend
         working-directory: backend
         run: |
-          EMAIL_DELIVERY_MODE=noop nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
+          EMAIL_DELIVERY_MODE=noop EMAIL_VERIFICATION_AUTO_VERIFY=true nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
           echo $! > ../backend.pid
 
       - name: Wait for the backend to become healthy
@@ -387,6 +387,9 @@ jobs:
           format: sarif
           output: trivy-image-results.sarif
           severity: CRITICAL,HIGH
+          # SARIF otherwise retains lower-severity findings even though this
+          # gate is intentionally limited to release-blocking severities.
+          limit-severities-for-sarif: true
           exit-code: '1'
 
       - name: Upload Trivy image scan results
