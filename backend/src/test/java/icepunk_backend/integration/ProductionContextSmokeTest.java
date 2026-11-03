@@ -59,6 +59,10 @@ class ProductionContextSmokeTest {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.datasource.driver-class-name", POSTGRES::getDriverClassName);
+        // application-test.properties disables Flyway for H2-based unit tests.
+        // This smoke test uses a disposable real PostgreSQL instance and validates
+        // the production schema, so the production migrations must run first.
+        registry.add("spring.flyway.enabled", () -> "true");
         registry.add("jwt.secret", () -> "production-smoke-test-secret-at-least-32-bytes");
         registry.add("jwt.expiration", () -> "86400000");
         registry.add("auth.rate-limit.login-ip-limit", () -> "5");
