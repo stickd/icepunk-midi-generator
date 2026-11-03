@@ -2,6 +2,7 @@ const feedbackTypes = new Set([
   "Bug Report",
   "Feature Request",
   "Idea",
+  "Desktop Waitlist",
   "Other",
 ]);
 

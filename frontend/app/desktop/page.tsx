@@ -1,32 +1,27 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import DesktopWaitlistForm from "@/components/DesktopWaitlistForm";
 
 export const metadata: Metadata = {
-  title: "Desktop MIDI Generator",
-  description: "Discover iCEPUNK Desktop, a dedicated MIDI generation workflow for music producers. Desktop version currently in development.",
+  title: "Desktop MIDI Generator (Waitlist)",
+  description: "Join the iCEPUNK Desktop waitlist for unlimited local MIDI generation, offline projects and direct DAW handoff. Desktop is in development.",
   alternates: { canonical: "/desktop" },
   openGraph: {
     type: "website",
     siteName: "iCEPUNK",
-    title: "Desktop MIDI Generator | iCEPUNK",
-    description: "Discover iCEPUNK Desktop, a dedicated MIDI generation workflow for music producers. Desktop version currently in development.",
+    title: "Desktop MIDI Generator Waitlist | iCEPUNK",
+    description: "Join the iCEPUNK Desktop waitlist for unlimited local MIDI generation, offline projects and direct DAW handoff.",
     url: "/desktop",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "iCEPUNK MIDI Generator for Producers" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Desktop MIDI Generator | iCEPUNK",
-    description: "Discover iCEPUNK Desktop, a dedicated MIDI generation workflow for music producers. Desktop version currently in development.",
+    title: "Desktop MIDI Generator Waitlist | iCEPUNK",
+    description: "Join the iCEPUNK Desktop waitlist for unlimited local MIDI generation, offline projects and direct DAW handoff.",
     images: ["/opengraph-image"],
   },
 };
-
-const roadmap = [
-  ["01", "Native studio", "A focused ICEPUNK workspace for desktop music-making."],
-  ["02", "Local projects", "Keep packs, MIDI ideas and sound settings together in one place."],
-  ["03", "DAW handoff", "Open generated MIDI quickly in the workflow you already use."],
-];
 
 export default function DesktopPage() {
   return (
@@ -59,25 +54,13 @@ export default function DesktopPage() {
         </figure>
       </section>
 
-      <section className="desktop-roadmap" aria-labelledby="roadmap-title">
-        <div className="desktop-section-heading">
-          <p className="desktop-kicker">WORKING ROADMAP</p>
-          <h2 id="roadmap-title">What we are building</h2>
+      <section className="desktop-waitlist" aria-labelledby="desktop-waitlist-title">
+        <div>
+          <p className="desktop-kicker">EARLY ACCESS</p>
+          <h2 id="desktop-waitlist-title">Get Desktop first.</h2>
+          <p>Join the waitlist for the upcoming desktop version: unlimited MIDI generations, local projects and a focused workflow built for longer sessions.</p>
         </div>
-        <ol>
-          {roadmap.map(([number, title, copy]) => (
-            <li key={number}>
-              <span>{number}</span>
-              <div><h3>{title}</h3><p>{copy}</p></div>
-              <em>PLANNED</em>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="desktop-note" aria-label="Current availability">
-        <span aria-hidden="true">✦</span>
-        <p>The web MIDI generator is available now. Desktop availability updates will be posted here; there is no download yet.</p>
+        <DesktopWaitlistForm />
       </section>
     </main>
   );

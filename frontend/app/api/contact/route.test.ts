@@ -86,6 +86,22 @@ describe("POST /api/contact", () => {
   });
 
   describe("successful submission via Resend", () => {
+    it("accepts a desktop waitlist signup", async () => {
+      fetchMock.mockResolvedValue({ ok: true });
+
+      const response = await POST(
+        makeRequest({
+          email: "producer@example.com",
+          feedbackType: "Desktop Waitlist",
+          message: "Desktop waitlist signup. Contact consent received.",
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      const [, options] = fetchMock.mock.calls[0];
+      expect(JSON.parse(options.body).subject).toBe("IcePunk feedback: Desktop Waitlist");
+    });
+
     it("sends the email through Resend and returns success", async () => {
       fetchMock.mockResolvedValue({ ok: true });
 
