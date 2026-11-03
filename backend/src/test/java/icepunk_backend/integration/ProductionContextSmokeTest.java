@@ -1,6 +1,7 @@
 package icepunk_backend.integration;
 
 import icepunk_backend.BackendApplication;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,6 +42,13 @@ class ProductionContextSmokeTest {
 
     static {
         POSTGRES.start();
+        // The test profile disables Flyway for H2 unit tests. This isolated
+        // production-profile PostgreSQL database must use the real migration
+        // chain before Hibernate validates the schema.
+        Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .load()
+                .migrate();
         MINIO.start();
         try (S3Client client = S3Client.builder()
                 .endpointOverride(URI.create(MINIO.getS3URL()))
