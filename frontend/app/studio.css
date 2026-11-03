@@ -55,6 +55,8 @@ button:not(:disabled), a { cursor: pointer; }
 .studio-intro h1 { margin-top: 22px; font-size: clamp(42px, 4.7vw, 70px); line-height: 1.05; font-weight: 500; letter-spacing: -.072em; }
 .studio-intro h1, .studio-source-title, .studio-discover h3, .studio-wordmark { font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif; }
 .studio-intro h1 > span { color: #9cccec; }
+.studio-intro .studio-tagline { display: block; color: var(--ice-text-primary); }
+.studio-intro .studio-tagline > span { color: #9cccec; }
 .studio-description { max-width: 390px; margin-top: 18px; font-size: 13px; line-height: 1.85; color: #a9babb; }
 .studio-capabilities { display: flex; align-items: center; gap: 14px; margin-top: 20px; font-family: var(--font-dm-mono), monospace; color: #819799; font-size: 8px; letter-spacing: .1em; }
 .studio-capabilities i { height: 3px; width: 3px; border-radius: 50%; background: #829a92; }

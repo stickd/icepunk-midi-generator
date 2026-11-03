@@ -19,8 +19,9 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   const decoded = safeDecode(username);
 
   return {
-    title: `${decoded} — iCEPUNK`,
+    title: decoded,
     description: `MIDI packs published by ${decoded} on iCEPUNK.`,
+    robots: { index: false, follow: true },
   };
 }
 

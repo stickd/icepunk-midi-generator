@@ -22,8 +22,27 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "iCEPUNK",
-  description: "Your playground for cold sounds. Generate, shape and discover MIDI with iCEPUNK.",
+  metadataBase: new URL("https://icepunk.app"),
+  title: {
+    default: "iCEPUNK",
+    template: "%s | iCEPUNK",
+  },
+  description: "Generate MIDI melodies and MIDI packs for your music. Preview, customize and export MIDI for FL Studio, Ableton, Logic and other DAWs.",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "iCEPUNK",
+    title: "Free MIDI Generator for Melodies & MIDI Packs | iCEPUNK",
+    description: "Generate MIDI melodies and MIDI packs for your music. Preview, customize and export MIDI for your DAW.",
+    url: "/",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "iCEPUNK MIDI Generator for Producers" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Free MIDI Generator for Melodies & MIDI Packs | iCEPUNK",
+    description: "Generate MIDI melodies and MIDI packs for your music. Preview, customize and export MIDI for your DAW.",
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function RootLayout({

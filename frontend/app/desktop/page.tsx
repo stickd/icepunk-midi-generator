@@ -1,5 +1,26 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Desktop MIDI Generator",
+  description: "Explore the planned iCEPUNK Desktop workflow for local MIDI projects and fast MIDI export. The web MIDI generator is available now.",
+  alternates: { canonical: "/desktop" },
+  openGraph: {
+    type: "website",
+    siteName: "iCEPUNK",
+    title: "Desktop MIDI Generator | iCEPUNK",
+    description: "Explore the planned iCEPUNK Desktop workflow for local MIDI projects and fast MIDI export.",
+    url: "/desktop",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "iCEPUNK MIDI Generator for Producers" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Desktop MIDI Generator | iCEPUNK",
+    description: "Explore the planned iCEPUNK Desktop workflow for local MIDI projects and fast MIDI export.",
+    images: ["/opengraph-image"],
+  },
+};
 
 const roadmap = [
   ["01", "Native studio", "A focused ICEPUNK workspace for desktop music-making."],
@@ -21,6 +42,7 @@ export default function DesktopPage() {
         <p className="desktop-kicker">ICEPUNK FOR DESKTOP · IN DEVELOPMENT</p>
         <h1 id="desktop-title">A colder, closer way to make MIDI.</h1>
         <p>We are shaping a desktop companion for longer sessions, local projects and a more direct handoff into your DAW.</p>
+        <Link className="desktop-hero-action" href="/#workspace"><span>→</span> Use the web MIDI generator</Link>
       </section>
 
       <section className="desktop-product-preview" aria-labelledby="desktop-preview-title">
@@ -47,7 +69,7 @@ export default function DesktopPage() {
             <li key={number}>
               <span>{number}</span>
               <div><h3>{title}</h3><p>{copy}</p></div>
-              <em>TODO</em>
+              <em>PLANNED</em>
             </li>
           ))}
         </ol>
@@ -55,7 +77,7 @@ export default function DesktopPage() {
 
       <section className="desktop-note" aria-label="Current availability">
         <span aria-hidden="true">✦</span>
-        <p>The web studio is available now. The desktop app is a prepared space — no download is available yet.</p>
+        <p>The web MIDI generator is available now. Desktop availability updates will be posted here; there is no download yet.</p>
       </section>
     </main>
   );
