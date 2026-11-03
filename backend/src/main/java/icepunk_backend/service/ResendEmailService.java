@@ -2,6 +2,7 @@ package icepunk_backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import icepunk_backend.exception.EmailDeliveryException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.time.Duration;
 import java.util.Map;
 
 @Service
+@ConditionalOnProperty(name = "email.delivery.mode", havingValue = "resend", matchIfMissing = true)
 public class ResendEmailService implements EmailService {
     private final ObjectMapper objectMapper;
     private final String apiKey, from, frontendUrl;

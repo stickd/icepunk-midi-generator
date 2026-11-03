@@ -33,6 +33,18 @@ class EmailVerificationServiceTest {
     }
 
     @Test
+    void autoVerificationPersistsTheUserForIsolatedEndToEndTests() {
+        EmailVerificationService autoVerifyService = new EmailVerificationService(tokens, users, email, 60, 24, true);
+        User user = new User("neo", "neo@example.com", "hash");
+
+        autoVerifyService.createAndSend(user);
+
+        assertTrue(user.getVerified());
+        verify(users).save(user);
+        verify(tokens, times(2)).invalidateActiveForUser(eq(user), any(OffsetDateTime.class));
+    }
+
+    @Test
     void validTokenVerifiesAndCannotBeReused() {
         User user = new User("neo", "neo@example.com", "hash");
         user.setVerified(false);

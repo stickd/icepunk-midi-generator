@@ -7,7 +7,7 @@ import icepunk_backend.security.JwtService;
 import icepunk_backend.service.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -15,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
+import org.flywaydb.core.Flyway;
 import org.testcontainers.containers.PostgreSQLContainer;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,7 +27,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class PrivacyFlowsIntegrationTest {
     static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>("postgres:16-alpine");
-    static { PG.start(); }
+    static {
+        PG.start();
+        // The test profile disables Flyway for H2-based tests. This class uses
+        // PostgreSQL and validates the production mapping, so its schema must
+        // be migrated before the Spring context starts Hibernate validation.
+        Flyway.configure()
+                .dataSource(PG.getJdbcUrl(), PG.getUsername(), PG.getPassword())
+                .load()
+                .migrate();
+    }
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry r) {
         r.add("spring.datasource.url", PG::getJdbcUrl);

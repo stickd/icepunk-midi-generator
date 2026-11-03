@@ -10,11 +10,10 @@ COPY backend/src backend/src
 # `backend` job (./mvnw verify) has already passed for this exact commit.
 RUN cd backend && ./mvnw -DskipTests package
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-ubi10-minimal
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 python3-venv curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN microdnf install -y --setopt=install_weak_deps=0 python3 python3-pip curl-minimal \
+    && microdnf clean all
 
 WORKDIR /app
 
@@ -30,13 +29,9 @@ RUN python3 -m venv /app/venv \
     && test -f /app/python/generate_midi.py \
     && test -f /app/python/temp_analyzer.py \
     && mkdir -p /app/generated_midi /app/temp_analysis /app/user_uploads \
-    && groupadd --system icepunk \
-    && useradd --system --gid icepunk --home-dir /app icepunk \
-    && chown -R icepunk:icepunk /app
+    && chown -R 10001:0 /app
 
-COPY --from=build /workspace/backend/target/*.jar /app/backend.jar
-
-RUN chown icepunk:icepunk /app/backend.jar
+COPY --from=build --chown=10001:0 /workspace/backend/target/*.jar /app/backend.jar
 
 ENV SERVER_PORT=8081
 ENV ICEPUNK_GENERATOR_PROJECT_DIR=/app
@@ -47,6 +42,6 @@ ENV JAVA_OPTS=""
 
 EXPOSE 8081
 
-USER icepunk
+USER 10001
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/backend.jar"]
