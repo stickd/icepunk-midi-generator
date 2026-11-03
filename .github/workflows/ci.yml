@@ -200,8 +200,8 @@ jobs:
       - name: Ensure mvnw is executable
         run: chmod +x backend/mvnw
 
-      - name: Start Postgres and MinIO
-        run: docker compose up -d --wait postgres minio
+      - name: Start Postgres, Redis and MinIO
+        run: docker compose up -d --wait postgres redis minio
 
       - name: Provision the MinIO bucket
         run: |
@@ -281,8 +281,8 @@ jobs:
       - name: Ensure mvnw is executable
         run: chmod +x backend/mvnw
 
-      - name: Start Postgres and MinIO
-        run: docker compose up -d --wait postgres minio
+      - name: Start Postgres, Redis and MinIO
+        run: docker compose up -d --wait postgres redis minio
 
       - name: Provision the MinIO bucket
         run: |
