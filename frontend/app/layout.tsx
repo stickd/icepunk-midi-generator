@@ -39,6 +39,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     images: ["/opengraph-image"],
   },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
