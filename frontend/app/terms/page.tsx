@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Terms",
+  title: "Nutzungsbedingungen",
   description: "Terms of use for iCEPUNK.",
   alternates: { canonical: "/terms" },
 };

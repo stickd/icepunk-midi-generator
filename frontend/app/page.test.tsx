@@ -102,6 +102,7 @@ describe("Home page", () => {
   it("renders the sketch workspace and inline generation flow", async () => {
     const { container } = render(<Home />);
 
+    expect(screen.getByRole("heading", { level: 1, name: "Free MIDI Melody Generator" })).toBeInTheDocument();
     expect(
       await screen.findByRole("heading", {
         name: "Generator",

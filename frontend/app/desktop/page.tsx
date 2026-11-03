@@ -4,20 +4,20 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Desktop MIDI Generator",
-  description: "Explore the planned iCEPUNK Desktop workflow for local MIDI projects and fast MIDI export. The web MIDI generator is available now.",
+  description: "Discover iCEPUNK Desktop, a dedicated MIDI generation workflow for music producers. Desktop version currently in development.",
   alternates: { canonical: "/desktop" },
   openGraph: {
     type: "website",
     siteName: "iCEPUNK",
     title: "Desktop MIDI Generator | iCEPUNK",
-    description: "Explore the planned iCEPUNK Desktop workflow for local MIDI projects and fast MIDI export.",
+    description: "Discover iCEPUNK Desktop, a dedicated MIDI generation workflow for music producers. Desktop version currently in development.",
     url: "/desktop",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "iCEPUNK MIDI Generator for Producers" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Desktop MIDI Generator | iCEPUNK",
-    description: "Explore the planned iCEPUNK Desktop workflow for local MIDI projects and fast MIDI export.",
+    description: "Discover iCEPUNK Desktop, a dedicated MIDI generation workflow for music producers. Desktop version currently in development.",
     images: ["/opengraph-image"],
   },
 };

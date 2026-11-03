@@ -21,6 +21,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   return {
     title: decoded,
     description: `MIDI packs published by ${decoded} on iCEPUNK.`,
+    alternates: { canonical: `/u/${encodeURIComponent(decoded)}` },
     robots: { index: false, follow: true },
   };
 }

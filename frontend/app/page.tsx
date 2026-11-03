@@ -2,41 +2,57 @@ import type { Metadata } from "next";
 import SketchThemeLayout from "@/components/sketch/SketchThemeLayout";
 
 export const metadata: Metadata = {
-  title: { absolute: "Free MIDI Generator for Melodies & MIDI Packs | iCEPUNK" },
-  description: "Generate MIDI melodies and MIDI packs for your music. Preview, customize and export MIDI for FL Studio, Ableton, Logic and other DAWs.",
+  title: { absolute: "Free MIDI Melody Generator for FL Studio & Any DAW | iCEPUNK" },
+  description: "Generate producer-made MIDI melodies in your browser. Preview ideas, choose your sound and key, and export .mid files to FL Studio, Ableton, Logic and other DAWs.",
   alternates: { canonical: "/" },
+  openGraph: {
+    url: "/",
+    title: "Free MIDI Melody Generator – iCEPUNK",
+    description: "Producer-made MIDI melodies. Generate, preview and export .mid files for your DAW.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "iCEPUNK Free MIDI Melody Generator" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Free MIDI Melody Generator – iCEPUNK",
+    description: "Producer-made MIDI melodies. Generate, preview and export .mid files for your DAW.",
+    images: ["/opengraph-image"],
+  },
 };
 
-const structuredData = [
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "iCEPUNK",
-    url: "https://icepunk.app",
-    logo: "https://icepunk.app/icepunk-mark.svg",
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "iCEPUNK",
-    url: "https://icepunk.app",
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: "iCEPUNK MIDI Generator",
-    url: "https://icepunk.app",
-    applicationCategory: "MultimediaApplication",
-    operatingSystem: "Web",
-    isAccessibleForFree: true,
-    description: "A MIDI melody generator for music producers. Generate, preview and export MIDI melodies and MIDI packs for your DAW.",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "EUR",
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://icepunk.app/#organization",
+      name: "iCEPUNK",
+      url: "https://icepunk.app/",
+      logo: "https://icepunk.app/icepunk-mark.svg",
     },
-  },
-];
+    {
+      "@type": "WebSite",
+      "@id": "https://icepunk.app/#website",
+      name: "iCEPUNK",
+      url: "https://icepunk.app/",
+      publisher: { "@id": "https://icepunk.app/#organization" },
+    },
+    {
+      "@type": "WebApplication",
+      name: "iCEPUNK MIDI Melody Generator",
+      url: "https://icepunk.app/",
+      applicationCategory: "MultimediaApplication",
+      operatingSystem: "Any (web browser)",
+      isAccessibleForFree: true,
+      description: "Online MIDI melody generator for music producers. Generate and export .mid files for FL Studio and other DAWs.",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "EUR",
+      },
+      publisher: { "@id": "https://icepunk.app/#organization" },
+    },
+  ],
+};
 
 export default function Home() {
   return (
