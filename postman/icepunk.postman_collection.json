@@ -58,10 +58,11 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Unverified user cannot log in', () => pm.response.to.have.status(401));",
+              "pm.test('Unverified user cannot log in', () => pm.response.to.have.status(403));",
               "",
               "pm.test('Response does not issue a JWT', () => {",
               "  const json = pm.response.json();",
+              "  pm.expect(json.code).to.eql('EMAIL_UNVERIFIED');",
               "  pm.expect(json.token).to.not.be.a('string');",
               "});"
             ]

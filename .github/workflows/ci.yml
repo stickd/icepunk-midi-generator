@@ -217,7 +217,7 @@ jobs:
       - name: Start the backend
         working-directory: backend
         run: |
-          nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
+          EMAIL_DELIVERY_MODE=noop nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
           echo $! > ../backend.pid
 
       - name: Wait for the backend to become healthy
@@ -298,7 +298,7 @@ jobs:
       - name: Start the backend
         working-directory: backend
         run: |
-          nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
+          EMAIL_DELIVERY_MODE=noop nohup ./mvnw spring-boot:run > ../backend.log 2>&1 &
           echo $! > ../backend.pid
 
       - name: Wait for the backend to become healthy
@@ -394,6 +394,15 @@ jobs:
         with:
           sarif_file: trivy-image-results.sarif
           category: trivy-image
+
+      - name: Report image vulnerability details
+        if: failure()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: icepunk-backend:${{ github.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '0'
 
   security:
     name: Security scan (Trivy filesystem)
