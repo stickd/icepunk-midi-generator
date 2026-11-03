@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8f6f9f0a-1c2b-4b8a-9d3e-2e8c9a1f7b10",
     "name": "Icepunk MIDI Generator - Public API Smoke Test",
-    "description": "Black-box HTTP smoke test of the public API surface (register, login, generation-stats, guest generate), run with Newman against a live backend in CI.",
+    "description": "Black-box HTTP smoke test of the public API surface (registration pending verification, rejected unverified login, generation-stats, guest generate), run with Newman against a live backend in CI.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -27,12 +27,12 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status code is 202', () => pm.response.to.have.status(202));",
               "",
-              "pm.test('Response has a JWT token', () => {",
+              "pm.test('Response requires email verification and does not issue a JWT', () => {",
               "  const json = pm.response.json();",
-              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
-              "  pm.environment.set('registerToken', json.token);",
+              "  pm.expect(json.verificationRequired).to.equal(true);",
+              "  pm.expect(json.token).to.be.null;",
               "});"
             ]
           }
@@ -45,25 +45,24 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+          "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"termsAccepted\": true\n}"
         },
         "url": "{{baseUrl}}/auth/register"
       }
     },
     {
-      "name": "Login",
+      "name": "Login before email verification",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Unverified user cannot log in', () => pm.response.to.have.status(401));",
               "",
-              "pm.test('Response has a JWT token', () => {",
+              "pm.test('Response does not issue a JWT', () => {",
               "  const json = pm.response.json();",
-              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
-              "  pm.environment.set('authToken', json.token);",
+              "  pm.expect(json.token).to.not.be.a('string');",
               "});"
             ]
           }
@@ -115,9 +114,10 @@
             "exec": [
               "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
               "",
-              "pm.test('Response has a downloadUrl and totalGenerations', () => {",
+              "pm.test('Response has a generated pack and totalGenerations', () => {",
               "  const json = pm.response.json();",
-              "  pm.expect(json.downloadUrl).to.be.a('string').and.not.empty;",
+              "  pm.expect(json.packId).to.be.a('string').and.not.empty;",
+              "  pm.expect(json.items).to.be.an('array').and.not.empty;",
               "  pm.expect(json.totalGenerations).to.be.a('number');",
               "});"
             ]
