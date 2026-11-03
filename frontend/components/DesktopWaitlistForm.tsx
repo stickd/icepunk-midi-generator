@@ -51,7 +51,7 @@ export default function DesktopWaitlistForm() {
           type="email"
           value={email}
         />
-        <button disabled={state === "sending"} type="submit">
+        <button disabled={state === "sending" || !consented} type="submit">
           {state === "sending" ? "Joining…" : "Join waitlist"}
         </button>
       </div>

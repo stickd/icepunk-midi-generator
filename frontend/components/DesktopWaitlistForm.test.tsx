@@ -22,4 +22,14 @@ describe("DesktopWaitlistForm", () => {
     }));
     expect(await screen.findByText(/you.?re on the list/i)).toBeInTheDocument();
   });
+
+  it("requires an explicit consent before the waitlist can be joined", () => {
+    render(<DesktopWaitlistForm />);
+
+    const button = screen.getByRole("button", { name: "Join waitlist" });
+    expect(button).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(button).toBeEnabled();
+  });
 });
