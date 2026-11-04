@@ -2,6 +2,7 @@ package icepunk_backend.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.InetAddress;
@@ -15,6 +16,7 @@ import java.util.List;
 public class ClientIpService {
     private final List<Cidr> trustedProxies;
 
+    @Autowired
     public ClientIpService(@Value("${app.proxy.trusted-proxies:127.0.0.1/32,::1/128}") String configuredProxies) {
         this.trustedProxies = Arrays.stream(configuredProxies.split(","))
                 .map(String::trim).filter(value -> !value.isEmpty()).map(Cidr::parse).toList();

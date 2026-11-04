@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -44,6 +45,7 @@ public class GenerateController {
     private final DatasetPresetService datasetPresetService;
     private final ProductMetricsService productMetricsService;
 
+    @Autowired
     public GenerateController(
             MidiGenerationService midiGenerationService,
             GenerationLimitService generationLimitService,

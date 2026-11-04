@@ -6,6 +6,7 @@ import icepunk_backend.model.User;
 import icepunk_backend.repository.GuestUsageRepository;
 import icepunk_backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ public class GenerationLimitService {
     private final UserRepository userRepository;
     private final ProductMetricsService productMetricsService;
 
+    @Autowired
     public GenerationLimitService(
             GuestUsageRepository guestUsageRepository,
             UserRepository userRepository,
