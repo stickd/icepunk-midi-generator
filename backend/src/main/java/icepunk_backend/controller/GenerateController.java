@@ -19,7 +19,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -45,7 +44,6 @@ public class GenerateController {
     private final DatasetPresetService datasetPresetService;
     private final ProductMetricsService productMetricsService;
 
-    @Autowired
     public GenerateController(
             MidiGenerationService midiGenerationService,
             GenerationLimitService generationLimitService,
@@ -66,15 +64,6 @@ public class GenerateController {
         this.generatedPackService = generatedPackService;
         this.datasetPresetService = datasetPresetService;
         this.productMetricsService = productMetricsService;
-    }
-
-    /** Compatibility constructor for focused controller tests. */
-    public GenerateController(MidiGenerationService midiGenerationService, GenerationLimitService generationLimitService,
-                              GenerationStatsService generationStatsService, UserRepository userRepository,
-                              ClientIpService clientIpService, TempAnalysisService tempAnalysisService,
-                              GeneratedPackService generatedPackService, DatasetPresetService datasetPresetService) {
-        this(midiGenerationService, generationLimitService, generationStatsService, userRepository, clientIpService,
-                tempAnalysisService, generatedPackService, datasetPresetService, null);
     }
 
     public ResponseEntity<GenerationResponse> generate(HttpServletRequest request) throws Exception {

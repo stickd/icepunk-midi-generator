@@ -25,7 +25,8 @@ class GenerationLimitServiceTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final GenerationLimitService service = new GenerationLimitService(
             guestUsageRepository,
-            userRepository
+            userRepository,
+            null
     );
 
     @Test

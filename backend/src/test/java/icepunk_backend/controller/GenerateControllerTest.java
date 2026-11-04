@@ -60,7 +60,8 @@ class GenerateControllerTest {
             clientIpService,
             tempAnalysisService,
             generatedPackService,
-            datasetPresetService
+            datasetPresetService,
+            null
     );
 
     @TempDir
