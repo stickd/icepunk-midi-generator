@@ -14,8 +14,8 @@ class ProductMetricsServiceTest {
     @Test
     void recordsOnlyAnAtomicDailyAggregate() {
         ProductMetricDailyRepository repository = mock(ProductMetricDailyRepository.class);
-        ProductMetricsService service = new ProductMetricsService(
-                repository, Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC));
+        ProductMetricsService service = new ProductMetricsService(repository);
+        service.useClockForTesting(Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC));
 
         service.increment(ProductMetricsService.Metric.GENERATION_SUCCEEDED);
 

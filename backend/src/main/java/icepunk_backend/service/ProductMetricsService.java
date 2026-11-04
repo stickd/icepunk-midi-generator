@@ -2,7 +2,6 @@ package icepunk_backend.service;
 
 import icepunk_backend.model.ProductMetricDaily;
 import icepunk_backend.repository.ProductMetricDailyRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,15 +23,14 @@ public class ProductMetricsService {
     }
 
     private final ProductMetricDailyRepository repository;
-    private final Clock clock;
+    private Clock clock;
 
-    @Autowired
     public ProductMetricsService(ProductMetricDailyRepository repository) {
-        this(repository, Clock.systemUTC());
+        this.repository = repository;
+        this.clock = Clock.systemUTC();
     }
 
-    ProductMetricsService(ProductMetricDailyRepository repository, Clock clock) {
-        this.repository = repository;
+    void useClockForTesting(Clock clock) {
         this.clock = clock;
     }
 
