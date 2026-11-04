@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { DM_Mono, Space_Grotesk, Michroma } from "next/font/google";
 import "./globals.css";
 import "./studio.css";
@@ -56,7 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`h-full antialiased ${inter.variable} ${dmMono.variable} ${display.variable}`}>
-      <body className="min-h-full flex flex-col"><ConsentProvider>{children}<footer className="mx-auto flex w-full max-w-7xl justify-center gap-5 px-6 py-7 text-xs text-ice-muted"><Link href="/impressum">Impressum</Link><Link href="/datenschutz">Datenschutz</Link><Link href="/terms">Nutzungsbedingungen</Link><CookieSettingsButton /></footer><PrivacyClient /></ConsentProvider></body>
+      <body className="min-h-full flex flex-col"><ConsentProvider>{children}<footer className="mx-auto flex w-full max-w-7xl justify-center gap-5 px-6 py-7 text-xs text-ice-muted"><Link href="/impressum">Impressum</Link><Link href="/datenschutz">Datenschutz</Link><Link href="/terms">Nutzungsbedingungen</Link><CookieSettingsButton /></footer><Suspense fallback={null}><PrivacyClient /></Suspense></ConsentProvider></body>
     </html>
   );
 }
