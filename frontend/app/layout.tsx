@@ -4,6 +4,9 @@ import { DM_Mono, Space_Grotesk, Michroma } from "next/font/google";
 import "./globals.css";
 import "./studio.css";
 import "./feed.css";
+import { ConsentProvider } from "@/components/privacy/ConsentProvider";
+import PrivacyClient from "@/components/privacy/PrivacyClient";
+import { CookieSettingsButton } from "@/components/privacy/CookieConsent";
 
 const inter = Space_Grotesk({
   subsets: ["latin"],
@@ -53,7 +56,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`h-full antialiased ${inter.variable} ${dmMono.variable} ${display.variable}`}>
-      <body className="min-h-full flex flex-col">{children}<footer className="mx-auto flex w-full max-w-7xl justify-center gap-5 px-6 py-7 text-xs text-ice-muted"><Link href="/impressum">Impressum</Link><Link href="/datenschutz">Datenschutz</Link><Link href="/terms">Nutzungsbedingungen</Link></footer></body>
+      <body className="min-h-full flex flex-col"><ConsentProvider>{children}<footer className="mx-auto flex w-full max-w-7xl justify-center gap-5 px-6 py-7 text-xs text-ice-muted"><Link href="/impressum">Impressum</Link><Link href="/datenschutz">Datenschutz</Link><Link href="/terms">Nutzungsbedingungen</Link><CookieSettingsButton /></footer><PrivacyClient /></ConsentProvider></body>
     </html>
   );
 }

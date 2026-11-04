@@ -28,28 +28,31 @@ public class AuthService {
     private final JwtService jwtService;
     private final EmailVerificationService emailVerificationService;
     private final UserLegalAcceptanceRepository legalAcceptances;
-    public static final String TERMS_VERSION = "1.0";
+    private final ProductMetricsService productMetricsService;
+    public static final String TERMS_VERSION = "1.1";
 
     @Autowired
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService, EmailVerificationService emailVerificationService, UserLegalAcceptanceRepository legalAcceptances
+            JwtService jwtService, EmailVerificationService emailVerificationService, UserLegalAcceptanceRepository legalAcceptances,
+            ProductMetricsService productMetricsService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.emailVerificationService = emailVerificationService;
         this.legalAcceptances = legalAcceptances;
+        this.productMetricsService = productMetricsService;
     }
 
     /** Compatibility constructor for focused unit tests. */
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, EmailVerificationService emailVerificationService) {
-        this(userRepository, passwordEncoder, jwtService, emailVerificationService, null);
+        this(userRepository, passwordEncoder, jwtService, emailVerificationService, null, null);
     }
 
     public String register(RegisterRequest request) {
-        if (!request.isTermsAccepted()) throw new IllegalArgumentException("Terms acceptance is required.");
+        if (!request.isTermsAccepted() || !request.isAgeConfirmed()) throw new IllegalArgumentException("Registration acknowledgement is required.");
         String email = normalizeEmail(request.getEmail());
         String maskedEmail = maskEmailForLogs(email);
         String username = request.getUsername().trim();
@@ -83,8 +86,12 @@ public class AuthService {
 
         user.setVerified(false);
         User savedUser = userRepository.save(user);
-        if (legalAcceptances != null) legalAcceptances.save(new UserLegalAcceptance(savedUser, "TERMS", TERMS_VERSION));
+        if (legalAcceptances != null) {
+            legalAcceptances.save(new UserLegalAcceptance(savedUser, "TERMS", TERMS_VERSION));
+            legalAcceptances.save(new UserLegalAcceptance(savedUser, "AGE_16_CONFIRMATION", TERMS_VERSION));
+        }
         emailVerificationService.createAndSend(savedUser);
+        if (productMetricsService != null) productMetricsService.increment(ProductMetricsService.Metric.REGISTRATION_COMPLETED);
 
         log.info("Registration succeeded for email={}", maskEmailForLogs(savedUser.getEmail()));
         return null;

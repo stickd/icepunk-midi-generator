@@ -168,7 +168,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
     window.dispatchEvent(new Event(TOKEN_CHANGE_EVENT));
   }
 
-  async function handleAuth() {
+  async function handleAuth(registrationAcceptance?: { termsAccepted: true; ageConfirmed: true }) {
     if (!authMode || authMode === "verify") return;
 
     try {
@@ -178,7 +178,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
       const body =
         authMode === "login"
           ? { identifier: email, password }
-          : { username: authUsername, email, password };
+        : { username: authUsername, email, password, ...registrationAcceptance };
 
       const response = await authUser(authMode, body);
 

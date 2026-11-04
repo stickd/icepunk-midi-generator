@@ -178,6 +178,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
         NEXT_PUBLIC_STORAGE_ORIGIN: ${NEXT_PUBLIC_STORAGE_ORIGIN:?NEXT_PUBLIC_STORAGE_ORIGIN is required}
+        NEXT_PUBLIC_GA_MEASUREMENT_ID: ${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}
     restart: unless-stopped
     depends_on:
       backend:

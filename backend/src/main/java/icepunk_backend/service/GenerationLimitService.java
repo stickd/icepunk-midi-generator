@@ -18,13 +18,21 @@ public class GenerationLimitService {
 
     private final GuestUsageRepository guestUsageRepository;
     private final UserRepository userRepository;
+    private final ProductMetricsService productMetricsService;
 
     public GenerationLimitService(
             GuestUsageRepository guestUsageRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ProductMetricsService productMetricsService
     ) {
         this.guestUsageRepository = guestUsageRepository;
         this.userRepository = userRepository;
+        this.productMetricsService = productMetricsService;
+    }
+
+    /** Compatibility constructor for focused legacy tests. */
+    public GenerationLimitService(GuestUsageRepository guestUsageRepository, UserRepository userRepository) {
+        this(guestUsageRepository, userRepository, null);
     }
 
     @Transactional(readOnly = true)
@@ -49,7 +57,7 @@ public class GenerationLimitService {
     public record GenerationUsage(int used, int limit) {
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void checkGuestLimit(String ipAddress) {
         LocalDate today = LocalDate.now();
 
@@ -63,6 +71,7 @@ public class GenerationLimitService {
                 GUEST_DAILY_LIMIT,
                 today
         )) {
+            recordLimitReached();
             throw new GenerationLimitException("Guest daily generation limit reached");
         }
     }
@@ -85,9 +94,10 @@ public class GenerationLimitService {
         guestUsageRepository.save(guestUsage);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void checkUserLimit(User user) {
         if (isLimitReached(user.getGenerationDate(), user.getGenerationsToday(), USER_DAILY_LIMIT, LocalDate.now())) {
+            recordLimitReached();
             throw new GenerationLimitException("User daily generation limit reached");
         }
     }
@@ -113,6 +123,10 @@ public class GenerationLimitService {
             LocalDate today
     ) {
         return today.equals(generationDate) && generationsToday >= dailyLimit;
+    }
+
+    private void recordLimitReached() {
+        if (productMetricsService != null) productMetricsService.increment(ProductMetricsService.Metric.GENERATION_LIMIT_REACHED);
     }
 
     private void resetUsageIfNeeded(GuestUsage guestUsage, LocalDate today) {

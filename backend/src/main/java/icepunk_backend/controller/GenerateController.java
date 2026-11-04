@@ -13,6 +13,7 @@ import icepunk_backend.service.GeneratedPackService;
 import icepunk_backend.service.MidiGenerationService;
 import icepunk_backend.service.TempAnalysisService;
 import icepunk_backend.service.ClientIpService;
+import icepunk_backend.service.ProductMetricsService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -41,6 +42,7 @@ public class GenerateController {
     private final TempAnalysisService tempAnalysisService;
     private final GeneratedPackService generatedPackService;
     private final DatasetPresetService datasetPresetService;
+    private final ProductMetricsService productMetricsService;
 
     public GenerateController(
             MidiGenerationService midiGenerationService,
@@ -50,7 +52,8 @@ public class GenerateController {
             ClientIpService clientIpService,
             TempAnalysisService tempAnalysisService,
             GeneratedPackService generatedPackService,
-            DatasetPresetService datasetPresetService
+            DatasetPresetService datasetPresetService,
+            ProductMetricsService productMetricsService
     ) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
@@ -60,6 +63,16 @@ public class GenerateController {
         this.tempAnalysisService = tempAnalysisService;
         this.generatedPackService = generatedPackService;
         this.datasetPresetService = datasetPresetService;
+        this.productMetricsService = productMetricsService;
+    }
+
+    /** Compatibility constructor for focused controller tests. */
+    public GenerateController(MidiGenerationService midiGenerationService, GenerationLimitService generationLimitService,
+                              GenerationStatsService generationStatsService, UserRepository userRepository,
+                              ClientIpService clientIpService, TempAnalysisService tempAnalysisService,
+                              GeneratedPackService generatedPackService, DatasetPresetService datasetPresetService) {
+        this(midiGenerationService, generationLimitService, generationStatsService, userRepository, clientIpService,
+                tempAnalysisService, generatedPackService, datasetPresetService, null);
     }
 
     public ResponseEntity<GenerationResponse> generate(HttpServletRequest request) throws Exception {
@@ -121,10 +134,7 @@ public class GenerateController {
         MidiGenerationService.GeneratedFiles generatedFiles = null;
 
         try {
-            generatedFiles = midiGenerationService.generateFiles(
-                    resolveAnalysisFile(resolvedRequest, generationActor.user),
-                    resolvedRequest
-            );
+            generatedFiles = midiGenerationService.generateFiles(resolveAnalysisFile(resolvedRequest, generationActor.user), resolvedRequest);
             GeneratedPackResponse generatedPack = generatedPackService.persistGeneratedPack(
                     generationActor.user,
                     resolvedRequest,
@@ -138,8 +148,17 @@ public class GenerateController {
             }
 
             long totalGenerations = generationStatsService.incrementTotalGenerations();
+            record(ProductMetricsService.Metric.GENERATION_SUCCEEDED);
+            if (generationActor.user != null && resolvedRequest.getPublishMode() == GenerationRequest.PublishMode.PUBLIC) {
+                record(ProductMetricsService.Metric.PUBLIC_PACK_CREATED);
+            }
 
             return ResponseEntity.ok(toGenerationResponse(generatedPack, totalGenerations));
+        } catch (Exception exception) {
+            if (!(exception instanceof GenerationRequestException)) {
+                record(ProductMetricsService.Metric.GENERATION_FAILED);
+            }
+            throw exception;
         } finally {
             if (generatedFiles != null) {
                 generatedFiles.close();
@@ -165,6 +184,10 @@ public class GenerateController {
         }
 
         return request;
+    }
+
+    private void record(ProductMetricsService.Metric metric) {
+        if (productMetricsService != null) productMetricsService.increment(metric);
     }
 
     private Path resolveAnalysisFile(GenerationRequest request, User user) {

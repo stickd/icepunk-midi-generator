@@ -25,19 +25,22 @@ public class GeneratedFileAccessService {
     private final GeneratedPackStorageService storageService;
     private final Duration previewTtl;
     private final Duration downloadTtl;
+    private final ProductMetricsService productMetricsService;
 
     public GeneratedFileAccessService(
             GeneratedPackRepository packRepository,
             GeneratedPackItemRepository itemRepository,
             GeneratedPackStorageService storageService,
             @Value("${storage.presigned.preview-ttl-seconds:600}") long previewTtlSeconds,
-            @Value("${storage.presigned.download-ttl-seconds:180}") long downloadTtlSeconds
+            @Value("${storage.presigned.download-ttl-seconds:180}") long downloadTtlSeconds,
+            ProductMetricsService productMetricsService
     ) {
         this.packRepository = packRepository;
         this.itemRepository = itemRepository;
         this.storageService = storageService;
         this.previewTtl = Duration.ofSeconds(previewTtlSeconds);
         this.downloadTtl = Duration.ofSeconds(downloadTtlSeconds);
+        this.productMetricsService = productMetricsService;
     }
 
     @Transactional(readOnly = true)
@@ -48,20 +51,24 @@ public class GeneratedFileAccessService {
         return presign(item.getMidiObjectKey(), item.getFileName(), "audio/midi", previewTtl, false);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PresignedUrlResponse downloadItem(UUID packId, UUID itemId, User requester) {
         GeneratedPackItem item = itemRepository.findByIdAndPackId(itemId, packId)
                 .filter(found -> canAccess(found.getPack(), requester))
                 .orElseThrow(() -> new GeneratedFileNotFoundException());
-        return presign(item.getMidiObjectKey(), item.getFileName(), "audio/midi", downloadTtl, true);
+        PresignedUrlResponse response = presign(item.getMidiObjectKey(), item.getFileName(), "audio/midi", downloadTtl, true);
+        productMetricsService.increment(ProductMetricsService.Metric.EXPORT_URL_ISSUED);
+        return response;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PresignedUrlResponse downloadPack(UUID packId, User requester) {
         GeneratedPack pack = packRepository.findById(packId)
                 .filter(found -> canAccess(found, requester))
                 .orElseThrow(() -> new GeneratedFileNotFoundException());
-        return presign(pack.getZipObjectKey(), safeName(pack.getName(), "icepunk-midi-pack") + ".zip", "application/zip", downloadTtl, true);
+        PresignedUrlResponse response = presign(pack.getZipObjectKey(), safeName(pack.getName(), "icepunk-midi-pack") + ".zip", "application/zip", downloadTtl, true);
+        productMetricsService.increment(ProductMetricsService.Metric.EXPORT_URL_ISSUED);
+        return response;
     }
 
     private boolean canAccess(GeneratedPack pack, User requester) {

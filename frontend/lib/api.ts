@@ -39,6 +39,8 @@ type RegisterBody = {
   username: string;
   email: string;
   password: string;
+  termsAccepted?: boolean;
+  ageConfirmed?: boolean;
 };
 
 export async function loginUser(body: LoginBody) {
@@ -58,7 +60,7 @@ export async function registerUser(body: RegisterBody) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ ...body, termsAccepted: true }),
+    body: JSON.stringify({ ...body, termsAccepted: body.termsAccepted === true, ageConfirmed: body.ageConfirmed === true }),
     signal: withTimeout(),
   });
 }

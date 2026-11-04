@@ -293,7 +293,7 @@ class ApiFlowsE2ETest {
     }
 
     private java.util.Map<String, String> registerPayload(String username, String email, String password) {
-        return java.util.Map.of("username", username, "email", email, "password", password, "termsAccepted", "true");
+        return java.util.Map.of("username", username, "email", email, "password", password, "termsAccepted", "true", "ageConfirmed", "true");
     }
 
     private java.util.Map<String, String> loginPayload(String identifier, String password) {

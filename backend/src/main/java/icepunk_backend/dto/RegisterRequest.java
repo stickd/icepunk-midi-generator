@@ -21,6 +21,8 @@ public class RegisterRequest {
     private String password;
     @AssertTrue(message = "Terms acceptance is required")
     private boolean termsAccepted;
+    @AssertTrue(message = "Age confirmation is required")
+    private boolean ageConfirmed;
 
     public String getUsername() {
         return username;
@@ -35,4 +37,6 @@ public class RegisterRequest {
     }
     public boolean isTermsAccepted() { return termsAccepted; }
     public void setTermsAccepted(boolean termsAccepted) { this.termsAccepted = termsAccepted; }
+    public boolean isAgeConfirmed() { return ageConfirmed; }
+    public void setAgeConfirmed(boolean ageConfirmed) { this.ageConfirmed = ageConfirmed; }
 }

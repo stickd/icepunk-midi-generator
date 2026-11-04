@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
+import ImpressumContactForm from "@/components/ImpressumContactForm";
 
 export const metadata: Metadata = {
   title: "Impressum",
@@ -7,4 +8,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/impressum" },
 };
 
-export default function ImprintPage() { return <LegalPage title="Impressum"><p><strong>[FULL_LEGAL_NAME]</strong><br />[BUSINESS_NAME_IF_APPLICABLE]<br />[SERVICEABLE_POSTAL_ADDRESS]</p><p>Kontakt: [CONTACT_EMAIL]</p><hr /><p>Angaben nur soweit zutreffend und vor Launch zu ergänzen:<br />[LEGAL_FORM_IF_APPLICABLE]<br />[AUTHORIZED_REPRESENTATIVE_IF_APPLICABLE]<br />[COMMERCIAL_REGISTER_AND_NUMBER_IF_APPLICABLE]<br />[VAT_ID_OR_W-IDNR_IF_APPLICABLE]<br />[SUPERVISORY_INFORMATION_IF_APPLICABLE]</p></LegalPage>; }
+export default function ImprintPage() {
+  return <LegalPage title="Impressum">
+    <p><strong>Danylo Nikulin</strong><br />Ahrstraße 1<br />53424 Remagen<br />Deutschland</p>
+    <p>Kontakt: <a className="text-[color:var(--ice-accent)]" href="mailto:stickd999@gmail.com">stickd999@gmail.com</a></p>
+    <ImpressumContactForm />
+  </LegalPage>;
+}

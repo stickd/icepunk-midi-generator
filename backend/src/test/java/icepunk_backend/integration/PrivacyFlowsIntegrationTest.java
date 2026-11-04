@@ -155,6 +155,7 @@ class PrivacyFlowsIntegrationTest {
         body.put("termsAccepted",false);
         http.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.put("termsAccepted",true);
+        body.put("ageConfirmed",true);
         http.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isAccepted());
         var u=users.findByEmail(name+"@test.invalid").orElseThrow();
         assertEquals("USER",u.getRole());
@@ -199,6 +200,7 @@ class PrivacyFlowsIntegrationTest {
         var registration=new HashMap<String,Object>(Map.of("username",name,"email",address,"password","SafePassword123!"));
         http.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(registration))).andExpect(status().isBadRequest());
         registration.put("termsAccepted",true);
+        registration.put("ageConfirmed",true);
         http.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(registration))).andExpect(status().isAccepted());
         var raw=org.mockito.ArgumentCaptor.forClass(String.class);
         verify(email).sendVerificationEmail(eq(address),raw.capture());

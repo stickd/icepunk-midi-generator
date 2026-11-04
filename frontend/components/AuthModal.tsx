@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 type AuthMode = "login" | "register" | "verify";
+type RegistrationAcceptance = { termsAccepted: true; ageConfirmed: true };
 
 type AuthModalProps = {
   mode: AuthMode;
@@ -15,7 +16,7 @@ type AuthModalProps = {
   setEmail: (value: string) => void;
   setUsername: (value: string) => void;
   setPassword: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (acceptance?: RegistrationAcceptance) => void;
   onClose: () => void;
   onResend?: () => void;
 };
@@ -73,7 +74,7 @@ export default function AuthModal({
           <p className="text-sm text-ice-secondary">Use the email address entered during registration.</p>
           <Button className="w-full" disabled={isSubmitting} onClick={onResend} size="lg" type="button" variant="primary">{isSubmitting ? "Please wait..." : "Resend verification email"}</Button>
           {authStatus && <p className="rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] px-4 py-3 text-center text-sm text-[color:var(--ice-accent-text)]">{authStatus}</p>}
-        </div> : <form className="mt-7 grid gap-4" onSubmit={(event) => { event.preventDefault(); if (!isSubmitting && (mode !== "register" || termsAccepted)) onSubmit(); }}>
+        </div> : <form className="mt-7 grid gap-4" onSubmit={(event) => { event.preventDefault(); if (!isSubmitting && (mode !== "register" || termsAccepted)) onSubmit(mode === "register" ? { termsAccepted: true, ageConfirmed: true } : undefined); }}>
           {mode === "register" && (
             <FieldLabel>
               Username
@@ -115,7 +116,7 @@ export default function AuthModal({
             {isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Register"}
           </Button>
 
-          {mode === "register" && <label className="flex gap-2 text-xs text-ice-secondary"><input checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} type="checkbox" />I accept the <Link className="text-[color:var(--ice-accent)]" href="/terms" target="_blank">Terms of Service</Link>. See <Link className="text-[color:var(--ice-accent)]" href="/datenschutz" target="_blank">Privacy Policy</Link>.</label>}
+          {mode === "register" && <label className="flex gap-2 text-xs text-ice-secondary"><input checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} type="checkbox" />I confirm that I am at least 16 and accept the <Link className="text-[color:var(--ice-accent)]" href="/terms" target="_blank">Terms of Service</Link>. See <Link className="text-[color:var(--ice-accent)]" href="/datenschutz" target="_blank">Privacy Policy</Link>.</label>}
 
           {authStatus && (
             <p className="rounded-xl border border-[color:var(--ice-accent-border)] bg-[color:var(--ice-accent-soft)] px-4 py-3 text-center text-sm text-[color:var(--ice-accent-text)]">

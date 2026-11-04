@@ -94,7 +94,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
     notifyTokenChanged();
   }, []);
 
-  const handleAuth = useCallback(async () => {
+  const handleAuth = useCallback(async (registrationAcceptance?: { termsAccepted: true; ageConfirmed: true }) => {
     if (!authMode || authMode === "verify") return;
 
     try {
@@ -106,7 +106,7 @@ export function useSketchAuth({ setStatus }: UseSketchAuthOptions) {
       const body =
         authMode === "login"
           ? { identifier: email, password }
-          : { username, email, password };
+          : { username, email, password, ...registrationAcceptance };
 
       const response = await authUser(authMode, body);
 

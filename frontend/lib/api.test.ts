@@ -135,11 +135,12 @@ describe("lib/api", () => {
       const { authUser } = await import("./api");
       fetchMock.mockResolvedValue(mockResponse());
 
-      await authUser("register", { username: "u", email: "a@b.com", password: "pw" });
+      await authUser("register", { username: "u", email: "a@b.com", password: "pw", termsAccepted: true, ageConfirmed: true });
 
       const [url] = fetchMock.mock.calls[0];
       expect(url).toBe("http://localhost:8081/auth/register");
       expect(JSON.parse(fetchMock.mock.calls[0][1].body).termsAccepted).toBe(true);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).ageConfirmed).toBe(true);
     });
 
     it("authUser dispatches to loginUser in login mode", async () => {

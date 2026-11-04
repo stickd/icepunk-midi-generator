@@ -20,6 +20,9 @@ const storageOrigin = origin(
   "http://localhost:9010",
   process.env.NODE_ENV === "production",
 );
+const analyticsOrigins = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+  ? "https://www.googletagmanager.com https://www.google-analytics.com"
+  : "";
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -28,9 +31,9 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   // Next's runtime and the current glass UI require inline bootstrap/style
   // snippets. No unsafe-eval or third-party script origin is permitted.
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline' ${analyticsOrigins}`.trim(),
   "style-src 'self' 'unsafe-inline'",
-  `connect-src 'self' ${apiOrigin} ${storageOrigin}`,
+  `connect-src 'self' ${apiOrigin} ${storageOrigin} ${analyticsOrigins}`.trim(),
   `img-src 'self' data: blob: ${apiOrigin} ${storageOrigin}`,
   `media-src 'self' blob: ${apiOrigin} ${storageOrigin}`,
   "font-src 'self' data:",

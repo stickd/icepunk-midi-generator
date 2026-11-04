@@ -126,7 +126,7 @@ class SecurityConfigTest {
     void authenticatedAvatarUploadPassesSecurity() throws Exception {
         MvcResult register = mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"avataruser\",\"email\":\"avataruser@example.com\",\"password\":\"safe-password-123\",\"termsAccepted\":true}"))
+                        .content("{\"username\":\"avataruser\",\"email\":\"avataruser@example.com\",\"password\":\"safe-password-123\",\"termsAccepted\":true,\"ageConfirmed\":true}"))
                 .andExpect(status().isAccepted())
                 .andReturn();
 

@@ -239,7 +239,7 @@ class DatasetFlowsE2ETest {
 
     private String register(String username, String email, String password, String ip) throws Exception {
         String body = objectMapper.writeValueAsString(Map.of(
-                "username", username, "email", email, "password", password, "termsAccepted", "true"
+                "username", username, "email", email, "password", password, "termsAccepted", "true", "ageConfirmed", "true"
         ));
 
         String response = mockMvc.perform(post("/auth/register")

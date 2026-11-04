@@ -34,7 +34,7 @@ export async function registerViaApi(
 
   const response = await request.post(`${apiUrl()}/auth/register`, {
     // E2E registration follows the same required consent flow as the product.
-    data: { ...user, termsAccepted: true },
+    data: { ...user, termsAccepted: true, ageConfirmed: true },
   })
 
   if (!response.ok()) {

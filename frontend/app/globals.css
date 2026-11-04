@@ -60,6 +60,23 @@ body {
   color: var(--foreground);
 }
 
+.ice-cookie-link { background: none; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.ice-consent-backdrop { align-items: end; background: rgba(1, 5, 10, .66); display: flex; inset: 0; justify-content: center; padding: 1rem; position: fixed; z-index: 100; }
+.ice-consent-dialog { background: #0c1b2b; border: 1px solid var(--ice-accent-border); border-radius: 20px; box-shadow: var(--ice-shadow-card); max-width: 42rem; padding: 1.5rem; width: 100%; }
+.ice-consent-dialog h2 { color: var(--ice-text-primary); font-size: 1.35rem; font-weight: 600; margin: .2rem 0 .6rem; }
+.ice-consent-dialog p { color: var(--ice-text-secondary); line-height: 1.55; }
+.ice-consent-eyebrow { color: var(--ice-accent); font-family: var(--font-dm-mono); font-size: .72rem; letter-spacing: .16em; }
+.ice-consent-actions { display: flex; gap: .75rem; margin-top: 1.2rem; }
+.ice-consent-actions button { border-radius: 999px; cursor: pointer; flex: 1; font-weight: 600; min-height: 2.8rem; padding: .55rem 1rem; }
+.ice-consent-primary { background: var(--ice-accent); border: 1px solid var(--ice-accent); color: #06111b; }
+.ice-consent-secondary { background: transparent; border: 1px solid var(--ice-border-strong); color: var(--ice-text-primary); }
+.ice-consent-customize-visible { background: transparent; border: 0; color: var(--ice-accent); cursor: pointer; font-size: .86rem; margin-top: .9rem; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.ice-consent-customize { display: none; }
+.ice-consent-choice { align-items: start; border: 1px solid var(--ice-border); border-radius: 12px; display: flex; gap: .75rem; margin-top: 1rem; padding: .9rem; }
+.ice-consent-choice input { accent-color: var(--ice-accent-2); margin-top: .25rem; }
+.ice-consent-choice span { display: grid; gap: .2rem; }
+.ice-consent-choice small { color: var(--ice-text-secondary); }
+
 html, body, input, button, select, textarea, optgroup {
   font-family:
     var(--font-inter),
