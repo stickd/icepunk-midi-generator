@@ -34,7 +34,7 @@ export function GoogleAnalytics() {
       if (analytics === "denied" && window.gtag) {
         window.gtag("consent", "update", { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
       }
-      (window as Window & Record<string, boolean>)[`ga-disable-${measurementId}`] = true;
+      (window as unknown as Record<string, boolean>)[`ga-disable-${measurementId}`] = true;
       eraseAnalyticsCookies();
       setReady(false);
     }
@@ -52,7 +52,7 @@ export function GoogleAnalytics() {
   return <Script id="icepunk-ga" src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`} strategy="afterInteractive" onLoad={() => {
     window.dataLayer = window.dataLayer || [];
     window.gtag = function gtag(...args: unknown[]) { window.dataLayer?.push(args); };
-    (window as Window & Record<string, boolean>)[`ga-disable-${measurementId}`] = false;
+    (window as unknown as Record<string, boolean>)[`ga-disable-${measurementId}`] = false;
     window.gtag("consent", "default", { analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
     window.gtag("js", new Date());
     window.gtag("config", measurementId, { send_page_view: false });
