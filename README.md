@@ -44,7 +44,14 @@ Install Python dependencies:
 cd generator
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+Format and lint Python code (from `generator/`):
+
+```bash
+ruff format .
+ruff check --fix .
 ```
 
 Run backend:
