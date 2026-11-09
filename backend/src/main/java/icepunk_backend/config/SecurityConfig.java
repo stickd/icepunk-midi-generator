@@ -1,6 +1,8 @@
 package icepunk_backend.config;
 
 import icepunk_backend.security.JwtAuthFilter;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,19 +17,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-import java.util.Arrays;
-
 @Configuration
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final List<String> allowedOrigins;
 
-    public SecurityConfig(
-            JwtAuthFilter jwtAuthFilter,
-            @Value("${app.cors.allowed-origins}") String allowedOrigins
-    ) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, @Value("${app.cors.allowed-origins}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
@@ -41,36 +37,30 @@ public class SecurityConfig {
     }
 
     @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    return http
-            // Disable CSRF because we use JWT instead of sessions
-            .csrf(csrf -> csrf.disable())
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
+                // Disable CSRF because we use JWT instead of sessions
+                .csrf(csrf -> csrf.disable())
 
-            // Enable CORS configuration
-            .cors(Customizer.withDefaults())
+                // Enable CORS configuration
+                .cors(Customizer.withDefaults())
 
-            // Make Spring Security stateless (no HTTP sessions)
-            .sessionManagement(session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                // Make Spring Security stateless (no HTTP sessions)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            // Configure endpoint authorization rules
-            .authorizeHttpRequests(auth -> auth
+                // Configure endpoint authorization rules
+                .authorizeHttpRequests(auth -> auth
 
-                    // Public endpoints accessible without authentication
-                    .requestMatchers(
-                            "/auth/register",
-                            "/auth/login",
-                            "/generate",
-                            "/generation-stats"
-                    ).permitAll()
+                        // Public endpoints accessible without authentication
+                        .requestMatchers("/auth/register", "/auth/login", "/generate", "/generation-stats")
+                        .permitAll()
 
-                    // All other endpoints require a valid JWT token
-                    .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
-}
+                        // All other endpoints require a valid JWT token
+                        .anyRequest()
+                        .authenticated())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

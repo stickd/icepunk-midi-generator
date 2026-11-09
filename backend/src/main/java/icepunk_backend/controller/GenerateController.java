@@ -2,25 +2,20 @@ package icepunk_backend.controller;
 
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
+import icepunk_backend.service.ClientIpService;
 import icepunk_backend.service.GenerationLimitService;
 import icepunk_backend.service.GenerationStatsService;
 import icepunk_backend.service.MidiGenerationService;
 import icepunk_backend.service.ZipStorageService;
-import icepunk_backend.service.ClientIpService;
-
 import jakarta.servlet.http.HttpServletRequest;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RestController
 public class GenerateController {
@@ -38,8 +33,7 @@ public class GenerateController {
             GenerationStatsService generationStatsService,
             UserRepository userRepository,
             ZipStorageService zipStorageService,
-            ClientIpService clientIpService
-    ) {
+            ClientIpService clientIpService) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
         this.generationStatsService = generationStatsService;
@@ -51,22 +45,17 @@ public class GenerateController {
     @PostMapping("/generate")
     public ResponseEntity<GenerateResponse> generate(HttpServletRequest request) throws Exception {
 
-        Authentication authentication = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         String ipAddress = clientIpService.getClientIp(request);
         GenerationActor generationActor;
 
-        if (
-                authentication != null
-                        && authentication.isAuthenticated()
-                        && !(authentication instanceof AnonymousAuthenticationToken)
-        ) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)) {
             String email = authentication.getName();
 
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow();
+            User user = userRepository.findByEmail(email).orElseThrow();
 
             generationLimitService.checkUserLimit(user);
             generationActor = GenerationActor.user(user, ipAddress);
@@ -90,9 +79,7 @@ public class GenerateController {
 
             long totalGenerations = generationStatsService.incrementTotalGenerations();
 
-            return ResponseEntity.ok(
-                    new GenerateResponse(downloadUrl, totalGenerations)
-            );
+            return ResponseEntity.ok(new GenerateResponse(downloadUrl, totalGenerations));
         } finally {
             if (zipPath != null) {
                 Files.deleteIfExists(zipPath);

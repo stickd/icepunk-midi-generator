@@ -15,8 +15,7 @@ public class GenerationStats {
 
     private Long totalGenerations = 0L;
 
-    public GenerationStats() {
-    }
+    public GenerationStats() {}
 
     public GenerationStats(Long id, Long totalGenerations) {
         this.id = id;

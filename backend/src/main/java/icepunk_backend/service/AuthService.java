@@ -8,10 +8,9 @@ import icepunk_backend.exception.UsernameAlreadyExistsException;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.security.JwtService;
+import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Locale;
 
 @Service
 public class AuthService {
@@ -20,11 +19,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService
-    ) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -44,11 +39,7 @@ public class AuthService {
 
         String passwordHash = passwordEncoder.encode(request.getPassword());
 
-        User user = new User(
-                username,
-                email,
-                passwordHash
-        );
+        User user = new User(username, email, passwordHash);
 
         User savedUser = userRepository.save(user);
 
@@ -58,13 +49,11 @@ public class AuthService {
     public String login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
 
-        User user = userRepository.findByEmail(email)
+        User user = userRepository
+                .findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        boolean passwordMatches = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPasswordHash()
-        );
+        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
 
         if (!passwordMatches) {
             throw new InvalidCredentialsException("Invalid email or password");
