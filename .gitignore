@@ -36,5 +36,4 @@ build/
 
 # OS
 .DS_Store
-analysis_output/
 *:Zone.Identifier

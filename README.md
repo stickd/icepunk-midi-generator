@@ -13,13 +13,14 @@ Full-stack MIDI pack generator for dark, cold melodic loops inspired by the iCEP
 ## Project Structure
 
 ```text
-backend/                  Spring Boot API
-frontend/                 Next.js app
-analysis_output/          Required generator analysis data
-generated_midi/           Generated output, ignored by git
-icepunk_midi_generator.py MIDI generation engine
-icepunk_midi_analyzer.py  Dataset analysis helper
-requirements.txt          Python generator dependencies
+backend/                                Spring Boot API
+frontend/                               Next.js app
+generator/                              Python MIDI engine
+generator/icepunk_midi_generator.py     MIDI generation engine
+generator/icepunk_midi_analyzer.py      Dataset analysis helper
+generator/requirements.txt              Python generator dependencies
+generator/analysis_output/              Required generator analysis data
+generator/generated_midi/               Generated output, ignored by git
 ```
 
 ## Local Development
@@ -40,6 +41,7 @@ docker compose up -d
 Install Python dependencies:
 
 ```bash
+cd generator
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -92,9 +94,9 @@ Guests and logged-in users have daily generation limits. Usage is counted only a
 The production backend image is built from the repository root because it needs:
 
 - `backend/` Spring Boot source
-- `icepunk_midi_generator.py`
-- `analysis_output/midi_analysis.json`
-- `requirements.txt`
+- `generator/icepunk_midi_generator.py`
+- `generator/analysis_output/midi_analysis.json`
+- `generator/requirements.txt`
 
 Build manually:
 
@@ -232,6 +234,6 @@ npm run start
 
 ## Notes
 
-- `analysis_output/midi_analysis.json` is required at runtime by the Python generator.
+- `generator/analysis_output/midi_analysis.json` is required at runtime by the Python generator.
 - The production compose creates the MinIO bucket and sets anonymous download access for ZIP files.
 - For real production, rotate any secrets that were ever committed to git history.
