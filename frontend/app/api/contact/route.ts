@@ -51,7 +51,10 @@ export async function POST(req: Request) {
     }
 
     if (!feedbackTypes.has(feedbackType)) {
-      return Response.json({ error: "Invalid feedback type." }, { status: 400 });
+      return Response.json(
+        { error: "Invalid feedback type." },
+        { status: 400 },
+      );
     }
 
     if (message.length < 10) {

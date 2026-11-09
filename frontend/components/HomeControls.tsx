@@ -137,7 +137,9 @@ export default function HomeControls() {
         }
 
         if (response.status === 409) {
-          setAuthStatus("An account with that email or username already exists.");
+          setAuthStatus(
+            "An account with that email or username already exists.",
+          );
           return;
         }
 
@@ -196,7 +198,10 @@ export default function HomeControls() {
         isLoading={isLoadingGenerations}
       />
 
-      <GenerateButton isGenerating={isGenerating} onGenerate={handleGenerateMidi} />
+      <GenerateButton
+        isGenerating={isGenerating}
+        onGenerate={handleGenerateMidi}
+      />
 
       {status && (
         <div className="mt-8 rounded-full border border-white/10 bg-white/[0.03] px-6 py-3 backdrop-blur-xl">
