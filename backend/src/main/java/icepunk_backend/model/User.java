@@ -7,15 +7,10 @@ import java.time.LocalDate;
 @Table(
         name = "users",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
-                @UniqueConstraint(name = "uk_users_username", columnNames = "username")
-        }
-)
+            @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+            @UniqueConstraint(name = "uk_users_username", columnNames = "username")
+        })
 public class User {
-
-
-
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,8 +28,7 @@ public class User {
     private Integer generationsToday = 0;
     private LocalDate generationDate = LocalDate.now();
 
-    public User() {
-    }
+    public User() {}
 
     public User(String username, String email, String passwordHash) {
         this.username = username;

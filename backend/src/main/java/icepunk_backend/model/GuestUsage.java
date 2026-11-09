@@ -18,8 +18,7 @@ public class GuestUsage {
 
     private LocalDate generationDate = LocalDate.now();
 
-    public GuestUsage() {
-    }
+    public GuestUsage() {}
 
     public GuestUsage(String ipAddress) {
         this.ipAddress = ipAddress;

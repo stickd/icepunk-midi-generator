@@ -16,7 +16,8 @@ public class GenerationStatsService {
 
     @Transactional(readOnly = true)
     public long getTotalGenerations() {
-        return generationStatsRepository.findById(GenerationStats.GLOBAL_STATS_ID)
+        return generationStatsRepository
+                .findById(GenerationStats.GLOBAL_STATS_ID)
                 .map(GenerationStats::getTotalGenerations)
                 .orElse(0L);
     }

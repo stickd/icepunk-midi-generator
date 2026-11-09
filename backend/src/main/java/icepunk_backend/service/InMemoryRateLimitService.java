@@ -1,12 +1,11 @@
 package icepunk_backend.service;
 
 import icepunk_backend.exception.RateLimitException;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.springframework.stereotype.Service;
 
 @Service
 public class InMemoryRateLimitService {
@@ -19,7 +18,11 @@ public class InMemoryRateLimitService {
     private final ConcurrentMap<String, WindowCounter> counters = new ConcurrentHashMap<>();
 
     public void checkRegisterLimit(String ipAddress) {
-        checkLimit("register:" + ipAddress, REGISTER_LIMIT, REGISTER_WINDOW, "Too many registration attempts. Try again later.");
+        checkLimit(
+                "register:" + ipAddress,
+                REGISTER_LIMIT,
+                REGISTER_WINDOW,
+                "Too many registration attempts. Try again later.");
     }
 
     public void checkLoginLimit(String ipAddress) {

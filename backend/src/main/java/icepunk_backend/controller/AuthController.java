@@ -22,20 +22,14 @@ public class AuthController {
     private final InMemoryRateLimitService rateLimitService;
 
     public AuthController(
-            AuthService authService,
-            ClientIpService clientIpService,
-            InMemoryRateLimitService rateLimitService
-    ) {
+            AuthService authService, ClientIpService clientIpService, InMemoryRateLimitService rateLimitService) {
         this.authService = authService;
         this.clientIpService = clientIpService;
         this.rateLimitService = rateLimitService;
     }
 
     @PostMapping("/register")
-    public AuthResponse register(
-            @Valid @RequestBody RegisterRequest request,
-            HttpServletRequest httpServletRequest
-    ) {
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpServletRequest) {
         String ipAddress = clientIpService.getClientIp(httpServletRequest);
         rateLimitService.checkRegisterLimit(ipAddress);
 
@@ -45,10 +39,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(
-            @Valid @RequestBody LoginRequest request,
-            HttpServletRequest httpServletRequest
-    ) {
+    public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpServletRequest) {
         String ipAddress = clientIpService.getClientIp(httpServletRequest);
         rateLimitService.checkLoginLimit(ipAddress);
 
