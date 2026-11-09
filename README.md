@@ -54,6 +54,12 @@ ruff format .
 ruff check --fix .
 ```
 
+Run Python tests (from `generator/`, fails below 100% line and branch coverage):
+
+```bash
+pytest
+```
+
 Run backend:
 
 ```bash

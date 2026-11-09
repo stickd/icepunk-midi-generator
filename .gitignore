@@ -10,6 +10,9 @@ generated_midi/
 venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Java
 target/
@@ -33,6 +36,8 @@ build/
 # IDE
 .idea/
 .vscode/
+*.iml
+out/
 
 # OS
 .DS_Store
