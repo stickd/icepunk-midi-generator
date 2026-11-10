@@ -43,22 +43,10 @@ Install Python dependencies:
 ```bash
 cd generator
 python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements-dev.txt
+venv/bin/pip install -r requirements-dev.txt
 ```
 
-Format and lint Python code (from `generator/`):
-
-```bash
-ruff format .
-ruff check --fix .
-```
-
-Run Python tests (from `generator/`, fails below 100% line and branch coverage):
-
-```bash
-pytest
-```
+Formatting, the pre-commit hook and tests are described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Run backend:
 
