@@ -1,15 +1,5 @@
 package icepunk_backend.service;
 
-import icepunk_backend.exception.GenerationLimitException;
-import icepunk_backend.model.GuestUsage;
-import icepunk_backend.model.User;
-import icepunk_backend.repository.GuestUsageRepository;
-import icepunk_backend.repository.UserRepository;
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDate;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,14 +8,20 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import icepunk_backend.exception.GenerationLimitException;
+import icepunk_backend.model.GuestUsage;
+import icepunk_backend.model.User;
+import icepunk_backend.repository.GuestUsageRepository;
+import icepunk_backend.repository.UserRepository;
+import java.time.LocalDate;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+
 class GenerationLimitServiceTest {
 
     private final GuestUsageRepository guestUsageRepository = mock(GuestUsageRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
-    private final GenerationLimitService service = new GenerationLimitService(
-            guestUsageRepository,
-            userRepository
-    );
+    private final GenerationLimitService service = new GenerationLimitService(guestUsageRepository, userRepository);
 
     @Test
     void checkGuestUsageDoesNotIncrementWhenLimitIsAvailable() {
@@ -45,10 +41,7 @@ class GenerationLimitServiceTest {
         usage.setGenerationsToday(3);
         when(guestUsageRepository.findByIpAddress("127.0.0.1")).thenReturn(Optional.of(usage));
 
-        assertThrows(
-                GenerationLimitException.class,
-                () -> service.checkGuestLimit("127.0.0.1")
-        );
+        assertThrows(GenerationLimitException.class, () -> service.checkGuestLimit("127.0.0.1"));
     }
 
     @Test
@@ -104,9 +97,6 @@ class GenerationLimitServiceTest {
         user.setGenerationsToday(7);
         when(userRepository.findByEmail("nikul@example.com")).thenReturn(Optional.of(user));
 
-        assertThrows(
-                GenerationLimitException.class,
-                () -> service.checkUserLimit(user)
-        );
+        assertThrows(GenerationLimitException.class, () -> service.checkUserLimit(user));
     }
 }

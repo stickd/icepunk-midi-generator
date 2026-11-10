@@ -1,9 +1,9 @@
 package icepunk_backend.service;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import icepunk_backend.exception.RateLimitException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InMemoryRateLimitServiceTest {
 
@@ -15,10 +15,7 @@ class InMemoryRateLimitServiceTest {
         service.checkRegisterLimit("127.0.0.1");
         service.checkRegisterLimit("127.0.0.1");
 
-        assertThrows(
-                RateLimitException.class,
-                () -> service.checkRegisterLimit("127.0.0.1")
-        );
+        assertThrows(RateLimitException.class, () -> service.checkRegisterLimit("127.0.0.1"));
     }
 
     @Test
@@ -29,9 +26,6 @@ class InMemoryRateLimitServiceTest {
         service.checkLoginLimit("127.0.0.2");
         service.checkLoginLimit("127.0.0.2");
 
-        assertThrows(
-                RateLimitException.class,
-                () -> service.checkLoginLimit("127.0.0.2")
-        );
+        assertThrows(RateLimitException.class, () -> service.checkLoginLimit("127.0.0.2"));
     }
 }

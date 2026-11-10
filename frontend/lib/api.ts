@@ -66,7 +66,9 @@ export async function getGenerationStats(
   if (!response.ok) {
     const message = await response.text();
 
-    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+    throw new Error(
+      `HTTP_${response.status}: ${message || response.statusText}`,
+    );
   }
 
   return response.json();
@@ -87,7 +89,9 @@ export async function generateMidiPack(
   if (!response.ok) {
     const message = await response.text();
 
-    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+    throw new Error(
+      `HTTP_${response.status}: ${message || response.statusText}`,
+    );
   }
 
   return response.json();

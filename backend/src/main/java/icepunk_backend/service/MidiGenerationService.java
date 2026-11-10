@@ -1,9 +1,6 @@
 package icepunk_backend.service;
 
 import icepunk_backend.exception.ServerBusyException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 @Service
 public class MidiGenerationService {
@@ -33,8 +32,7 @@ public class MidiGenerationService {
             @Value("${icepunk.generator.python-path}") String pythonPath,
             @Value("${icepunk.generator.script-name}") String scriptName,
             @Value("${icepunk.generator.timeout-seconds}") long timeoutSeconds,
-            @Value("${icepunk.generator.max-concurrent}") int maxConcurrentGenerations
-    ) {
+            @Value("${icepunk.generator.max-concurrent}") int maxConcurrentGenerations) {
         this.projectDir = Paths.get(projectDir).toAbsolutePath().normalize();
         this.pythonPath = resolvePythonPath(pythonPath, this.projectDir);
         this.scriptName = scriptName;
@@ -69,11 +67,7 @@ public class MidiGenerationService {
             outputDir = projectDir.resolve("generated_midi").resolve(generationId);
             Files.createDirectories(outputDir);
 
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    pythonPath,
-                    scriptName,
-                    outputDir.toString()
-            );
+            ProcessBuilder processBuilder = new ProcessBuilder(pythonPath, scriptName, outputDir.toString());
 
             processBuilder.directory(projectDir.toFile());
             processBuilder.redirectErrorStream(true);
@@ -86,9 +80,7 @@ public class MidiGenerationService {
                 throw new RuntimeException("Python generator timeout");
             }
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream())
-            )) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println("[PYTHON] " + line);
@@ -118,26 +110,19 @@ public class MidiGenerationService {
             Files.delete(zipPath);
         }
 
-        try (
-                ZipOutputStream zipOutputStream = new ZipOutputStream(
-                        Files.newOutputStream(zipPath)
-                );
-                Stream<Path> paths = Files.walk(sourceDir)
-        ) {
-            paths.filter(path -> !Files.isDirectory(path))
-                    .forEach(path -> {
-                        ZipEntry zipEntry = new ZipEntry(
-                                sourceDir.relativize(path).toString()
-                        );
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(zipPath));
+                Stream<Path> paths = Files.walk(sourceDir)) {
+            paths.filter(path -> !Files.isDirectory(path)).forEach(path -> {
+                ZipEntry zipEntry = new ZipEntry(sourceDir.relativize(path).toString());
 
-                        try {
-                            zipOutputStream.putNextEntry(zipEntry);
-                            Files.copy(path, zipOutputStream);
-                            zipOutputStream.closeEntry();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+                try {
+                    zipOutputStream.putNextEntry(zipEntry);
+                    Files.copy(path, zipOutputStream);
+                    zipOutputStream.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
     }
 
@@ -147,9 +132,7 @@ public class MidiGenerationService {
         }
 
         try (Stream<Path> paths = Files.walk(directory)) {
-            paths.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            paths.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
         }
     }
 }

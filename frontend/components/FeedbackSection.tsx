@@ -45,7 +45,9 @@ export default function FeedbackSection() {
       return;
     }
 
-    if (!feedbackTypes.includes(feedbackType as (typeof feedbackTypes)[number])) {
+    if (
+      !feedbackTypes.includes(feedbackType as (typeof feedbackTypes)[number])
+    ) {
       setStatus("error");
       setErrorMessage("Choose a feedback type.");
       return;
@@ -86,24 +88,22 @@ export default function FeedbackSection() {
   }
 
   return (
-    <section className="relative z-10 px-6 pb-28 pt-10 [contain-intrinsic-size:900px] [content-visibility:auto]">
+    <section className="relative z-10 px-6 pt-10 pb-28 [contain-intrinsic-size:900px] [content-visibility:auto]">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
-        <div
-          className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-white/[0.035] p-8 shadow-[0_24px_90px_rgba(8,47,73,0.28)] backdrop-blur-xl md:p-10"
-        >
+        <div className="relative overflow-hidden rounded-[2rem] border border-cyan-100/15 bg-white/[0.035] p-8 shadow-[0_24px_90px_rgba(8,47,73,0.28)] backdrop-blur-xl md:p-10">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(56,189,248,0.035),rgba(255,255,255,0.02))]" />
-          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-200/10 blur-3xl" />
+          <div className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-cyan-200/10 blur-3xl" />
 
           <div className="relative">
             <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-100/10 text-cyan-100 shadow-[0_0_42px_rgba(125,211,252,0.18)]">
               <span className="h-2.5 w-2.5 rounded-full bg-cyan-100 shadow-[0_0_24px_rgba(125,211,252,0.95)]" />
             </div>
 
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.34em] text-cyan-200/60">
+            <p className="mb-4 text-xs font-semibold tracking-[0.34em] text-cyan-200/60 uppercase">
               Community signal
             </p>
 
-            <h2 className="max-w-xl bg-gradient-to-b from-white via-cyan-50 to-cyan-300 bg-clip-text text-4xl font-extrabold leading-tight text-transparent md:text-5xl">
+            <h2 className="max-w-xl bg-gradient-to-b from-white via-cyan-50 to-cyan-300 bg-clip-text text-4xl leading-tight font-extrabold text-transparent md:text-5xl">
               Help Shape IcePunk
             </h2>
 
@@ -144,23 +144,25 @@ export default function FeedbackSection() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-semibold text-cyan-50/85">
-                Name <span className="font-normal text-slate-400">(optional)</span>
+                Name{" "}
+                <span className="font-normal text-slate-400">(optional)</span>
                 <input
                   name="name"
                   autoComplete="name"
                   placeholder="Your name"
-                  className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                  className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white transition outline-none placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
                 />
               </label>
 
               <label className="grid gap-2 text-sm font-semibold text-cyan-50/85">
-                Email <span className="font-normal text-slate-400">(optional)</span>
+                Email{" "}
+                <span className="font-normal text-slate-400">(optional)</span>
                 <input
                   name="email"
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                  className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white transition outline-none placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
                 />
               </label>
             </div>
@@ -170,7 +172,7 @@ export default function FeedbackSection() {
               <select
                 name="feedbackType"
                 defaultValue="Idea"
-                className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white outline-none transition focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                className="h-13 rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-base font-medium text-white transition outline-none focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
               >
                 {feedbackTypes.map((type) => (
                   <option key={type} value={type} className="bg-slate-950">
@@ -188,7 +190,7 @@ export default function FeedbackSection() {
                 minLength={10}
                 rows={6}
                 placeholder="Tell us what should be colder, sharper, or easier to use."
-                className="resize-none rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-base font-medium leading-7 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
+                className="resize-none rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-base leading-7 font-medium text-white transition outline-none placeholder:text-slate-500 focus:border-cyan-200/55 focus:ring-2 focus:ring-cyan-200/15"
               />
             </label>
 

@@ -1,0 +1,27 @@
+{
+  "name": "icepunk-midi-generator",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "format": "npm run format:backend && npm run format:frontend && npm run format:generator",
+    "format:backend": "cd backend && ./mvnw -q spotless:apply",
+    "format:frontend": "npm --prefix frontend run format",
+    "format:generator": "cd generator && venv/bin/ruff check --select I --fix . && venv/bin/ruff format .",
+    "check": "npm run check:backend && npm run check:frontend && npm run check:generator",
+    "check:backend": "cd backend && ./mvnw -q spotless:check",
+    "check:frontend": "npm --prefix frontend run format:check",
+    "check:generator": "cd generator && venv/bin/ruff check --select I . && venv/bin/ruff format --check ."
+  },
+  "lint-staged": {
+    "backend/**/*.java": "sh -c 'cd backend && ./mvnw -q spotless:apply'",
+    "frontend/**/*": "sh -c 'cd frontend && node_modules/.bin/prettier --write --ignore-unknown \"$@\"' prettier",
+    "generator/**/*.py": [
+      "generator/venv/bin/ruff check --select I --fix",
+      "generator/venv/bin/ruff format"
+    ]
+  },
+  "devDependencies": {
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0"
+  }
+}

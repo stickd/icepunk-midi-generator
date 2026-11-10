@@ -16,9 +16,7 @@ public class GenerationStatsController {
 
     @GetMapping("/generation-stats")
     public ResponseEntity<GenerationStatsResponse> getGenerationStats() {
-        return ResponseEntity.ok(
-                new GenerationStatsResponse(generationStatsService.getTotalGenerations())
-        );
+        return ResponseEntity.ok(new GenerationStatsResponse(generationStatsService.getTotalGenerations()));
     }
 
     public static class GenerationStatsResponse {

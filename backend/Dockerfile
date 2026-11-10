@@ -16,8 +16,9 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY requirements.txt icepunk_midi_generator.py ./
-COPY analysis_output analysis_output
+COPY generator/requirements.txt generator/icepunk_midi_generator.py ./
+COPY generator/midistyle midistyle
+COPY generator/analysis_output analysis_output
 
 RUN python3 -m venv /app/venv \
     && /app/venv/bin/pip install --no-cache-dir -r requirements.txt \

@@ -1,15 +1,14 @@
 package icepunk_backend.service;
 
-import icepunk_backend.model.GenerationStats;
-import icepunk_backend.repository.GenerationStatsRepository;
-import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import icepunk_backend.model.GenerationStats;
+import icepunk_backend.repository.GenerationStatsRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
 
 class GenerationStatsServiceTest {
 

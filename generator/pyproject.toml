@@ -1,0 +1,18 @@
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--cov --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["midistyle", "icepunk_midi_analyzer", "icepunk_midi_generator"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true

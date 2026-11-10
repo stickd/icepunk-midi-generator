@@ -12,7 +12,7 @@ export default function Navbar({
   onLogoutClick,
 }: NavbarProps) {
   return (
-    <nav className="fixed left-0 top-0 z-30 flex w-full items-center justify-between px-8 py-7 md:px-14">
+    <nav className="fixed top-0 left-0 z-30 flex w-full items-center justify-between px-8 py-7 md:px-14">
       <div className="bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-sm font-black tracking-[0.42em] text-transparent">
         iCEPUNK
       </div>

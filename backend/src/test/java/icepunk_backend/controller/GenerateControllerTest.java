@@ -1,25 +1,5 @@
 package icepunk_backend.controller;
 
-import icepunk_backend.model.User;
-import icepunk_backend.repository.UserRepository;
-import icepunk_backend.service.ClientIpService;
-import icepunk_backend.service.GenerationLimitService;
-import icepunk_backend.service.GenerationStatsService;
-import icepunk_backend.service.MidiGenerationService;
-import icepunk_backend.service.ZipStorageService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.InOrder;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,6 +8,25 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import icepunk_backend.model.User;
+import icepunk_backend.repository.UserRepository;
+import icepunk_backend.service.ClientIpService;
+import icepunk_backend.service.GenerationLimitService;
+import icepunk_backend.service.GenerationStatsService;
+import icepunk_backend.service.MidiGenerationService;
+import icepunk_backend.service.ZipStorageService;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.InOrder;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 class GenerateControllerTest {
 
@@ -44,8 +43,7 @@ class GenerateControllerTest {
             generationStatsService,
             userRepository,
             zipStorageService,
-            clientIpService
-    );
+            clientIpService);
 
     @TempDir
     Path tempDir;
@@ -58,8 +56,7 @@ class GenerateControllerTest {
     @Test
     void busyServerDoesNotIncrementGuestUsageOrGlobalCounter() throws Exception {
         MockHttpServletRequest request = guestRequest();
-        when(midiGenerationService.generateZip())
-                .thenThrow(new RuntimeException("Server is busy. Try again later."));
+        when(midiGenerationService.generateZip()).thenThrow(new RuntimeException("Server is busy. Try again later."));
 
         assertThrows(RuntimeException.class, () -> controller.generate(request));
 
@@ -72,8 +69,7 @@ class GenerateControllerTest {
     @Test
     void generationErrorDoesNotIncrementUserUsageOrGlobalCounter() throws Exception {
         User user = authenticatedUser();
-        when(midiGenerationService.generateZip())
-                .thenThrow(new RuntimeException("Python generator failed"));
+        when(midiGenerationService.generateZip()).thenThrow(new RuntimeException("Python generator failed"));
 
         assertThrows(RuntimeException.class, () -> controller.generate(new MockHttpServletRequest()));
 
@@ -106,18 +102,15 @@ class GenerateControllerTest {
         when(zipStorageService.uploadZip(zipPath)).thenReturn("https://cdn.example/pack.zip");
         when(generationStatsService.incrementTotalGenerations()).thenReturn(42L);
 
-        GenerateController.GenerateResponse response = controller.generate(request).getBody();
+        GenerateController.GenerateResponse response =
+                controller.generate(request).getBody();
 
         assertEquals("https://cdn.example/pack.zip", response.getDownloadUrl());
         assertEquals(42L, response.getTotalGenerations());
         assertFalse(Files.exists(zipPath));
 
-        InOrder inOrder = inOrder(
-                generationLimitService,
-                midiGenerationService,
-                zipStorageService,
-                generationStatsService
-        );
+        InOrder inOrder =
+                inOrder(generationLimitService, midiGenerationService, zipStorageService, generationStatsService);
         inOrder.verify(generationLimitService).checkGuestLimit("127.0.0.1");
         inOrder.verify(midiGenerationService).generateZip();
         inOrder.verify(zipStorageService).uploadZip(zipPath);
@@ -155,9 +148,8 @@ class GenerateControllerTest {
     private User authenticatedUser() {
         User user = new User("nikul", "nikul@example.com", "hash");
         when(userRepository.findByEmail("nikul@example.com")).thenReturn(Optional.of(user));
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("nikul@example.com", null, List.of())
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken("nikul@example.com", null, List.of()));
         when(clientIpService.getClientIp(org.mockito.ArgumentMatchers.any())).thenReturn("127.0.0.1");
         return user;
     }

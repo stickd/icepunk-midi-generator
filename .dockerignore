@@ -2,18 +2,19 @@
 .gitignore
 
 frontend/.next
-frontend/node_modules
+**/node_modules
 frontend/.env*
 
 backend/target
 
-venv
-__pycache__
-*.pyc
+**/venv
+**/__pycache__
+**/*.pyc
 
-generated_midi
-*.mid
-*.zip
+**/generated_midi
+**/midi_dataset
+**/*.mid
+**/*.zip
 
 .DS_Store
 *.log
