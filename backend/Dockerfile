@@ -17,6 +17,7 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY generator/requirements.txt generator/icepunk_midi_generator.py ./
+COPY generator/midistyle midistyle
 COPY generator/analysis_output analysis_output
 
 RUN python3 -m venv /app/venv \

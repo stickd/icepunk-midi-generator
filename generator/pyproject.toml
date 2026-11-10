@@ -10,7 +10,7 @@ pythonpath = ["."]
 addopts = "--cov --cov-report=term-missing"
 
 [tool.coverage.run]
-source = ["icepunk_midi_analyzer", "icepunk_midi_generator"]
+source = ["midistyle", "icepunk_midi_analyzer", "icepunk_midi_generator"]
 branch = true
 
 [tool.coverage.report]

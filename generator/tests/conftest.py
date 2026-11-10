@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 from typing import Any
 
 import pytest
 from mido import Message, MetaMessage, MidiFile, MidiTrack
+
+from midistyle.generation.style import Note, SourcePattern
+from midistyle.theory import detect_register
 
 
 def write_midi_file(
@@ -109,3 +113,48 @@ def simple_track(name: str = "Lead") -> list[Any]:
         Message("note_on", note=64, velocity=50, channel=0, time=0),
         Message("note_on", note=64, velocity=0, channel=0, time=240),
     ]
+
+
+def two_track_song(path: Path) -> Path:
+    """A lead track from simple_track plus a bass note on channel 1."""
+    bass = [
+        Message("note_on", note=40, velocity=80, channel=1, time=0),
+        Message("note_off", note=40, velocity=0, channel=1, time=960),
+    ]
+    return write_midi_file(path, [simple_track("Lead"), bass])
+
+
+def note(
+    pitch: int,
+    start: float = 0.0,
+    duration: float = 0.5,
+    velocity: int = 100,
+    register: str | None = None,
+) -> Note:
+    return Note(
+        pitch=pitch,
+        velocity=velocity,
+        start_beat=start,
+        duration_beats=duration,
+        register=register or detect_register(pitch),
+    )
+
+
+def pattern(
+    notes: list[Note],
+    key: str | None = "C major",
+    registers: dict[str, int] | None = None,
+) -> SourcePattern:
+    return SourcePattern(
+        notes=notes,
+        source_file="test.mid",
+        estimated_key=key,
+        note_count=len(notes),
+        register_distribution=registers or {},
+    )
+
+
+@pytest.fixture
+def no_randomness(monkeypatch):
+    """random.random() == 0.5: every layer is used and no mutation fires."""
+    monkeypatch.setattr(random, "random", lambda: 0.5)
