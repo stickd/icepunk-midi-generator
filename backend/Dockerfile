@@ -5,6 +5,7 @@ WORKDIR /workspace
 COPY backend/.mvn backend/.mvn
 COPY backend/mvnw backend/pom.xml backend/
 COPY backend/src backend/src
+COPY openapi openapi
 
 RUN cd backend && ./mvnw -DskipTests package
 
@@ -36,6 +37,7 @@ ENV ICEPUNK_GENERATOR_PROJECT_DIR=/app
 ENV ICEPUNK_GENERATOR_PYTHON_PATH=/app/venv/bin/python3
 ENV ICEPUNK_GENERATOR_SCRIPT_NAME=icepunk_midi_generator.py
 ENV JAVA_OPTS=""
+ENV SWAGGER_UI_ENABLED=false
 
 EXPOSE 8081
 

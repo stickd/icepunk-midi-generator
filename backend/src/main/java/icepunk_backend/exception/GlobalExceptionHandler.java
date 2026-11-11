@@ -1,5 +1,7 @@
 package icepunk_backend.exception;
 
+import icepunk_backend.dto.ErrorResponse;
+import icepunk_backend.dto.ValidationErrorResponse;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,73 +15,51 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException exception) {
+    public ResponseEntity<ValidationErrorResponse> handleValidationErrors(MethodArgumentNotValidException exception) {
         Map<String, String> fields = new HashMap<>();
 
-        exception.getBindingResult().getFieldErrors().forEach(error -> {
-            fields.put(error.getField(), error.getDefaultMessage());
-        });
+        exception
+                .getBindingResult()
+                .getFieldErrors()
+                .forEach(error -> fields.put(error.getField(), error.getDefaultMessage()));
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "Validation failed");
-        response.put("fields", fields);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ValidationErrorResponse("Validation failed", fields));
     }
 
     @ExceptionHandler({EmailAlreadyExistsException.class, UsernameAlreadyExistsException.class})
-    public ResponseEntity<Map<String, String>> handleDuplicateUser(RuntimeException exception) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", exception.getMessage());
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    public ResponseEntity<ErrorResponse> handleDuplicateUser(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<Map<String, String>> handleInvalidCredentials(InvalidCredentialsException exception) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", exception.getMessage());
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(exception.getMessage()));
     }
 
     @ExceptionHandler(GenerationLimitException.class)
-    public ResponseEntity<Map<String, String>> handleGenerationLimit(GenerationLimitException exception) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", exception.getMessage());
-
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    public ResponseEntity<ErrorResponse> handleGenerationLimit(GenerationLimitException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse(exception.getMessage()));
     }
 
     @ExceptionHandler(RateLimitException.class)
-    public ResponseEntity<Map<String, String>> handleRateLimit(RateLimitException exception) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", exception.getMessage());
-
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    public ResponseEntity<ErrorResponse> handleRateLimit(RateLimitException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse(exception.getMessage()));
     }
 
     @ExceptionHandler(ServerBusyException.class)
-    public ResponseEntity<Map<String, String>> handleServerBusy(ServerBusyException exception) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", exception.getMessage());
-
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    public ResponseEntity<ErrorResponse> handleServerBusy(ServerBusyException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse(exception.getMessage()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, String>> handleDataIntegrityViolation() {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", "Account already exists");
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("Account already exists"));
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException() {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", "Unexpected server error");
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    public ResponseEntity<ErrorResponse> handleRuntimeException() {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Unexpected server error"));
     }
 }

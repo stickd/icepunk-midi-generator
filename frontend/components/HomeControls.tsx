@@ -128,7 +128,7 @@ export default function HomeControls() {
           ? { email, password }
           : { username, email, password };
 
-      const response = await authUser(authMode, body);
+      const { data, response } = await authUser(authMode, body);
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -152,9 +152,7 @@ export default function HomeControls() {
         return;
       }
 
-      const data = await response.json();
-
-      if (!data.token || typeof data.token !== "string") {
+      if (!data?.token || typeof data.token !== "string") {
         setAuthStatus("Auth failed. Token was not returned.");
         return;
       }

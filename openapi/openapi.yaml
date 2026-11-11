@@ -1,0 +1,250 @@
+openapi: 3.0.3
+
+info:
+  title: Icepunk MIDI Generator API
+  version: 0.0.1
+  description: >-
+    Contract between the Icepunk frontend and backend. This file is the source
+    of truth: backend controller interfaces and DTOs, and the frontend API
+    types, are generated from it.
+
+servers:
+  - url: http://localhost:8081
+    description: Local development
+
+tags:
+  - name: auth
+    description: Registration and login.
+  - name: generation
+    description: MIDI pack generation and its global counter.
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Create an account and receive a JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "409":
+          description: The email or username is already taken.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many registration attempts from this IP address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/UnexpectedError"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Exchange credentials for a JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Credentials accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many login attempts from this IP address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/UnexpectedError"
+
+  /generate:
+    post:
+      tags: [generation]
+      operationId: generate
+      summary: Generate a MIDI pack and return its download URL.
+      description: >-
+        Works for guests and for logged-in users. Without a bearer token, or
+        with one that is invalid or expired, the caller is treated as a guest
+        and the guest daily limit is applied per IP address.
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The pack was generated and uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateResponse"
+        "429":
+          description: >-
+            The guest or user daily generation limit is reached, or the
+            generator is busy. The cases are told apart only by the `error`
+            message.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/UnexpectedError"
+
+  /generation-stats:
+    get:
+      tags: [generation]
+      operationId: getGenerationStats
+      summary: Get the total number of generated packs.
+      security: []
+      responses:
+        "200":
+          description: Current counter value.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationStatsResponse"
+        "500":
+          $ref: "#/components/responses/UnexpectedError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    ValidationFailed:
+      description: The request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+    UnexpectedError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          maxLength: 40
+          description: Must not be blank.
+          x-field-extra-annotation: "@jakarta.validation.constraints.NotBlank"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Must not be blank.
+          x-field-extra-annotation: "@jakarta.validation.constraints.NotBlank"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          maxLength: 128
+          description: Must not be blank.
+          x-field-extra-annotation: "@jakarta.validation.constraints.NotBlank"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Must not be blank.
+          x-field-extra-annotation: "@jakarta.validation.constraints.NotBlank"
+        password:
+          type: string
+          format: password
+          maxLength: 128
+          description: Must not be blank.
+          x-field-extra-annotation: "@jakarta.validation.constraints.NotBlank"
+
+    AuthResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: JWT to send as a bearer token.
+
+    GenerateResponse:
+      type: object
+      required: [downloadUrl, totalGenerations]
+      properties:
+        downloadUrl:
+          type: string
+          description: URL of the generated zip archive.
+        totalGenerations:
+          type: integer
+          format: int64
+          description: Global counter value after this generation.
+
+    GenerationStatsResponse:
+      type: object
+      required: [totalGenerations]
+      properties:
+        totalGenerations:
+          type: integer
+          format: int64
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message.
+
+    ValidationErrorResponse:
+      type: object
+      required: [error, fields]
+      properties:
+        error:
+          type: string
+          description: Always "Validation failed".
+        fields:
+          type: object
+          description: Validation message per invalid field name.
+          additionalProperties:
+            type: string

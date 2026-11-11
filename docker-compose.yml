@@ -12,7 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    image: cgr.dev/chainguard/minio:latest
     container_name: icepunk-minio
     command: server /data --console-address ":9001"
     environment:

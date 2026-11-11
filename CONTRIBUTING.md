@@ -63,6 +63,17 @@ From the repository root:
 | `npm run format:backend` | Format only the backend (also `:frontend`, `:generator`) |
 | `npm run check:backend`  | Check only the backend (also `:frontend`, `:generator`)  |
 
+## API contract
+
+The HTTP API between the frontend and the backend is described in `openapi/openapi.yaml`. The contract comes first: change the spec, then the code.
+
+- **Backend**: every Maven build generates the controller interfaces (`icepunk_backend.api`) and the DTOs (`icepunk_backend.dto`) into `backend/target/generated-sources/openapi`. They are not committed. The controllers implement the generated interfaces, so a mismatch with the spec is a compile error.
+- **Frontend**: `frontend/lib/api-schema.d.ts` is generated from the spec before every `npm run dev` and `npm run build`. It is not committed. To refresh the types while the dev server is running, or right after cloning so the editor resolves them, run `npm run generate:api` from the repository root.
+
+To browse the contract, run the backend with `./mvnw spring-boot:run` and open `http://localhost:8081/swagger-ui.html`.
+
+`npm run check:openapi` lints the spec. The pre-commit hook runs it when the spec is staged.
+
 ### Editor setup
 
 Format-on-save keeps the hook from ever having to change anything:

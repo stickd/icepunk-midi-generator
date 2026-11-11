@@ -22,9 +22,14 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final List<String> allowedOrigins;
+    private final boolean swaggerUiEnabled;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, @Value("${app.cors.allowed-origins}") String allowedOrigins) {
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            @Value("${app.cors.allowed-origins}") String allowedOrigins,
+            @Value("${springdoc.swagger-ui.enabled:false}") boolean swaggerUiEnabled) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.swaggerUiEnabled = swaggerUiEnabled;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
@@ -49,15 +54,24 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Configure endpoint authorization rules
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> {
+                    // Public endpoints accessible without authentication
+                    auth.requestMatchers("/auth/register", "/auth/login", "/generate", "/generation-stats")
+                            .permitAll();
 
-                        // Public endpoints accessible without authentication
-                        .requestMatchers("/auth/register", "/auth/login", "/generate", "/generation-stats")
-                        .permitAll()
+                    // Swagger UI and the contract it renders, unless turned off (SWAGGER_UI_ENABLED=false)
+                    if (swaggerUiEnabled) {
+                        auth.requestMatchers(
+                                        "/swagger-ui.html",
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/swagger-config",
+                                        "/openapi.yaml")
+                                .permitAll();
+                    }
 
-                        // All other endpoints require a valid JWT token
-                        .anyRequest()
-                        .authenticated())
+                    // All other endpoints require a valid JWT token
+                    auth.anyRequest().authenticated();
+                })
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

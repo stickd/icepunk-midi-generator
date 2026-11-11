@@ -67,8 +67,11 @@ Local URLs:
 
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8081`
+- Swagger UI: `http://localhost:8081/swagger-ui.html`
 - MinIO API: `http://localhost:9010`
 - MinIO console: `http://localhost:9011`
+
+Swagger UI renders `openapi/openapi.yaml`. It is on for local runs and off in the Docker image, which sets `SWAGGER_UI_ENABLED=false`.
 
 Local frontend config can live in `frontend/.env.local`:
 

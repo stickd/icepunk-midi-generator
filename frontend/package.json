@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run generate:api",
     "dev": "next dev",
+    "prebuild": "npm run generate:api",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "generate:api": "openapi-typescript ../openapi/openapi.yaml -o lib/api-schema.d.ts"
   },
   "dependencies": {
     "next": "16.2.6",
+    "openapi-fetch": "0.17.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -23,6 +27,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "eslint-config-prettier": "10.1.8",
+    "openapi-typescript": "7.13.0",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "0.8.1",
     "tailwindcss": "^4",

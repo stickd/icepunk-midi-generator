@@ -1,5 +1,8 @@
 package icepunk_backend.controller;
 
+import icepunk_backend.api.GenerationApi;
+import icepunk_backend.dto.GenerateResponse;
+import icepunk_backend.dto.GenerationStatsResponse;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.ClientIpService;
@@ -14,11 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class GenerateController {
+public class GenerateController implements GenerationApi {
 
     private final MidiGenerationService midiGenerationService;
     private final GenerationLimitService generationLimitService;
@@ -26,6 +28,7 @@ public class GenerateController {
     private final UserRepository userRepository;
     private final ZipStorageService zipStorageService;
     private final ClientIpService clientIpService;
+    private final HttpServletRequest request;
 
     public GenerateController(
             MidiGenerationService midiGenerationService,
@@ -33,17 +36,19 @@ public class GenerateController {
             GenerationStatsService generationStatsService,
             UserRepository userRepository,
             ZipStorageService zipStorageService,
-            ClientIpService clientIpService) {
+            ClientIpService clientIpService,
+            HttpServletRequest request) {
         this.midiGenerationService = midiGenerationService;
         this.generationLimitService = generationLimitService;
         this.generationStatsService = generationStatsService;
         this.userRepository = userRepository;
         this.zipStorageService = zipStorageService;
         this.clientIpService = clientIpService;
+        this.request = request;
     }
 
-    @PostMapping("/generate")
-    public ResponseEntity<GenerateResponse> generate(HttpServletRequest request) throws Exception {
+    @Override
+    public ResponseEntity<GenerateResponse> generate() throws Exception {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -87,23 +92,9 @@ public class GenerateController {
         }
     }
 
-    public static class GenerateResponse {
-
-        private final String downloadUrl;
-        private final long totalGenerations;
-
-        public GenerateResponse(String downloadUrl, long totalGenerations) {
-            this.downloadUrl = downloadUrl;
-            this.totalGenerations = totalGenerations;
-        }
-
-        public String getDownloadUrl() {
-            return downloadUrl;
-        }
-
-        public long getTotalGenerations() {
-            return totalGenerations;
-        }
+    @Override
+    public ResponseEntity<GenerationStatsResponse> getGenerationStats() {
+        return ResponseEntity.ok(new GenerationStatsResponse(generationStatsService.getTotalGenerations()));
     }
 
     private static class GenerationActor {

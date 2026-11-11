@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import icepunk_backend.dto.GenerateResponse;
 import icepunk_backend.model.User;
 import icepunk_backend.repository.UserRepository;
 import icepunk_backend.service.ClientIpService;
@@ -37,13 +38,16 @@ class GenerateControllerTest {
     private final ZipStorageService zipStorageService = mock(ZipStorageService.class);
     private final ClientIpService clientIpService = mock(ClientIpService.class);
 
+    private final MockHttpServletRequest request = new MockHttpServletRequest();
+
     private final GenerateController controller = new GenerateController(
             midiGenerationService,
             generationLimitService,
             generationStatsService,
             userRepository,
             zipStorageService,
-            clientIpService);
+            clientIpService,
+            request);
 
     @TempDir
     Path tempDir;
@@ -55,10 +59,10 @@ class GenerateControllerTest {
 
     @Test
     void busyServerDoesNotIncrementGuestUsageOrGlobalCounter() throws Exception {
-        MockHttpServletRequest request = guestRequest();
+        stubGuestRequest();
         when(midiGenerationService.generateZip()).thenThrow(new RuntimeException("Server is busy. Try again later."));
 
-        assertThrows(RuntimeException.class, () -> controller.generate(request));
+        assertThrows(RuntimeException.class, controller::generate);
 
         verify(generationLimitService).checkGuestLimit("127.0.0.1");
         verify(generationLimitService, never()).incrementGuestUsage("127.0.0.1");
@@ -71,7 +75,7 @@ class GenerateControllerTest {
         User user = authenticatedUser();
         when(midiGenerationService.generateZip()).thenThrow(new RuntimeException("Python generator failed"));
 
-        assertThrows(RuntimeException.class, () -> controller.generate(new MockHttpServletRequest()));
+        assertThrows(RuntimeException.class, controller::generate);
 
         verify(generationLimitService).checkUserLimit(user);
         verify(generationLimitService, never()).incrementUserUsage(user);
@@ -81,12 +85,12 @@ class GenerateControllerTest {
 
     @Test
     void uploadErrorDoesNotIncrementGuestUsageOrGlobalCounter() throws Exception {
-        MockHttpServletRequest request = guestRequest();
+        stubGuestRequest();
         Path zipPath = createZipFile();
         when(midiGenerationService.generateZip()).thenReturn(zipPath);
         when(zipStorageService.uploadZip(zipPath)).thenThrow(new RuntimeException("S3 upload failed"));
 
-        assertThrows(RuntimeException.class, () -> controller.generate(request));
+        assertThrows(RuntimeException.class, controller::generate);
 
         verify(generationLimitService).checkGuestLimit("127.0.0.1");
         verify(generationLimitService, never()).incrementGuestUsage("127.0.0.1");
@@ -96,17 +100,16 @@ class GenerateControllerTest {
 
     @Test
     void successfulGuestGenerationIncrementsUsageAndGlobalCounterOnce() throws Exception {
-        MockHttpServletRequest request = guestRequest();
+        stubGuestRequest();
         Path zipPath = createZipFile();
         when(midiGenerationService.generateZip()).thenReturn(zipPath);
         when(zipStorageService.uploadZip(zipPath)).thenReturn("https://cdn.example/pack.zip");
         when(generationStatsService.incrementTotalGenerations()).thenReturn(42L);
 
-        GenerateController.GenerateResponse response =
-                controller.generate(request).getBody();
+        GenerateResponse response = controller.generate().getBody();
 
         assertEquals("https://cdn.example/pack.zip", response.getDownloadUrl());
-        assertEquals(42L, response.getTotalGenerations());
+        assertEquals(42L, response.getTotalGenerations().longValue());
         assertFalse(Files.exists(zipPath));
 
         InOrder inOrder =
@@ -126,11 +129,10 @@ class GenerateControllerTest {
         when(zipStorageService.uploadZip(zipPath)).thenReturn("https://cdn.example/user-pack.zip");
         when(generationStatsService.incrementTotalGenerations()).thenReturn(43L);
 
-        GenerateController.GenerateResponse response =
-                controller.generate(new MockHttpServletRequest()).getBody();
+        GenerateResponse response = controller.generate().getBody();
 
         assertEquals("https://cdn.example/user-pack.zip", response.getDownloadUrl());
-        assertEquals(43L, response.getTotalGenerations());
+        assertEquals(43L, response.getTotalGenerations().longValue());
         assertFalse(Files.exists(zipPath));
 
         verify(generationLimitService).checkUserLimit(user);
@@ -138,11 +140,9 @@ class GenerateControllerTest {
         verify(generationStatsService).incrementTotalGenerations();
     }
 
-    private MockHttpServletRequest guestRequest() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
+    private void stubGuestRequest() {
         request.setRemoteAddr("127.0.0.1");
         when(clientIpService.getClientIp(request)).thenReturn("127.0.0.1");
-        return request;
     }
 
     private User authenticatedUser() {

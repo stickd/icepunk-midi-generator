@@ -1,44 +1,41 @@
+import createClient from "openapi-fetch";
+import type { components, paths } from "@/lib/api-schema";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8081";
 
 export const TOKEN_KEY = "icepunk_token";
 
+// Types are generated from openapi/openapi.yaml by `npm run generate:api`.
+type Schemas = components["schemas"];
+
+export type LoginBody = Schemas["LoginRequest"];
+export type RegisterBody = Schemas["RegisterRequest"];
+export type AuthResponse = Schemas["AuthResponse"];
+export type GenerationStatsResponse = Schemas["GenerationStatsResponse"];
+export type GenerateMidiResponse = Schemas["GenerateResponse"];
+
 type AuthMode = "login" | "register";
 
-type LoginBody = {
-  email: string;
-  password: string;
-};
+const client = createClient<paths>({ baseUrl: API_URL });
 
-type RegisterBody = {
-  username: string;
-  email: string;
-  password: string;
-};
+function httpError(response: Response, error?: { error: string }) {
+  return new Error(
+    `HTTP_${response.status}: ${error?.error || response.statusText}`,
+  );
+}
 
 export async function loginUser(body: LoginBody) {
-  return fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  return client.POST("/auth/login", { body });
 }
 
 export async function registerUser(body: RegisterBody) {
-  return fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  return client.POST("/auth/register", { body });
 }
 
 export async function authUser(
   mode: AuthMode,
   body: LoginBody | RegisterBody,
-): Promise<Response> {
+): Promise<{ data?: AuthResponse; response: Response }> {
   if (mode === "login") {
     return loginUser(body as LoginBody);
   }
@@ -46,53 +43,30 @@ export async function authUser(
   return registerUser(body as RegisterBody);
 }
 
-export type GenerationStatsResponse = {
-  totalGenerations: number;
-};
-
-type GenerateMidiResponse = {
-  downloadUrl: string;
-  totalGenerations: number;
-};
-
 export async function getGenerationStats(
   signal?: AbortSignal,
 ): Promise<GenerationStatsResponse> {
-  const response = await fetch(`${API_URL}/generation-stats`, {
-    method: "GET",
+  const { data, error, response } = await client.GET("/generation-stats", {
     signal,
   });
 
-  if (!response.ok) {
-    const message = await response.text();
-
-    throw new Error(
-      `HTTP_${response.status}: ${message || response.statusText}`,
-    );
+  if (!data) {
+    throw httpError(response, error);
   }
 
-  return response.json();
+  return data;
 }
 
 export async function generateMidiPack(
   token?: string | null,
 ): Promise<GenerateMidiResponse> {
-  const response = await fetch(`${API_URL}/generate`, {
-    method: "POST",
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : {},
+  const { data, error, response } = await client.POST("/generate", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  if (!response.ok) {
-    const message = await response.text();
-
-    throw new Error(
-      `HTTP_${response.status}: ${message || response.statusText}`,
-    );
+  if (!data) {
+    throw httpError(response, error);
   }
 
-  return response.json();
+  return data;
 }
