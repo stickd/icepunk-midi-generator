@@ -28,15 +28,45 @@ public class ResendEmailService implements EmailService {
 
     @Override
     public void sendVerificationEmail(String email, String rawToken) {
-        if (apiKey.isBlank() || from.isBlank()) throw new EmailDeliveryException();
         try {
             String link = frontendUrl.replaceAll("/+$", "") + "/verify-email?token=" + rawToken;
             String html = "<div style=\"font-family:Arial,sans-serif;background:#07131e;color:#edf8ff;padding:32px\">"
                     + "<h1 style=\"color:#76d7ff\">ICEPUNK</h1><p>Confirm your email to enter the generator.</p>"
                     + "<p><a style=\"background:#2aa8e8;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none\" href=\"" + link + "\">Verify email</a></p>"
                     + "<p>This link expires soon. If you did not create an ICEPUNK account, you can ignore this email.</p></div>";
-            String body = objectMapper.writeValueAsString(Map.of("from", from, "to", new String[]{email},
-                    "subject", "Verify your ICEPUNK email", "html", html));
+            send(email, "Verify your ICEPUNK email", html);
+        } catch (EmailDeliveryException exception) { throw exception;
+        } catch (Exception exception) { throw new EmailDeliveryException(); }
+    }
+
+    @Override
+    public void sendContentReportReceipt(String email, java.util.UUID reportId) {
+        send(email, "ICEPUNK report received", "<p>We received your content report.</p><p>Reference: <strong>"
+                + reportId + "</strong></p><p>Keep this reference if you contact us about the report.</p>");
+    }
+
+    @Override
+    public void sendModerationDecision(String email, String contentReference, String decision, String reason) {
+        String safeReference = escape(contentReference);
+        String safeDecision = escape(decision);
+        String safeReason = escape(reason);
+        String link = frontendUrl.replaceAll("/+$", "") + "/moderation";
+        send(email, "ICEPUNK moderation decision", "<p>A moderation decision was made for content <strong>"
+                + safeReference + "</strong>.</p><p>Decision: <strong>" + safeDecision + "</strong></p><p>Reason: "
+                + safeReason + "</p><p><a href=\"" + link + "\">View decision or submit an appeal</a></p>");
+    }
+
+    @Override
+    public void sendContentReportDecision(String email, java.util.UUID reportId, String decision, String reason) {
+        send(email, "ICEPUNK report decision", "<p>A decision was made for your report <strong>"
+                + reportId + "</strong>.</p><p>Decision: <strong>" + escape(decision) + "</strong></p><p>Reason: "
+                + escape(reason) + "</p>");
+    }
+
+    private void send(String email, String subject, String html) {
+        if (apiKey.isBlank() || from.isBlank()) throw new EmailDeliveryException();
+        try {
+            String body = objectMapper.writeValueAsString(Map.of("from", from, "to", new String[]{email}, "subject", subject, "html", html));
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.resend.com/emails"))
                     .timeout(Duration.ofSeconds(15)).header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
@@ -45,5 +75,10 @@ public class ResendEmailService implements EmailService {
             if (status < 200 || status >= 300) throw new EmailDeliveryException();
         } catch (EmailDeliveryException exception) { throw exception;
         } catch (Exception exception) { throw new EmailDeliveryException(); }
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
     }
 }

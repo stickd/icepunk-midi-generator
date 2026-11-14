@@ -75,6 +75,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/generation-stats",
                             "/generation-usage",
                             "/datasets/analyze-temp",
+                            "/reports",
                             "/uploads/feed",
                             "/uploads/projects/*/midi",
                             "/user-uploads/**"

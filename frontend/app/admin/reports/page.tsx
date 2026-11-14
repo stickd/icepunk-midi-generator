@@ -1,0 +1,15 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { TOKEN_KEY } from "@/lib/api";
+
+type Report = { id: string; target_type: "GENERATED_PACK" | "UPLOAD"; target_id: string; category: string; description?: string; status: "OPEN" | "REVIEWING" | "ACTIONED" | "REJECTED"; created_at: string; operator_notes?: string; appeal_text?: string };
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8081";
+
+export default function ReportsAdminPage() {
+  const [reports, setReports] = useState<Report[]>([]); const [state, setState] = useState("Loading…");
+  const load = async () => { const token=localStorage.getItem(TOKEN_KEY); if(!token){setState("Administrator access is required.");return;} const r=await fetch(`${API_URL}/admin/reports`,{headers:{Authorization:`Bearer ${token}`}}); if(!r.ok){setState("Administrator access is required.");return;} setReports(await r.json());setState(""); };
+  useEffect(()=>{void load();},[]);
+  const decide=async(id:string,status:Report["status"],action:"NONE"|"HIDE"|"RESTORE")=>{const token=localStorage.getItem(TOKEN_KEY);if(status==="REVIEWING"){const r=await fetch(`${API_URL}/admin/reports/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({status,action})});if(!r.ok)setState("Decision could not be saved.");else void load();return;}const decisionReason=window.prompt("Decision and action shown to the recipient:")?.trim();const decisionBasis=window.prompt("Applicable legal or Terms basis:")?.trim();const decisionFacts=window.prompt("Facts considered:")?.trim();if(!decisionReason||!decisionBasis||!decisionFacts)return;const r=await fetch(`${API_URL}/admin/reports/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({status,action,decisionReason,decisionBasis,decisionFacts})});if(!r.ok){setState("Decision could not be saved.");return;}void load();};
+  return <main className="mx-auto max-w-5xl px-6 py-16 text-ice-secondary"><p className="font-mono text-xs tracking-[.2em] text-[color:var(--ice-accent)]">ADMIN / CONTENT MODERATION</p><h1 className="mt-3 text-3xl text-ice-primary">Content reports</h1>{state?<p className="mt-8" role="alert">{state}</p>:null}<div className="mt-8 grid gap-4">{reports.map(r=><article className="rounded-xl border border-[color:var(--ice-border)] p-5" key={r.id}><div className="flex flex-wrap justify-between gap-2"><strong className="text-ice-primary">{r.category}</strong><span>{r.status}</span></div><p className="mt-2 text-sm">{r.target_type} · {r.target_id}</p>{r.description?<p className="mt-3 whitespace-pre-wrap">{r.description}</p>:null}{r.appeal_text?<p className="mt-3 rounded bg-white/5 p-3">Author appeal: {r.appeal_text}</p>:null}<div className="mt-4 flex gap-2"><button onClick={()=>decide(r.id,"REVIEWING","NONE")}>Review</button><button onClick={()=>decide(r.id,"ACTIONED","HIDE")}>Hide from feed</button><button onClick={()=>decide(r.id,"REJECTED","NONE")}>Reject</button><button onClick={()=>decide(r.id,"REJECTED","RESTORE")}>Lift restriction</button></div></article>)}</div></main>;
+}

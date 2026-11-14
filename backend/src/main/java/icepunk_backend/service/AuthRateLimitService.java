@@ -86,6 +86,9 @@ public class AuthRateLimitService {
     public void checkReportLimit(Long userId) {
         check("reports:user:" + fingerprint(userId.toString()), 10, Duration.ofHours(1), "Too many reports. Try again later.");
     }
+    public void checkAnonymousReportLimit(String ipAddress) {
+        check("reports:ip:" + fingerprint(ipAddress), 10, Duration.ofHours(1), "Too many reports. Try again later.");
+    }
 
     private void check(String key, int limit, Duration window, String message) {
         try {

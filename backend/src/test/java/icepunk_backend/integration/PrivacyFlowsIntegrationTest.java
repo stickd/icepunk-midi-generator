@@ -84,6 +84,7 @@ class PrivacyFlowsIntegrationTest {
     }
     String reportBody(String type, Object id, String category, String description) throws Exception {
         var data = new HashMap<String,Object>(); data.put("targetType",type); data.put("targetId",id.toString()); data.put("category",category); data.put("description",description);
+        data.put("noticeType","FORMAL_DSA"); data.put("reporterName","Test reporter"); data.put("contactEmail","notice@test.invalid"); data.put("goodFaith",true);
         return json.writeValueAsString(data);
     }
 
@@ -114,7 +115,7 @@ class PrivacyFlowsIntegrationTest {
     @Test void reportsAndAdminWorkflowAreIsolated() throws Exception {
         var a=user(); var b=user(); var admin=user(); var target=pack(a,"PUBLIC");
         http.perform(post("/reports").header("Authorization",bearer(b)).contentType(MediaType.APPLICATION_JSON).content(reportBody("GENERATED_PACK",target,"COPYRIGHT",null)))
-                .andExpect(status().isAccepted()).andExpect(content().string(""));
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.reportId").exists());
         UUID report=db.queryForObject("select id from content_reports where target_id=?",UUID.class,target.toString());
         assertEquals("OPEN",db.queryForObject("select status from content_reports where id=?",String.class,report));
         http.perform(get("/admin/reports")).andExpect(status().isUnauthorized());
@@ -125,7 +126,9 @@ class PrivacyFlowsIntegrationTest {
         db.update("update users set role='ADMIN' where id=?",admin.getId());
         http.perform(get("/admin/reports?status=OPEN&category=COPYRIGHT&targetType=GENERATED_PACK").header("Authorization",adminJwt)).andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("OPEN"));
         for (String state : List.of("REVIEWING","ACTIONED","REJECTED")) {
-            http.perform(patch("/admin/reports/"+report).header("Authorization",adminJwt).contentType(MediaType.APPLICATION_JSON).content("{\"status\":\""+state+"\",\"operatorNotes\":\"PRIVATE_OPERATOR_NOTE\"}"))
+            String decision = "REVIEWING".equals(state) ? "{\"status\":\"REVIEWING\",\"operatorNotes\":\"PRIVATE_OPERATOR_NOTE\"}"
+                    : "{\"status\":\""+state+"\",\"operatorNotes\":\"PRIVATE_OPERATOR_NOTE\",\"decisionReason\":\"No restriction\",\"decisionBasis\":\"Terms review\",\"decisionFacts\":\"No breach found\"}";
+            http.perform(patch("/admin/reports/"+report).header("Authorization",adminJwt).contentType(MediaType.APPLICATION_JSON).content(decision))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.status").value(state)).andExpect(jsonPath("$.operator_notes").value("PRIVATE_OPERATOR_NOTE"));
         }
         assertNotNull(db.queryForObject("select resolved_at from content_reports where id=?",java.sql.Timestamp.class,report));
@@ -135,6 +138,39 @@ class PrivacyFlowsIntegrationTest {
         assertFalse(exported.contains("PRIVATE_OPERATOR_NOTE"));
         db.update("update users set role='USER' where id=?",admin.getId());
         http.perform(get("/admin/reports").header("Authorization",adminJwt)).andExpect(status().isForbidden());
+    }
+
+    @Test void hiddenPackCannotBeRepublishedAndOnlyOwnerCanAppeal() throws Exception {
+        var owner=user(); var stranger=user(); var admin=user(); var target=pack(owner,"PUBLIC");
+        db.update("update users set role='ADMIN' where id=?",admin.getId());
+        String reporterEmail="reporter@example.test";
+        var reportPayload=new HashMap<String,Object>();
+        reportPayload.put("targetType","GENERATED_PACK"); reportPayload.put("targetId",target.toString());
+        reportPayload.put("category","COPYRIGHT"); reportPayload.put("description","Rights concern");
+        reportPayload.put("noticeType","FORMAL_DSA"); reportPayload.put("reporterName","Test reporter"); reportPayload.put("contactEmail",reporterEmail); reportPayload.put("goodFaith",true);
+        http.perform(post("/reports").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(reportPayload)))
+                .andExpect(status().isAccepted());
+        UUID report=db.queryForObject("select id from content_reports where target_id=?",UUID.class,target.toString());
+        verify(email).sendContentReportReceipt(reporterEmail,report);
+        http.perform(patch("/admin/reports/"+report).header("Authorization",bearer(admin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"ACTIONED\",\"action\":\"HIDE\",\"decisionReason\":\"Copyright restriction\",\"decisionBasis\":\"Copyright policy\",\"decisionFacts\":\"Reported MIDI matches the notice\"}"))
+                .andExpect(status().isOk());
+        String statement="Reason: Copyright restriction\nBasis: Copyright policy\nFacts considered: Reported MIDI matches the notice";
+        verify(email).sendModerationDecision(owner.getEmail(),target.toString(),"Content hidden",statement);
+        verify(email).sendContentReportDecision(reporterEmail,report,"Content hidden",statement);
+        assertEquals("PRIVATE",db.queryForObject("select visibility from generated_packs where id=?",String.class,target));
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                () -> db.update("update generated_packs set visibility='PUBLIC' where id=?",target));
+        http.perform(get("/reports/mine").header("Authorization",bearer(owner)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].decision_reason").value("Copyright restriction"));
+        http.perform(post("/reports/"+report+"/appeal").header("Authorization",bearer(stranger))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"Review please\"}")).andExpect(status().isNotFound());
+        http.perform(post("/reports/"+report+"/appeal").header("Authorization",bearer(owner))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"text\":\" \"}")).andExpect(status().isBadRequest());
+        http.perform(post("/reports/"+report+"/appeal").header("Authorization",bearer(owner))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"I own the rights\"}")).andExpect(status().isAccepted());
     }
 
     @Test void reportsValidatePublicTargetsAndPayload() throws Exception {
@@ -233,8 +269,11 @@ class PrivacyFlowsIntegrationTest {
         assertEquals("OPEN",db.queryForObject("select status from content_reports where id=?",String.class,report));
         db.update("update users set role='ADMIN' where id=?",admin.getId());
         http.perform(get("/admin/reports?status=OPEN").header("Authorization",bearer(admin))).andExpect(status().isOk());
-        for (String state : List.of("REVIEWING","ACTIONED"))
-            http.perform(patch("/admin/reports/"+report).header("Authorization",bearer(admin)).contentType(MediaType.APPLICATION_JSON).content("{\"status\":\""+state+"\",\"operatorNotes\":\"Internal review\"}")).andExpect(status().isOk());
+        for (String state : List.of("REVIEWING","ACTIONED")) {
+            String decision = "REVIEWING".equals(state) ? "{\"status\":\"REVIEWING\",\"operatorNotes\":\"Internal review\"}"
+                    : "{\"status\":\"ACTIONED\",\"operatorNotes\":\"Internal review\",\"decisionReason\":\"No restriction\",\"decisionBasis\":\"Terms review\",\"decisionFacts\":\"No breach found\"}";
+            http.perform(patch("/admin/reports/"+report).header("Authorization",bearer(admin)).contentType(MediaType.APPLICATION_JSON).content(decision)).andExpect(status().isOk());
+        }
         String export=http.perform(get("/account/export").header("Authorization",auth)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertTrue(export.contains(address)); assertFalse(export.contains(b.getEmail())); assertFalse(export.contains("Internal review"));
         http.perform(delete("/account").header("Authorization",auth)).andExpect(status().isAccepted());
