@@ -168,6 +168,12 @@ export default function ProfileView({ username }: ProfileViewProps) {
     window.dispatchEvent(new Event(TOKEN_CHANGE_EVENT));
   }
 
+  function handleAccountDeletionRequested() {
+    localStorage.removeItem(TOKEN_KEY);
+    notifyTokenChanged();
+    window.location.assign("/");
+  }
+
   async function handleAuth(registrationAcceptance?: { termsAccepted: true; ageConfirmed: true }) {
     if (!authMode || authMode === "verify") return;
 
@@ -488,6 +494,7 @@ export default function ProfileView({ username }: ProfileViewProps) {
                 setProfile({ ...profile, profilePictureUrl: url });
               }
             }}
+            onAccountDeletionRequested={handleAccountDeletionRequested}
             profile={profile}
             token={token}
           />

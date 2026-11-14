@@ -307,6 +307,7 @@ class GenerateControllerTest {
                 0,
                 1,
                 10,
+                icepunk_backend.model.GeneratedPackVisibility.PRIVATE,
                 OffsetDateTime.parse("2026-07-03T12:00:00Z"),
                 packDownloadUrl,
                 List.of()

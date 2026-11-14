@@ -487,6 +487,7 @@ public class GeneratedPackService {
                 pack.getPitch(),
                 pack.getOctaves(),
                 pack.getAmount(),
+                pack.getVisibility(),
                 pack.getCreatedAt(),
                 packDownloadPath(pack.getId()),
                 items.stream().map(this::toItemResponse).toList()

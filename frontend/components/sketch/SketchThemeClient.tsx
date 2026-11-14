@@ -152,7 +152,7 @@ export default function SketchThemeClient({ intro }: { intro?: ReactNode }) {
       octaves: 1,
       packName: draft.packName,
       pitch: 0,
-      publishMode: "PUBLIC",
+      publishMode: draft.publishMode,
       source: activeSourceState.source,
       tempAnalysisId: activeSourceState.tempAnalysisId,
       tempAnalysisAccessToken: activeSourceState.tempAnalysisAccessToken,

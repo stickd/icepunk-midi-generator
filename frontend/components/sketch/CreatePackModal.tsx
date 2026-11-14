@@ -8,6 +8,7 @@ import { useDialogFocus } from "@/hooks/useDialogFocus";
 export type CreatePackDraft = {
   amount: number;
   packName: string;
+  publishMode: "PUBLIC" | "PRIVATE";
   type: "melody";
 };
 
@@ -20,6 +21,7 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
   const dialogRef = useDialogFocus(onClose);
   const [amount, setAmount] = useState(10);
   const [packName, setPackName] = useState(() => generateRandomPackName());
+  const [publishMode, setPublishMode] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-xl">
@@ -96,10 +98,37 @@ export default function CreatePackModal({ onClose, onNext }: CreatePackModalProp
 
           </div>
 
-          <p className="text-xs text-ice-secondary">Up to 10 MIDI patterns per pack. Packs created while logged in are automatically published to the community feed.</p>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-medium text-ice-primary">Visibility</legend>
+            <p className="text-xs text-ice-secondary">
+              Private packs are visible only to you. Community packs show your username and MIDI metadata in the public feed.
+            </p>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-sm text-ice-secondary">
+              <input
+                checked={publishMode === "PRIVATE"}
+                name="pack-visibility"
+                onChange={() => setPublishMode("PRIVATE")}
+                type="radio"
+                value="PRIVATE"
+              />
+              <span><strong className="block text-ice-primary">Private</strong>Keep this pack out of the Community feed.</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-sm text-ice-secondary">
+              <input
+                checked={publishMode === "PUBLIC"}
+                name="pack-visibility"
+                onChange={() => setPublishMode("PUBLIC")}
+                type="radio"
+                value="PUBLIC"
+              />
+              <span><strong className="block text-ice-primary">Community</strong>Publish this pack to the public Community feed.</span>
+            </label>
+          </fieldset>
+
+          <p className="text-xs text-ice-secondary">Up to 10 MIDI patterns per pack. You can change visibility or delete a pack later from your account.</p>
           <div className="flex justify-end">
             <Button
-              onClick={() => onNext({ amount, packName, type: "melody" })}
+              onClick={() => onNext({ amount, packName, publishMode, type: "melody" })}
               type="button"
               variant="primary"
             >

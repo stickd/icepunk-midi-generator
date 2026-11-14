@@ -61,6 +61,7 @@ class GeneratedPackControllerTest {
                 0,
                 2,
                 5,
+                GeneratedPackVisibility.PUBLIC,
                 OffsetDateTime.now(),
                 "/generated-packs/" + packId + "/download",
                 List.of()
@@ -154,7 +155,7 @@ class GeneratedPackControllerTest {
 
         RenameGeneratedPackRequest request = new RenameGeneratedPackRequest("New Pack Name");
         GeneratedPackResponse packResponse = new GeneratedPackResponse(
-                packId, "New Pack Name", "FACTORY", "MELODY", 140, 0, 2, 5, OffsetDateTime.now(), "/download", List.of()
+                packId, "New Pack Name", "FACTORY", "MELODY", 140, 0, 2, 5, GeneratedPackVisibility.PUBLIC, OffsetDateTime.now(), "/download", List.of()
         );
         when(generatedPackService.renamePack(packId, testUser, "New Pack Name")).thenReturn(packResponse);
 
@@ -171,7 +172,7 @@ class GeneratedPackControllerTest {
 
         UpdateGeneratedPackVisibilityRequest request = new UpdateGeneratedPackVisibilityRequest(GeneratedPackVisibility.PRIVATE);
         GeneratedPackResponse packResponse = new GeneratedPackResponse(
-                packId, "Cold Melodies", "FACTORY", "MELODY", 140, 0, 2, 5, OffsetDateTime.now(), "/download", List.of()
+                packId, "Cold Melodies", "FACTORY", "MELODY", 140, 0, 2, 5, GeneratedPackVisibility.PRIVATE, OffsetDateTime.now(), "/download", List.of()
         );
         when(generatedPackService.updateVisibility(packId, testUser, GeneratedPackVisibility.PRIVATE)).thenReturn(packResponse);
 

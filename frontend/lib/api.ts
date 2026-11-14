@@ -3,8 +3,8 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 export const TOKEN_KEY = "icepunk_token";
 
-export function submitContentReport(body: { targetType: "GENERATED_PACK" | "UPLOAD"; targetId: string; category: string; description?: string }, token: string) {
-  return fetch(`${API_URL}/reports`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body), signal: withTimeout() });
+export function submitContentReport(body: { targetType: "GENERATED_PACK" | "UPLOAD"; targetId: string; category: string; description?: string; noticeType: "FORMAL_DSA" | "COMMUNITY"; reporterName?: string; contactEmail?: string; goodFaith: boolean }, token?: string | null) {
+  return fetch(`${API_URL}/reports`, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body), signal: withTimeout() });
 }
 
 export function normalizeAuthToken(value?: string | null) {
@@ -142,6 +142,16 @@ export type GenerateMidiResponse = {
 };
 
 export type GeneratedPackVisibility = "PUBLIC" | "PRIVATE";
+
+export type OwnedGeneratedPack = {
+  packId: string;
+  name: string;
+  source: string;
+  type: string;
+  amount: number;
+  visibility: GeneratedPackVisibility;
+  createdAt: string;
+};
 
 export type PublicGeneratedPackFeedItem = {
   packId: string;
@@ -633,6 +643,50 @@ export async function getMe(
     ...me,
     profilePictureUrl: me.profilePictureUrl ? apiUrl(me.profilePictureUrl) : null,
   };
+}
+
+/** Starts the server-side account deletion workflow. The account is immediately disabled. */
+export async function requestAccountDeletion(token: string, signal?: AbortSignal): Promise<void> {
+  const response = await fetch(`${API_URL}/account`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+    signal: withTimeout(signal),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
+}
+
+export function getMyGeneratedPacks(token: string, signal?: AbortSignal): Promise<OwnedGeneratedPack[]> {
+  return fetchJson("/users/me/generated-packs", { headers: authHeaders(token), signal });
+}
+
+export function updateGeneratedPackVisibility(
+  token: string,
+  packId: string,
+  visibility: GeneratedPackVisibility,
+  signal?: AbortSignal,
+): Promise<OwnedGeneratedPack> {
+  return fetchJson(`/generated-packs/${encodeURIComponent(packId)}/visibility`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ visibility }),
+    signal,
+  });
+}
+
+export async function deleteGeneratedPack(token: string, packId: string, signal?: AbortSignal): Promise<void> {
+  const response = await fetch(`${API_URL}/generated-packs/${encodeURIComponent(packId)}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+    signal: withTimeout(signal),
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`HTTP_${response.status}: ${message || response.statusText}`);
+  }
 }
 
 export async function uploadAvatar(

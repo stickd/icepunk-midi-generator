@@ -1,8 +1,16 @@
 "use client";
 
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Button, FieldLabel, Input, Modal } from "@/components/ui";
-import { updateProfilePictureUrl, uploadAvatar } from "@/lib/api";
+import {
+  deleteGeneratedPack,
+  getMyGeneratedPacks,
+  OwnedGeneratedPack,
+  requestAccountDeletion,
+  updateGeneratedPackVisibility,
+  updateProfilePictureUrl,
+  uploadAvatar,
+} from "@/lib/api";
 import {
   AVATAR_RING_OPTIONS,
   getProfileSettings,
@@ -17,6 +25,7 @@ type ProfileSettingsModalProps = {
   token: string | null;
   currentAvatarUrl: string | null;
   onAvatarUpdated: (url: string | null) => void;
+  onAccountDeletionRequested: () => void;
   onUpdated?: (updated: UserCustomSettings) => void;
 };
 
@@ -62,6 +71,7 @@ export default function ProfileSettingsModal({
   token,
   currentAvatarUrl,
   onAvatarUpdated,
+  onAccountDeletionRequested,
   onUpdated,
 }: ProfileSettingsModalProps) {
   const [selectedRing, setSelectedRing] = useState<string>("periwinkle");
@@ -70,6 +80,11 @@ export default function ProfileSettingsModal({
   const [statusType, setStatusType] = useState<"success" | "error">("success");
   const [isUploading, setIsUploading] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [generatedPacks, setGeneratedPacks] = useState<OwnedGeneratedPack[] | null>(null);
+  const [packActionId, setPackActionId] = useState<string | null>(null);
+  const [packDeleteConfirmationId, setPackDeleteConfirmationId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [prevOpenKey, setPrevOpenKey] = useState("");
@@ -82,6 +97,15 @@ export default function ProfileSettingsModal({
       setSelectedRing(getProfileSettings(username).auraRingId);
     }
   }
+
+  useEffect(() => {
+    if (!isOpen || !token) return;
+    const controller = new AbortController();
+    getMyGeneratedPacks(token, controller.signal)
+      .then((packs) => setGeneratedPacks(packs))
+      .catch(() => setGeneratedPacks([]));
+    return () => controller.abort();
+  }, [isOpen, token]);
 
   if (!isOpen) return null;
 
@@ -156,8 +180,55 @@ export default function ProfileSettingsModal({
     }
   }
 
+  async function handleAccountDeletion() {
+    if (!token || isDeletingAccount) return;
+    setIsDeletingAccount(true);
+    setStatusType("success");
+    setStatusMessage("Deleting account...");
+    try {
+      await requestAccountDeletion(token);
+      setStatusMessage("Your account has been disabled and deletion has started.");
+      onAccountDeletionRequested();
+    } catch (error) {
+      setStatusType("error");
+      setStatusMessage(extractErrorMessage(error, "Could not start account deletion. Please try again."));
+      setIsDeletingAccount(false);
+    }
+  }
+
+  async function handlePackVisibility(pack: OwnedGeneratedPack) {
+    if (!token || packActionId) return;
+    const visibility = pack.visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
+    setPackActionId(pack.packId);
+    try {
+      const updated = await updateGeneratedPackVisibility(token, pack.packId, visibility);
+      setGeneratedPacks((packs) => packs?.map((item) => item.packId === pack.packId ? { ...item, visibility: updated.visibility } : item) ?? null);
+    } catch (error) {
+      setStatusType("error");
+      setStatusMessage(extractErrorMessage(error, "Could not change pack visibility."));
+    } finally {
+      setPackActionId(null);
+    }
+  }
+
+  async function handlePackDeletion(packId: string) {
+    if (!token || packActionId) return;
+    setPackActionId(packId);
+    try {
+      await deleteGeneratedPack(token, packId);
+      setGeneratedPacks((packs) => packs?.filter((pack) => pack.packId !== packId) ?? null);
+      setPackDeleteConfirmationId(null);
+    } catch (error) {
+      setStatusType("error");
+      setStatusMessage(extractErrorMessage(error, "Could not delete this pack."));
+    } finally {
+      setPackActionId(null);
+    }
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Profile Settings">
+      <a href="/moderation" className="block p-2 underline">Moderation decisions and appeals</a>
       <div className="grid gap-6 py-2">
         {/* Avatar Preview & Image Upload Section */}
         <div className="grid gap-3">
@@ -267,6 +338,56 @@ export default function ProfileSettingsModal({
             </div>
           </div>
         </div>
+
+        <section className="grid gap-3 border-t border-white/[0.06] pt-5" aria-labelledby="midi-packs-title">
+          <div>
+            <h3 className="text-sm font-semibold text-ice-primary" id="midi-packs-title">Your generated MIDI packs</h3>
+            <p className="mt-1 text-xs text-ice-secondary">Publish or hide a pack at any time. Public packs are shown in Community.</p>
+          </div>
+          {generatedPacks === null ? <p className="text-xs text-ice-muted">Loading packs...</p> : generatedPacks.length === 0 ? (
+            <p className="text-xs text-ice-muted">No generated packs yet.</p>
+          ) : (
+            <div className="grid max-h-52 gap-2 overflow-y-auto pr-1">
+              {generatedPacks.map((pack) => (
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3" key={pack.packId}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0"><p className="truncate text-sm text-ice-primary">{pack.name}</p><p className="text-xs text-ice-muted">{pack.visibility === "PUBLIC" ? "Community" : "Private"}</p></div>
+                    <Button disabled={Boolean(packActionId)} onClick={() => handlePackVisibility(pack)} size="sm" type="button" variant="secondary">
+                      {packActionId === pack.packId ? "Saving..." : pack.visibility === "PUBLIC" ? "Make private" : "Publish"}
+                    </Button>
+                  </div>
+                  {packDeleteConfirmationId === pack.packId ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2"><span className="w-full text-xs text-red-200">Delete this MIDI pack permanently?</span><Button disabled={Boolean(packActionId)} onClick={() => handlePackDeletion(pack.packId)} size="sm" type="button" variant="ghost">Delete</Button><Button disabled={Boolean(packActionId)} onClick={() => setPackDeleteConfirmationId(null)} size="sm" type="button" variant="secondary">Cancel</Button></div>
+                  ) : <button className="mt-3 text-xs text-red-300 hover:text-red-200" onClick={() => setPackDeleteConfirmationId(pack.packId)} type="button">Delete pack</button>}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="grid gap-3 border-t border-red-400/20 pt-5" aria-labelledby="delete-account-title">
+          <div>
+            <h3 className="text-sm font-semibold text-red-300" id="delete-account-title">Delete account</h3>
+            <p className="mt-1 text-xs leading-5 text-ice-secondary">
+              This immediately disables your account, hides your public content, and starts deletion of your profile, MIDI packs, uploads and stored files. Backups are removed on their normal retention cycle.
+            </p>
+          </div>
+          {deleteConfirmationOpen ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/[0.06] p-3">
+              <p className="w-full text-xs text-red-100">This cannot be undone. Start deleting this account?</p>
+              <Button disabled={isDeletingAccount} onClick={handleAccountDeletion} size="sm" type="button" variant="ghost">
+                {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
+              </Button>
+              <Button disabled={isDeletingAccount} onClick={() => setDeleteConfirmationOpen(false)} size="sm" type="button" variant="secondary">
+                Keep account
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setDeleteConfirmationOpen(true)} size="sm" type="button" variant="ghost">
+              Delete account
+            </Button>
+          )}
+        </section>
 
         {statusMessage ? (
           <p className={`text-center text-xs font-medium ${statusType === "error" ? "text-red-400" : "text-emerald-400"}`}>

@@ -15,9 +15,10 @@ type ProfileHeaderProps = {
   isOwnProfile: boolean;
   token: string | null;
   onAvatarUpdated?: (url: string | null) => void;
+  onAccountDeletionRequested: () => void;
 };
 
-export default function ProfileHeader({ profile, isOwnProfile, token, onAvatarUpdated }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, isOwnProfile, token, onAvatarUpdated, onAccountDeletionRequested }: ProfileHeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile.profilePictureUrl);
   const [imgError, setImgError] = useState(false);
@@ -135,6 +136,7 @@ export default function ProfileHeader({ profile, isOwnProfile, token, onAvatarUp
           currentAvatarUrl={avatarUrl}
           isOpen={isSettingsOpen}
           onAvatarUpdated={handleAvatarUpdate}
+          onAccountDeletionRequested={onAccountDeletionRequested}
           onClose={() => setIsSettingsOpen(false)}
           onUpdated={(updated) => setCustomSettings(updated)}
           token={token}
